@@ -1,0 +1,2 @@
+This directory holds system and user binaries.
+Bluejay.iso will be built here.
