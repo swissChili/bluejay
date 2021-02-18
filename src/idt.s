@@ -61,10 +61,10 @@ ISRNOERR 31
 isr_common:
 	pusha						; Save all registers
 
-	mov ax, ds
+	mov ax, ds					; Save data segment
 	push eax
 
-	mov ax, 0x10
+	mov ax, 0x10 				; New segments
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
@@ -72,7 +72,7 @@ isr_common:
 
 	call isr_handler
 
-	pop eax
+	pop eax						; Reset segments
 	mov ds, ax
 	mov es, ax
 	mov fs, ax

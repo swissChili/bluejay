@@ -93,11 +93,12 @@ void vga_putd(uint d)
 	memset(str, 0, 48);
 	uint i = 0;
 
-	while (d > 0 && i < 48) // should never be more than 48 digits anyway
+	do
 	{
 		str[i++] = (d % 10) + '0';
 		d /= 10;
 	}
+	while (d > 0 && i < 48); // should never be more than 48 digits anyway
 
 	for (uint j = i; j; j--)
 	{

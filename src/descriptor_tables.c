@@ -1,6 +1,7 @@
 #include "descriptor_tables.h"
 #include "vga.h"
 #include "io.h"
+#include "log.h"
 #include "pic.h"
 
 extern void gdt_flush(uint gdt);
@@ -65,13 +66,16 @@ void init_idt()
 
 	memset(&idt_entries, 0, sizeof(idt_entries));
 
-	vga_write("sizeof(idt_entries) = ");
-	vga_putx(sizeof(idt_entries));
-	vga_put('\n');
+	// Remap PIC
+	pic_remap();
 
-	vga_write("isr0 = ");
-	vga_putx((uint)isrs[0]);
-	vga_put('\n');
+	vga_set_color(CYAN, BLACK);
+	for (int i = 0; i < 16; i++)
+	{
+		kprintf("Setting gate irq=%d,\tint=%d\n", i, IRQ_TO_INT(i));
+		idt_set_gate(IRQ_TO_INT(i), (uint)irqs[i], 0x08, 0x8e);
+	}
+	vga_set_color(WHITE, BLACK);
 
 	for (int i = 0; i < 32; i++)
 	{
@@ -79,25 +83,6 @@ void init_idt()
 	}
 
 	idt_flush((uint)&idt_pointer);
-
-	// Remap PIC
-	
-	outb(PIC1_COMMAND, 0x11);
-	outb(PIC2_COMMAND, 0x11);
-
-	outb(PIC1_DATA, 0x20);
-	outb(PIC2_DATA, 0x28);
-	outb(PIC1_DATA, 0x04);
-	outb(PIC2_DATA, 0x02);
-	outb(PIC1_DATA, 0x01);
-	outb(PIC2_DATA, 0x01);
-	outb(PIC1_DATA, 0);
-	outb(PIC2_DATA, 0);
-
-	for (int i = 0; i < 16; i++)
-	{
-		idt_set_gate(i + 32, (uint)irqs[i], 0x08, 0x8e);
-	}
 
 	vga_write("IDT Initialized!\n");
 }

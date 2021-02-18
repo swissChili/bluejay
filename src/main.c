@@ -1,6 +1,8 @@
 #include "vga.h"
 #include "log.h"
+#include "io.h"
 #include "descriptor_tables.h"
+#include "timer.h"
 
 int kmain(void *mboot)
 {
@@ -15,7 +17,9 @@ int kmain(void *mboot)
 	vga_write("Setup complete!\n");
 	vga_set_color(WHITE, BLACK);
 
-	kassert(0, "should fail");
+	asm volatile("sti");
+
+	init_timer(50);
 
 	while (1)
 	{}
