@@ -11,5 +11,7 @@ struct registers
 
 void isr_handler(struct registers regs)
 {
-	vga_write("Interrupt triggered\n");
+	vga_write("Interrupt triggered! ");
+	vga_putx(regs.interrupt_number);
+	vga_write("\n");
 }

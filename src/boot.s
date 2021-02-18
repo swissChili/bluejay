@@ -27,11 +27,11 @@ mboot:
 	dd  start
 
 	[global start]
-	[extern main]				; C code
+	[extern kmain]				; C code
 
 start:
 	push ebx					; Holds multiboot header location
 
 	cli
-	call main
+	call kmain
 	jmp $

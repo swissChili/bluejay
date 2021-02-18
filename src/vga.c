@@ -1,5 +1,6 @@
 #include "vga.h"
 #include "mem.h"
+#include "log.h"
 
 static uint cursor_x = 0;
 static uint cursor_y = 0;
@@ -88,24 +89,44 @@ void vga_write(char *c)
 
 void vga_putd(uint d)
 {
-	
+	char str[48];
+	memset(str, 0, 48);
+	uint i = 0;
+
+	while (d > 0 && i < 48) // should never be more than 48 digits anyway
+	{
+		str[i++] = (d % 10) + '0';
+		d /= 10;
+	}
+
+	for (uint j = i; j; j--)
+	{
+		vga_put(str[j - 1]);
+	}
 }
 
-static void vga_put_nibble(uchar n)
+static bool vga_put_nibble(uchar n, bool first)
 {
+	if (first && n == 0)
+		return true;
+	
 	if (n <= 9)
 		vga_put('0' + n);
 	else
 		vga_put('A' + n - 10);
+
+	return false;
 }
 
 void vga_putx(uint x)
 {
+	bool first = true;
+
 	for (uint mask = 0xFF000000, shift = 24; mask; mask >>= 8, shift -= 8)
 	{
 		uchar byte = (x & mask) >> shift;
 
-		vga_put_nibble((byte & 0xf0) >> 8);
-		vga_put_nibble(byte & 0x0f);
+		first = vga_put_nibble((byte & 0xf0) >> 8, first);
+		first = vga_put_nibble(byte & 0x0f, first);
 	}
 }

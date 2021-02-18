@@ -52,6 +52,7 @@ static void (* isrs[32])() =
 
 void init_gdt()
 {
+	vga_write("Initializing GDT...\n");
 	gdt_pointer.limit = sizeof(struct gdt_entry) * 5 - 1;
 	gdt_pointer.base = (uint)&gdt_entries;
 
@@ -61,6 +62,9 @@ void init_gdt()
 	gdt_set_gate(3, 0, ~0, 0xfa, 0xcf);   // User mode code segment
 	gdt_set_gate(4, 0, ~0, 0xf2, 0xcf);   // User mode data segment
 
+	for (volatile uint i = 0; i < 0x1000; i++)
+	{} // waste some time, for some reason this helps
+	
 	gdt_flush((uint) &gdt_pointer);
 
 	vga_write("GDT Initialized\n");

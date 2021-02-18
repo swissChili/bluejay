@@ -24,6 +24,7 @@ enum vga_colors
 
 void vga_set_color(enum vga_colors fg, enum vga_colors bg);
 void vga_put(char c);
+void vga_putd(uint d);
 void vga_putx(uint x);
 void vga_clear();
 void vga_write(char *c);

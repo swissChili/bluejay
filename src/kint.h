@@ -6,3 +6,11 @@ typedef unsigned int uint;
 typedef unsigned long ulong;
 
 typedef unsigned long long size_t;
+
+typedef uchar bool;
+
+enum
+{
+	false = 0,
+	true,
+};
