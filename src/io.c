@@ -1,4 +1,4 @@
-#include "mem.h"
+#include "io.h"
 
 
 void outb(ushort port, uchar val)
@@ -34,4 +34,9 @@ void *memcpy(void *dest, const void *src, size_t n)
 	{
 		((uchar *)dest)[i] = ((uchar *)src)[i];
 	}
+}
+
+void io_wait()
+{
+	asm volatile("outb %0, $0x80" :: "a"(0));
 }

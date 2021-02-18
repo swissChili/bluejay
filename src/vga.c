@@ -1,5 +1,5 @@
 #include "vga.h"
-#include "mem.h"
+#include "io.h"
 #include "log.h"
 
 static uint cursor_x = 0;

@@ -1,4 +1,14 @@
-SOURCES = boot.o main.o descriptor_tables.o mem.o vga.o gdt_flush.o idt.o interrupts.o log.o
+SOURCES = 	boot.o \
+			main.o \
+			descriptor_tables.o \
+			io.o \
+			vga.o \
+			gdt_flush.o \
+			idt.o \
+			interrupts.o \
+			log.o \
+			irq.o \
+			pic.o
 CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding -m32 -O2 -g
 LDFLAGS = -Tlink.ld -melf_i386
 ASMFLAGS = -felf
