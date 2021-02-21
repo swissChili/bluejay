@@ -5,14 +5,16 @@ SOURCES = 	boot.o \
 			vga.o \
 			gdt_flush.o \
 			idt.o \
-			interrupts.o \
 			log.o \
 			irq.o \
 			pic.o \
-			timer.o
+			timer.o \
+			paging.o \
+			switch_table.o
 CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding -m32 -O2 -g
 LDFLAGS = -Tlink.ld -melf_i386
 ASMFLAGS = -felf
+QEMUFLAGS = -d cpu_reset
 
 kernel.elf: $(SOURCES)
 	ld $(LDFLAGS) -o $@ $^
@@ -27,10 +29,10 @@ debug: kernel.elf
 	@pkill qemu-system-i38
 
 qemu: kernel.elf
-	qemu-system-i386 -monitor stdio -kernel kernel.elf
+	qemu-system-i386 $(QEMUFLAGS) -monitor stdio -kernel kernel.elf -no-reboot
 
 qemu-iso: install
-	qemu-system-i386 -monitor stdio ../bin/bluejay.iso
+	qemu-system-i386 $(QEMUFLAGS) -monitor stdio ../bin/bluejay.iso
 
 .s.o:
 	nasm $(ASMFLAGS) $<

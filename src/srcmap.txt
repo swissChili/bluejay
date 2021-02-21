@@ -1,0 +1,17 @@
++------------+
+| Source map |
++------------+
+
+
+Source File          Description
+----------------------------------------------------------------
+io.c                 low level memory management stuff, io utils
+log.c                logging, panics, assert, etc
+vga.c                vga drivers
+timer.c              sets up interrupt timer
+descriptor_tables.c  sets up IDT and GDT
+paging.c             sets up paging
+pic.c                IRQ handler
+interrupts.c         ISR handler
+boot.s               calls kmain
+main.c               entry point

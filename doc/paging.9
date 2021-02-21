@@ -1,0 +1,34 @@
+.\" Kernel paging docs, largely as a reference for myself.
+.TH paging 9 "18 February 2021" "1" "Paging"
+.SH NAME
+Paging - kernel memory paging overview
+.SH SYNOPSIS
+Paging allows the kernel to map arbitrary virtual memory addresses to
+locations in physical memory.
+.SH DESCRIPTION
+On x86 each page is fixed at 4kb.  Mapping each 4kb page for the
+entire memory takes a lot of space, so instead,
+.B
+page directories
+.NB
+and
+.B
+page tables
+.NB
+are used.  The kernel stores one or more page directories, each of
+which contains 1024 pointers to page tables (which may be null), each
+of which in turn contains 1024
+.B
+page table entries
+.NB
+
+Each page table entry contains the upper 20 bits of the physical
+memory location it maps to
+.B
+(frame).
+.NB
+It also contains several flags describing if the page is readable or
+writable in user mode, as well as flags set by the CPU: such as if the
+page has been accessed or modified.
+.SH SEE ALSO
+src/paging.c, src/paging.h

@@ -1,4 +1,0 @@
-Building Bluejay
-----------------
-
-From the /src/ directory run `make', a bootable .iso file will be built into /bin

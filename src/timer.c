@@ -1,14 +1,15 @@
 #include "timer.h"
-#include "pic.h"
-#include "log.h"
-#include "registers.h"
 #include "io.h"
+#include "log.h"
+#include "pic.h"
+#include "registers.h"
 
 static ulong tick = 0;
 
 static void timer_cb(struct registers regs)
 {
-	kprintf("Timer tick %d\n", tick++);
+	if (++tick % 100 == 0)
+		kprintf("Timer tick %d\n", tick);
 }
 
 void init_timer(uint hz)
@@ -21,8 +22,7 @@ void init_timer(uint hz)
 
 	outb(0x43, 0x36);
 	io_wait();
-	uchar l = divisor & 0xff,
-		h = (divisor >> 8) & 0xff;
+	uchar l = divisor & 0xff, h = (divisor >> 8) & 0xff;
 
 	outb(0x40, l);
 	io_wait();

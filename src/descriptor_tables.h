@@ -8,35 +8,32 @@ struct gdt_entry
 	ushort base_low;
 	uchar base_middle;
 
-	union
-	{
+	union {
 		struct
 		{
-			uint a_p    : 1;
-			uint a_dpl  : 2;
-			uint a_dt   : 1;
+			uint a_p : 1;
+			uint a_dpl : 2;
+			uint a_dt : 1;
 			uint a_type : 4;
 		} __attribute__((packed));
 
 		uchar access;
 	};
 
-	union
-	{
+	union {
 		struct
 		{
-			uint g_g    : 1;
-			uint g_d    : 1;
+			uint g_g : 1;
+			uint g_d : 1;
 			uint g_zero : 2; /* includes A */
-			uint g_len  : 4;
+			uint g_len : 4;
 		} __attribute__((packed));
-		
+
 		uchar granularity;
 	};
 
 	uchar base_high;
 } __attribute__((packed));
-
 
 struct gdt_pointer
 {
@@ -52,18 +49,17 @@ struct idt_entry
 	ushort selector;
 	uchar zero;
 
-	union
-	{
+	union {
 		struct
 		{
-			uchar f_p     : 1;
-			uchar f_dpl   : 2;
+			uchar f_p : 1;
+			uchar f_dpl : 2;
 			uchar f_const : 5;
 		} __attribute__((packed));
-		
+
 		uchar flags;
 	};
-	
+
 	ushort base_high;
 } __attribute__((packed));
 
@@ -124,7 +120,6 @@ extern void irq12();
 extern void irq13();
 extern void irq14();
 extern void irq15();
-
 
 void init_descriptor_tables();
 void init_idt();

@@ -44,14 +44,14 @@ typedef __builtin_va_list __gnuc_va_list;
    if this invocation was from the user program.  */
 #ifdef _STDARG_H
 
-#define va_start(v,l)	__builtin_va_start(v,l)
-#define va_end(v)	__builtin_va_end(v)
-#define va_arg(v,l)	__builtin_va_arg(v,l)
-#if !defined(__STRICT_ANSI__) || __STDC_VERSION__ + 0 >= 199900L \
-    || __cplusplus + 0 >= 201103L
-#define va_copy(d,s)	__builtin_va_copy(d,s)
+#define va_start(v, l) __builtin_va_start(v, l)
+#define va_end(v) __builtin_va_end(v)
+#define va_arg(v, l) __builtin_va_arg(v, l)
+#if !defined(__STRICT_ANSI__) || __STDC_VERSION__ + 0 >= 199900L ||            \
+	__cplusplus + 0 >= 201103L
+#define va_copy(d, s) __builtin_va_copy(d, s)
 #endif
-#define __va_copy(d,s)	__builtin_va_copy(d,s)
+#define __va_copy(d, s) __builtin_va_copy(d, s)
 
 /* Define va_list, if desired, from __gnuc_va_list. */
 /* We deliberately do not define va_list when called from
@@ -81,13 +81,15 @@ typedef __gnuc_va_list va_list;
 #define __VA_LIST
 #endif
 #endif /* _VA_LIST_ */
-#else /* not __svr4__ || _SCO_DS */
+#else  /* not __svr4__ || _SCO_DS */
 
 /* The macro _VA_LIST_ is the same thing used by this file in Ultrix.
    But on BSD NET2 we must not test or define or undef it.
    (Note that the comments in NET 2's ansi.h
    are incorrect for _VA_LIST_--see stdio.h!)  */
-#if !defined (_VA_LIST_) || defined (__BSD_NET2__) || defined (____386BSD____) || defined (__bsdi__) || defined (__sequent__) || defined (__FreeBSD__) || defined(WINNT)
+#if !defined(_VA_LIST_) || defined(__BSD_NET2__) || defined(____386BSD____) || \
+	defined(__bsdi__) || defined(__sequent__) || defined(__FreeBSD__) ||       \
+	defined(WINNT)
 /* The macro _VA_LIST_DEFINED is used in Windows NT 3.5  */
 #ifndef _VA_LIST_DEFINED
 /* The macro _VA_LIST is used in SCO Unix 3.2.  */
@@ -101,7 +103,8 @@ typedef __gnuc_va_list va_list;
 #endif /* not _VA_LIST_T_H */
 #endif /* not _VA_LIST */
 #endif /* not _VA_LIST_DEFINED */
-#if !(defined (__BSD_NET2__) || defined (____386BSD____) || defined (__bsdi__) || defined (__sequent__) || defined (__FreeBSD__))
+#if !(defined(__BSD_NET2__) || defined(____386BSD____) || defined(__bsdi__) || \
+	  defined(__sequent__) || defined(__FreeBSD__))
 #define _VA_LIST_
 #endif
 #ifndef _VA_LIST

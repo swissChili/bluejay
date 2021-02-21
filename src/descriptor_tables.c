@@ -1,13 +1,14 @@
 #include "descriptor_tables.h"
-#include "vga.h"
 #include "io.h"
 #include "log.h"
 #include "pic.h"
+#include "vga.h"
 
 extern void gdt_flush(uint gdt);
 extern void idt_flush(uint idt);
 
-static void gdt_set_gate(uint i, uint base, uint limit, uchar access, uchar gran);
+static void gdt_set_gate(uint i, uint base, uint limit, uchar access,
+						 uchar gran);
 static void idt_set_gate(uchar num, uint base, ushort selector, uchar flags);
 
 struct gdt_entry gdt_entries[5];
@@ -17,13 +18,15 @@ struct idt_entry idt_entries[256];
 struct idt_pointer idt_pointer;
 
 static void (*isrs[32])() = {
-    isr0,  isr1,  isr2,  isr3,  isr4,  isr5,  isr6,  isr7,  isr8,  isr9,  isr10,
-    isr11, isr12, isr13, isr14, isr15, isr16, isr17, isr18, isr19, isr20, isr21,
-    isr22, isr23, isr24, isr25, isr26, isr27, isr28, isr29, isr30, isr31};
+	isr0,  isr1,  isr2,	 isr3,	isr4,  isr5,  isr6,	 isr7,	isr8,  isr9,  isr10,
+	isr11, isr12, isr13, isr14, isr15, isr16, isr17, isr18, isr19, isr20, isr21,
+	isr22, isr23, isr24, isr25, isr26, isr27, isr28, isr29, isr30, isr31};
 
-static void (*irqs[16])() = {irq0,  irq1,  irq2,  irq3, irq4,  irq5,
-                             irq6,  irq7,  irq8,  irq9, irq10, irq11,
-                             irq12, irq13, irq14, irq15};
+static void (*irqs[16])() = {irq0,	irq1,  irq2,  irq3, irq4,  irq5,
+							 irq6,	irq7,  irq8,  irq9, irq10, irq11,
+							 irq12, irq13, irq14, irq15};
+
+extern void (*interrupt_handlers[256])(struct registers);
 
 void init_gdt()
 {
@@ -31,21 +34,23 @@ void init_gdt()
 	gdt_pointer.limit = sizeof(struct gdt_entry) * 5 - 1;
 	gdt_pointer.base = (uint)&gdt_entries;
 
-	gdt_set_gate(0, 0, 0, 0, 0);          // Null segment
-	gdt_set_gate(1, 0, ~0, 0x9a, 0xcf);   // Code segment
-	gdt_set_gate(2, 0, ~0, 0x92, 0xcf);   // Data segment
-	gdt_set_gate(3, 0, ~0, 0xfa, 0xcf);   // User mode code segment
-	gdt_set_gate(4, 0, ~0, 0xf2, 0xcf);   // User mode data segment
+	gdt_set_gate(0, 0, 0, 0, 0);		// Null segment
+	gdt_set_gate(1, 0, ~0, 0x9a, 0xcf); // Code segment
+	gdt_set_gate(2, 0, ~0, 0x92, 0xcf); // Data segment
+	gdt_set_gate(3, 0, ~0, 0xfa, 0xcf); // User mode code segment
+	gdt_set_gate(4, 0, ~0, 0xf2, 0xcf); // User mode data segment
 
 	for (volatile uint i = 0; i < 0x1000; i++)
-	{} // waste some time, for some reason this helps
-	
-	gdt_flush((uint) &gdt_pointer);
+	{
+	} // waste some time, for some reason this helps
+
+	gdt_flush((uint)&gdt_pointer);
 
 	vga_write("GDT Initialized\n");
 }
 
-static void gdt_set_gate(uint i, uint base, uint limit, uchar access, uchar gran)
+static void gdt_set_gate(uint i, uint base, uint limit, uchar access,
+						 uchar gran)
 {
 	struct gdt_entry *e = &gdt_entries[i];
 
@@ -72,7 +77,6 @@ void init_idt()
 	vga_set_color(CYAN, BLACK);
 	for (int i = 0; i < 16; i++)
 	{
-		kprintf("Setting gate irq=%d,\tint=%d\n", i, IRQ_TO_INT(i));
 		idt_set_gate(IRQ_TO_INT(i), (uint)irqs[i], 0x08, 0x8e);
 	}
 	vga_set_color(WHITE, BLACK);
@@ -103,4 +107,5 @@ void init_descriptor_tables()
 {
 	init_gdt();
 	init_idt();
+	memset(interrupt_handlers, 0, sizeof(interrupt_handlers));
 }

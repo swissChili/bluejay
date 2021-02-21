@@ -1,0 +1,4 @@
+---
+BasedOnStyle: Microsoft
+UseTab: Always
+ColumnLimit: 80

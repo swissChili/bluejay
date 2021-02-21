@@ -4,8 +4,8 @@
 	[global irq%1]
 irq%1:
 	cli
-	push byte 0 				; Error code
-	push byte %2				; Interrupt number
+	push 0		 				; Error code
+	push %2						; Interrupt number
 	jmp irq_common
 %endmacro
 

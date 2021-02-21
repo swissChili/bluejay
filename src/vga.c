@@ -51,7 +51,7 @@ void vga_put(char c)
 			cursor_x--;
 		break;
 	case '\t':
-		cursor_x = (cursor_x + 8) & ~ 7;
+		cursor_x = (cursor_x + 8) & ~7;
 		break;
 	case '\n':
 		cursor_y++;
@@ -97,8 +97,7 @@ void vga_putd(uint d)
 	{
 		str[i++] = (d % 10) + '0';
 		d /= 10;
-	}
-	while (d > 0 && i < 48); // should never be more than 48 digits anyway
+	} while (d > 0 && i < 48); // should never be more than 48 digits anyway
 
 	for (uint j = i; j; j--)
 	{
@@ -108,9 +107,9 @@ void vga_putd(uint d)
 
 static bool vga_put_nibble(uchar n, bool first)
 {
-	if (first && n == 0)
-		return true;
-	
+//	if (first && n == 0)
+//		return true;
+
 	if (n <= 9)
 		vga_put('0' + n);
 	else
@@ -121,13 +120,13 @@ static bool vga_put_nibble(uchar n, bool first)
 
 void vga_putx(uint x)
 {
-	bool first = true;
+	bool first = false;
 
-	for (uint mask = 0xFF000000, shift = 24; mask; mask >>= 8, shift -= 8)
+	for (int shift = 24; shift >= 0; shift -= 8)
 	{
-		uchar byte = (x & mask) >> shift;
+		uchar byte = x >> shift;
 
-		first = vga_put_nibble((byte & 0xf0) >> 8, first);
+		first = vga_put_nibble((byte & 0xf0) >> 4, first);
 		first = vga_put_nibble(byte & 0x0f, first);
 	}
 }

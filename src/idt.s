@@ -10,8 +10,8 @@ idt_flush:
 	[global isr%1]
 isr%1:
 	cli
-	push byte 0
-	push byte %1
+	push 0
+	push %1
 	jmp isr_common
 %endmacro
 
