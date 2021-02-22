@@ -7,7 +7,7 @@ static uint cursor_y = 0;
 
 static ushort color = WHITE;
 
-static ushort *fb = (ushort *)0xB8000;
+static ushort *fb = (ushort *)(0xB8000 + 0xC0000000);
 
 static void move_cursor()
 {

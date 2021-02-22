@@ -44,8 +44,8 @@ scan_codes.c: gen_scan_codes.py scan_codes.tsv
 	nasm $(ASMFLAGS) $<
 
 install: kernel.elf
-	cp kernel.elf ../boot/
+	cp kernel.elf $(JAYROOT)/boot/
 	rm -f $(JAYROOT)/bin/bluejay.iso
-	grub-mkrescue -o $(JAYROOT)/bin/bluejay.iso ..
+	grub-mkrescue -o $(JAYROOT)/bin/bluejay.iso $(JAYROOT)
 
 .PHONY: install qemu clean qemu-iso debug

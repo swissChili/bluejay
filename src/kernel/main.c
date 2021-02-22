@@ -7,6 +7,8 @@
 
 int kmain(void *mboot)
 {
+//	initialize_paging();
+
 	vga_clear();
 	vga_set_color(LIGHT_BLUE, BLACK);
 	vga_write("Hello!\nWelcome to Bluejay OS\n");
@@ -20,7 +22,6 @@ int kmain(void *mboot)
 
 	init_timer(20);
 
-	initialize_paging();
 	init_kbd();
 	asm volatile("sti");
 

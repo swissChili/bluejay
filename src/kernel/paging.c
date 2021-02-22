@@ -127,8 +127,6 @@ void initialize_paging()
 
 	page_directory[0] = (uint *) (((size_t) (uint *) first_page_table) | 3);
 
-	kprintf("Set up page directory[0], %x\n", (uint)first_page_table);
-
 	load_page_directory((uint) page_directory);
 	enable_paging();
 

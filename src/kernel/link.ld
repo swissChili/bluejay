@@ -1,26 +1,29 @@
 ENTRY(start)
 SECTIONS
 {
-    .text 0x100000 :
+    . = 0xC0100000;
+
+    kernel_virtual_start = .;
+    kernel_physical_start = . - 0xC0000000;
+
+
+    .text ALIGN(4096) : AT(ADDR(.text) - 0xC0000000)
     {
         code = .; _code = .; __code = .;
         *(.text)
-        . = ALIGN(4096);
     }
 
-    .data :
+    .data ALIGN(4096) : AT(ADDR(.data) - 0xC0000000)
     {
         data = .; _data = .; __data = .;
         *(.data)
         *(.rodata)
-        . = ALIGN(4096);
     }
 
-    .bss :
+    .bss ALIGN(4096) : AT(ADDR(.bss) - 0xC0000000)
     {
         bss = .; _bss = .; __bss = .;
         *(.bss)
-        . = ALIGN(4096);
     }
 
     end = .; _end = .; __end = .;
