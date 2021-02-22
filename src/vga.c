@@ -49,6 +49,7 @@ void vga_put(char c)
 	case '\b':
 		if (cursor_x > 0)
 			cursor_x--;
+		fb[cursor_y * 80 + cursor_x] = ' ' | (color << 8);
 		break;
 	case '\t':
 		cursor_x = (cursor_x + 8) & ~7;
@@ -59,8 +60,8 @@ void vga_put(char c)
 		cursor_x = 0;
 		break;
 	default:
-		cursor_x++;
 		fb[cursor_y * 80 + cursor_x] = c | (color << 8);
+		cursor_x++;
 	}
 
 	if (cursor_x >= 80) // off screen

@@ -6,10 +6,9 @@
 
 static ulong tick = 0;
 
-static void timer_cb(struct registers regs)
+static void timer_cb(struct registers *regs)
 {
-	if (++tick % 100 == 0)
-		kprintf("Timer tick %d\n", tick);
+	// do nothing :)
 }
 
 void init_timer(uint hz)

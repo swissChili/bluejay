@@ -1,4 +1,17 @@
 #include "io.h"
+#include "kbd.h"
+#include "log.h"
+#include "pic.h"
+
+bool pressed_keys[LAST_KBD_KEY];
+char special_key_mappings[LAST_KBD_KEY - FIRST_KBD_KEY] =
+{
+	[KBD_ENTER - FIRST_KBD_KEY] = '\n',
+	[KBD_SPACEBAR - FIRST_KBD_KEY] = ' ',
+	[KBD_TAB - FIRST_KBD_KEY] = '\t',
+	[KBD_BACKSPACE - FIRST_KBD_KEY] = '\b',
+	0
+};
 
 void outb(ushort port, uchar val)
 {
@@ -40,4 +53,39 @@ void *memcpy(void *dest, const void *src, size_t n)
 void io_wait()
 {
 	asm volatile("outb %0, $0x80" ::"a"(0));
+}
+
+uchar kbd_scan_code()
+{
+	return inb(KBD_DATA_PORT);
+}
+
+static bool kbd_shift_pressed()
+{
+	return pressed_keys[KBD_LEFT_SHIFT] || pressed_keys[KBD_RIGHT_SHIFT] ||
+		   pressed_keys[KBD_CAPS_LOCK];
+}
+
+void kbd_handle_input(struct registers *registers)
+{
+	uchar byte = kbd_scan_code();
+
+	struct kbd_scan_codes code = scan_code_set_1[byte];
+
+	if (code.ascii && !code.brk)
+	{
+		kprintf("%c", kbd_shift_pressed() && code.up_symbol ? code.up_symbol
+															: code.symbol);
+	}
+	else if (!code.brk && special_key_mappings[code.symbol - FIRST_KBD_KEY])
+	{
+		kprintf("%c", special_key_mappings[code.symbol - FIRST_KBD_KEY]);
+	}
+	pressed_keys[code.symbol] = !code.brk;
+}
+
+void init_kbd()
+{
+	memset(pressed_keys, 0, LAST_KBD_KEY);
+	add_interrupt_handler(33, kbd_handle_input);
 }

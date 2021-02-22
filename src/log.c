@@ -34,6 +34,12 @@ void kprintf(const char *format, ...)
 				vga_write(s);
 				break;
 			}
+
+			case 'c': {
+				char s = va_arg(args, int);
+				vga_put(s);
+				break;
+			}
 			}
 			format++;
 		}

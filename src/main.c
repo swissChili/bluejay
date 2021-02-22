@@ -21,6 +21,7 @@ int kmain(void *mboot)
 	init_timer(20);
 
 	initialize_paging();
+	init_kbd();
 	asm volatile("sti");
 
 

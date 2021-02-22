@@ -10,7 +10,8 @@ SOURCES = 	boot.o \
 			pic.o \
 			timer.o \
 			paging.o \
-			switch_table.o
+			switch_table.o \
+			scan_codes.o
 CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding -m32 -O2 -g
 LDFLAGS = -Tlink.ld -melf_i386
 ASMFLAGS = -felf
@@ -33,6 +34,9 @@ qemu: kernel.elf
 
 qemu-iso: install
 	qemu-system-i386 $(QEMUFLAGS) -monitor stdio ../bin/bluejay.iso
+
+scan_codes.c: gen_scan_codes.py scan_codes.tsv 
+	python3 $< > $@
 
 .s.o:
 	nasm $(ASMFLAGS) $<
