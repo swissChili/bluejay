@@ -12,9 +12,7 @@ static uint *frames;
 static ulong num_frames;
 
 static uint first_page_table[1024] __attribute__((aligned(4096)));
-static uint *page_directory[1024] __attribute__((aligned(4096)));
-
-static uint ***current_directory;
+static uint page_directory[1024] __attribute__((aligned(4096)));
 
 void *_kmalloc(size_t size, bool align, void **phys)
 {
@@ -111,25 +109,27 @@ void free_frame(uint page)
 	clear_frame(page / 0x1000);
 }
 
+void map_4mb(size_t virt_start, size_t phys_start, bool user, bool rw)
+{
+	uint page = virt_start / 0x1000;
+	uint table = virt_start >> 22;
+
+	for (uint i = 0; i < 1024 * 0x1000; i += 0x1000)
+	{
+		set_frame(page + i);
+	}
+
+	page_directory[table] = 0b10000011;
+}
+
 /* paging stuff */
 
-void initialize_paging()
+void init_paging()
 {
-	for (int i = 0; i < 1024; i++)
-	{
-		page_directory[i] = (uint *) 0b010; // kernel, rw, not present
-	}
+	memset(page_directory, 0, 1024 * 4);
+	page_directory[KERNEL_PAGE_NUMBER] = 0b10000011;
 
-	for (int i = 0; i < 1024; i++)
-	{
-		first_page_table[i] = (i * 0x1000) | 3;
-	}
-
-	page_directory[0] = (uint *) (((size_t) (uint *) first_page_table) | 3);
-
-	load_page_directory((uint) page_directory);
-	enable_paging();
-
+	load_page_directory((uint)page_directory - 0xC0000000);
 	add_interrupt_handler(14, page_fault);
 }
 

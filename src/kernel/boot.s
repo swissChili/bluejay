@@ -18,9 +18,9 @@ STACK_SIZE equ 0x4000
 
 	[section .data align = 0x1000]
 page_directory:	
-	dd 0b010000011		; Identity map first 4 megs
+	dd 0b010000011				; Identity map first 4 megs
 	times (KERNEL_PAGE_NUMBER - 1) dd 0
-	dd 0b010000011 ; Map kernel memory to zero page too 
+	dd 0b010000011 				; Map kernel memory to zero page too 
 	times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0
 
 	[bits 32]
@@ -66,10 +66,14 @@ in_higher_half:
 
 	mov esp, (stack + STACK_SIZE)
 	
-	push ebx					; Holds multiboot header location, PHYSICAL addr
+	add ebx, 0xC0000000			; Translate to virtual address
+	push ebx					; Holds multiboot header location
 	call kmain
-	jmp $
 
+.end:
+	hlt
+	jmp .end
+	
 
 	[section .bss align = 32]
 stack:
