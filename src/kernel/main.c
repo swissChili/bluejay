@@ -8,6 +8,7 @@
 int kmain(void *mboot)
 {
 	init_paging();
+	init_vga();
 
 	vga_clear();
 	vga_set_color(LIGHT_BLUE, BLACK);

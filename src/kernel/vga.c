@@ -1,5 +1,6 @@
 #include "vga.h"
 #include "io.h"
+#include "paging.h"
 #include "log.h"
 
 static uint cursor_x = 0;
@@ -7,16 +8,18 @@ static uint cursor_y = 0;
 
 static ushort color = WHITE;
 
-static ushort *fb = (ushort *)(0xB8000 + 0xC0000000);
+static ushort *fb = (ushort *)PHYS_TO_VIRT(0xB8000);
 
 static void move_cursor()
 {
-	ushort loc = cursor_y * 80 + cursor_x;
-	outb(0x3d4, 14); // Setting high cursor byte
-	outb(0x3d4, loc >> 8);
+	ushort pos = cursor_y * 80 + cursor_x;
 
-	outb(0x3d4, 15); // low byte
-	outb(0x3d4, loc & 0xff);
+	outb(0x3d4, 0x0e);
+	outb(0x3d5, pos >> 8);
+	outb(0x3d4, 0x0f);
+	outb(0x3d5, pos & 0xff);
+
+	io_wait();
 }
 
 static void scroll()
@@ -39,7 +42,7 @@ static void scroll()
 
 void vga_set_color(enum vga_colors fg, enum vga_colors bg)
 {
-	color = (bg << 4) | fg & 0xf;
+	color = (bg << 4) | (fg & 0xf);
 }
 
 void vga_put(char c)
@@ -108,8 +111,8 @@ void vga_putd(uint d)
 
 static bool vga_put_nibble(uchar n, bool first)
 {
-//	if (first && n == 0)
-//		return true;
+	//	if (first && n == 0)
+	//		return true;
 
 	if (n <= 9)
 		vga_put('0' + n);
@@ -130,4 +133,19 @@ void vga_putx(uint x)
 		first = vga_put_nibble((byte & 0xf0) >> 4, first);
 		first = vga_put_nibble(byte & 0x0f, first);
 	}
+}
+
+void init_vga()
+{
+	return;
+
+	outb(0x3D4, 0x09); // set maximum scan line register to 15
+	outb(0x3D5, 15);
+
+	outb(0x3D4, 0x0B); // set the cursor end line to 15
+	outb(0x3D5, 15);
+
+	outb(0x3D4, 0x0A); // set the cursor start line to 14 and enable cursor
+					   // visibility
+	outb(0x3D5, 10);
 }

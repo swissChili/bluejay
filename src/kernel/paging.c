@@ -94,7 +94,7 @@ static uint first_free_frame()
 	kpanic("first_free_frame failed! no free frames");
 }
 
-void alloc_frame(uint *page, bool for_kernel, bool writable)
+void alloc_frame(uint *page, bool user, bool writable)
 {
 	if (*page >> 12)
 		return; /* frame already allocated */
@@ -102,6 +102,7 @@ void alloc_frame(uint *page, bool for_kernel, bool writable)
 	uint frame = first_free_frame();
 	//	kprintf("first_free_frame found %d\n", frame);
 	set_frame(frame * 0x1000); /* mark as mapped */
+	*page = frame | 1 | writable << 1 | user << 2;
 }
 
 void free_frame(uint page)
@@ -109,7 +110,8 @@ void free_frame(uint page)
 	clear_frame(page / 0x1000);
 }
 
-void map_4mb(size_t virt_start, size_t phys_start, bool user, bool rw)
+void map_4mb(uint *dir, size_t virt_start, size_t phys_start, bool user,
+			 bool rw)
 {
 	uint page = virt_start / 0x1000;
 	uint table = virt_start >> 22;
@@ -119,15 +121,46 @@ void map_4mb(size_t virt_start, size_t phys_start, bool user, bool rw)
 		set_frame(page + i);
 	}
 
-	page_directory[table] = 0b10000011;
+	dir[table] = 0b10000011;
+}
+
+uint *get_or_create_table(uint *dir, uint table, bool user, bool rw)
+{
+	if (dir[table] >> 12)
+	{
+		return (uint *)(size_t)(dir[table] ^ 0xfff);
+	}
+
+	uint *page_table = kmalloc_a(sizeof(uint[1024]));
+	dir[table] = (uint)page_table | 1 | rw << 1 | user << 2;
+	return page_table;
+}
+
+void map_page(uint *dir, size_t virt_start, bool user, bool rw)
+{
+	uint page = virt_start / 0x1000;
+	uint table = virt_start >> 22;
+	uint frame = first_free_frame();
+
+	// If 4mb map OR (maps to table AND table maps page)
+	if ((dir[table] & 1 && dir[table] & 1 << 7) ||
+		(dir[table] >> 12 && ((uint *)(size_t)dir[table])[page] & 1))
+	{
+		return;
+	}
+
+	set_frame(frame);
+	uint *t = get_or_create_table(dir, table, user, rw);
+	alloc_frame(t + page, user, rw);
 }
 
 /* paging stuff */
 
 void init_paging()
 {
+	frames = kmalloc_a(0x1000);
 	memset(page_directory, 0, 1024 * 4);
-	page_directory[KERNEL_PAGE_NUMBER] = 0b10000011;
+	map_4mb(page_directory, (size_t)KERNEL_VIRTUAL_BASE, 0, false, false);
 
 	load_page_directory((uint)page_directory - 0xC0000000);
 	add_interrupt_handler(14, page_fault);

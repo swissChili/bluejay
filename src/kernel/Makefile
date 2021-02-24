@@ -12,7 +12,8 @@ SOURCES = 	boot.o \
 			paging.o \
 			switch_table.o \
 			scan_codes.o
-CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding -m32 -O2 -g
+CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding \
+			-m32 -O2 -g -Wall -Wno-unused-function -Wno-unused-variable
 LDFLAGS = -Tlink.ld -melf_i386
 ASMFLAGS = -felf
 QEMUFLAGS = -d cpu_reset

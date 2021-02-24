@@ -28,3 +28,5 @@ void vga_putd(uint d);
 void vga_putx(uint x);
 void vga_clear();
 void vga_write(char *c);
+
+void init_vga();

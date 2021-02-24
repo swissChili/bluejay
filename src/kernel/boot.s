@@ -16,6 +16,9 @@ KERNEL_PAGE_NUMBER equ (KERNEL_VIRTUAL_BASE >> 22)
 STACK_SIZE equ 0x4000
 
 
+
+;;;;;;;;;;;;;;;;;;;;; DATA ;;;;;;;;;;;;;;;;;;;;;
+
 	[section .data align = 0x1000]
 page_directory:	
 	dd 0b010000011				; Identity map first 4 megs
@@ -23,6 +26,59 @@ page_directory:
 	dd 0b010000011 				; Map kernel memory to zero page too 
 	times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0
 
+gdt:
+	;; First entry, null segment
+	dw 0 						; zero limit
+	dw 0						; base low
+
+	db 0 						; base middle
+	db 0						; access
+	db 0						; granularity
+	db 0						; base high
+
+	;; Second entry, code segment
+	dw 0xffffffff				; max limit
+	dw 0
+
+	db 0
+	db 0x9a						; access
+	db 0xcf 					; granularity
+	db 0
+
+	;; Third entry, data segment
+	dw 0xffffffff				; max limit
+	dw 0
+
+	db 0
+	db 0x92						; access
+	db 0xcf 					; granularity
+	db 0
+
+	;; Fourth entry, user code segment
+	dw 0xffffffff				; max limit
+	dw 0
+
+	db 0
+	db 0xfa						; access
+	db 0xcf 					; granularity
+	db 0
+
+	;; Fifth entry, user data segment
+	dw 0xffffffff				; max limit
+	dw 0
+
+	db 0
+	db 0xf2						; access
+	db 0xcf 					; granularity
+	db 0
+
+gdt_pointer:
+	dw (8 * 5 - 1)				; sizeof(gdt entry) * 5 - 1
+	dd (gdt - KERNEL_VIRTUAL_BASE) ; Remember, PHYSICAL address
+
+
+;;;;;;;;;;;;;;;;;;;;; CODE ;;;;;;;;;;;;;;;;;;;;;
+	
 	[bits 32]
 	[section .text]
 	[global mboot]
@@ -43,9 +99,21 @@ mboot:
 	[global start]
 	[extern kmain]				; C code
 
-start equ (_start - KERNEL_VIRTUAL_BASE)
+start equ (_start)
 	
 _start:
+	;; First set up GDT
+	mov eax, (gdt_pointer - KERNEL_VIRTUAL_BASE)
+	lgdt [eax]					; Load GDT
+
+	mov ax, 0x10				; Offset of data segment
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
+
+enable_paging:
 	mov ecx, (page_directory - KERNEL_VIRTUAL_BASE) ; Physical address
 	mov cr3, ecx
 
