@@ -79,7 +79,11 @@ void vga_put(char c)
 
 void vga_clear()
 {
-	memset(fb, 0, 80 * 25 * 2);
+	for (int i = 0; i < 25 * 80; i++)
+	{
+		fb[i] = ' ' | (WHITE << 8);
+	}
+	
 	cursor_x = 0;
 	cursor_y = 0;
 	move_cursor();
@@ -137,15 +141,15 @@ void vga_putx(uint x)
 
 void init_vga()
 {
-	return;
-
-	outb(0x3D4, 0x09); // set maximum scan line register to 15
+	// Enable and set max scan line
+	outb(0x3D4, 0x09);
 	outb(0x3D5, 15);
 
-	outb(0x3D4, 0x0B); // set the cursor end line to 15
+	// Cursor end line
+	outb(0x3D4, 0x0B);
 	outb(0x3D5, 15);
 
-	outb(0x3D4, 0x0A); // set the cursor start line to 14 and enable cursor
-					   // visibility
-	outb(0x3D5, 10);
+	// Cursor start line
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, 14);
 }
