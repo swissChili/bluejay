@@ -7,7 +7,7 @@ typedef unsigned long ulong;
 
 typedef unsigned long size_t;
 
-typedef uchar bool;
+typedef _Bool bool;
 
 enum
 {

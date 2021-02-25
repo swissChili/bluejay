@@ -11,7 +11,9 @@ SOURCES = 	boot.o \
 			timer.o \
 			paging.o \
 			switch_table.o \
-			scan_codes.o
+			scan_codes.o \
+			kheap.o \
+			alloc.o
 CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding \
 			-m32 -O2 -g -Wall -Wno-unused-function -Wno-unused-variable
 LDFLAGS = -Tlink.ld -melf_i386

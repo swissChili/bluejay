@@ -1,51 +1,16 @@
 #include "paging.h"
+#include "alloc.h"
 #include "io.h"
 #include "kint.h"
 #include "log.h"
 #include "pic.h"
 
-extern uint end;
-static size_t alloc_base = (size_t)&end;
-
 /* frames bitset, 0 = free, 1 = used */
-static uint *frames;
+static uint frames[0xffffffff / 0x1000 / 32];
 static ulong num_frames;
 
 static uint first_page_table[1024] __attribute__((aligned(4096)));
-static uint page_directory[1024] __attribute__((aligned(4096)));
-
-void *_kmalloc(size_t size, bool align, void **phys)
-{
-	if (align && (alloc_base & 0xfff)) // if not yet aligned
-	{
-		alloc_base &= ~0xfff;
-		alloc_base += 0x1000;
-	}
-
-	if (phys)
-	{
-		*phys = (void *)alloc_base;
-	}
-
-	size_t addr = alloc_base;
-	alloc_base += size;
-	return (void *)addr;
-}
-
-void *kmalloc(size_t size)
-{
-	return _kmalloc(size, false, NULL);
-}
-
-void *kmalloc_a(size_t size)
-{
-	return _kmalloc(size, true, NULL);
-}
-
-void *kmalloc_ap(size_t size, void **p)
-{
-	return _kmalloc(size, true, p);
-}
+static uint kernel_page_directory[1024] __attribute__((aligned(4096)));
 
 /* frame utils */
 
@@ -94,15 +59,15 @@ static uint first_free_frame()
 	kpanic("first_free_frame failed! no free frames");
 }
 
-void alloc_frame(uint *page, bool user, bool writable)
+void alloc_frame(uint *page_table_entry, bool user, bool writable)
 {
-	if (*page >> 12)
+	if (*page_table_entry >> 12)
 		return; /* frame already allocated */
 
 	uint frame = first_free_frame();
 	//	kprintf("first_free_frame found %d\n", frame);
 	set_frame(frame * 0x1000); /* mark as mapped */
-	*page = frame | 1 | writable << 1 | user << 2;
+	*page_table_entry = frame | 1 | writable << 1 | user << 2;
 }
 
 void free_frame(uint page)
@@ -136,9 +101,32 @@ uint *get_or_create_table(uint *dir, uint table, bool user, bool rw)
 	return page_table;
 }
 
+void alloc_kernel_page(uint *virt)
+{
+	// Page number % pages per table
+	uint page = ((size_t)virt / 0x1000) % 1024;
+	uint *table = get_or_create_table(kernel_page_directory, (size_t)virt >> 22,
+									  false, false);
+
+	alloc_frame(&table[page], false, false);
+}
+
+void alloc_kernel_page_range(uint *from, uint *to)
+{
+	uint f = (size_t)from / 0x1000,
+		t = (size_t)to / 0x1000;
+
+	do
+	{
+		alloc_kernel_page((uint *)(size_t)t);
+		t += 0x1000; // next page
+	} while (f < t);
+}
+
 void map_page(uint *dir, size_t virt_start, bool user, bool rw)
 {
-	uint page = virt_start / 0x1000;
+	// Page number % pages per table
+	uint page = (virt_start / 0x1000) % 1024;
 	uint table = virt_start >> 22;
 	uint frame = first_free_frame();
 
@@ -158,11 +146,11 @@ void map_page(uint *dir, size_t virt_start, bool user, bool rw)
 
 void init_paging()
 {
-	frames = kmalloc_a(0x1000);
-	memset(page_directory, 0, 1024 * 4);
-	map_4mb(page_directory, (size_t)KERNEL_VIRTUAL_BASE, 0, false, false);
+	memset(kernel_page_directory, 0, 1024 * 4);
+	map_4mb(kernel_page_directory, (size_t)KERNEL_VIRTUAL_BASE, 0, false,
+			false);
 
-	load_page_directory((uint)page_directory - 0xC0000000);
+	load_page_directory((uint)kernel_page_directory - 0xC0000000);
 	add_interrupt_handler(14, page_fault);
 }
 

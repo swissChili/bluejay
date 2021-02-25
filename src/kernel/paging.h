@@ -12,11 +12,8 @@
 extern uint load_page_directory(uint table_address);
 extern void enable_paging();
 
-void *_kmalloc(size_t size, bool align, void **phys);
-void *kmalloc(size_t size);
-void *kmalloc_a(size_t size);
-void *kmalloc_ap(size_t size, void **p);
-
 void init_paging();
 
+void alloc_frame(uint *page_table_entry, bool user, bool writable);
+void alloc_kernel_page(uint *page);
 void page_fault(struct registers *regs);
