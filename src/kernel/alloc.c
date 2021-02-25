@@ -51,17 +51,18 @@ void *kmalloc_ap(size_t size, void **p)
 
 void init_allocator()
 {
-	struct heap_alloc_header *h = (struct heap_alloc_header *)malloc_base;
-	h->allocated = false;
-	h->magic = HEAP_MAGIC;
-	h->size = 0xC0400000 - malloc_base;
-
 	heap.size = 1;
+	int size = 0xC0400000 - malloc_base;
 	heap.elements[0] = (struct heap_entry){
-		.key = 0xC0200000 - malloc_base,
+		.key = size,
 		.address = malloc_base,
 	};
-	memset((void *)malloc_base, 0, heap.elements[0].key);
+	memset((void *)malloc_base, 0, size);
+
+	struct heap_alloc_header *h = (struct heap_alloc_header *)malloc_base;
+	h->magic = HEAP_MAGIC;
+	h->size = size;
+	h->allocated = false;
 }
 
 void *malloc(size_t size)
@@ -107,8 +108,6 @@ void *malloc(size_t size)
 				struct heap_alloc_header *h =
 					(struct heap_alloc_header *)new_header_addr;
 
-				h->allocated = true;
-				h->magic = HEAP_MAGIC;
 				h->size = new_size;
 				old_f->size = new_size;
 
@@ -123,6 +122,8 @@ void *malloc(size_t size)
 				(struct heap_alloc_footer *)(e.address + full_size -
 											 FOOTER_SIZE);
 
+			h->allocated = true;
+			h->magic = HEAP_MAGIC;
 			h->size = full_size;
 			f->size = h->size;
 		}
