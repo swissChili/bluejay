@@ -1,9 +1,9 @@
 #include "alloc.h"
+#include "io.h"
 #include "kheap.h"
 #include "kint.h"
 #include "log.h"
 #include "paging.h"
-#include "io.h"
 
 extern uint end;
 static size_t palloc_base = (size_t)&end;
@@ -139,8 +139,6 @@ void *malloc(size_t size)
 
 void free(void *mem)
 {
-	// TODO: expand memory
-	
 	if (!mem)
 		return; // freeing NULL ptr
 
@@ -152,14 +150,43 @@ void free(void *mem)
 		kpanic("Freeing memory not allocated with malloc()");
 	}
 
-	base->allocated = false;
+	// Check free block before this one
+
+	struct heap_alloc_footer *prev_f =
+		(struct heap_alloc_footer *)((size_t)mem - HEADER_SIZE - FOOTER_SIZE);
+
+	// Header of block before this one
+	struct heap_alloc_header *prev_h =
+		(struct heap_alloc_header *)((size_t)prev_f - prev_f->size + FOOTER_SIZE);
+
+	// Header of block after this one
+	struct heap_alloc_header *next_h =
+		(struct heap_alloc_header *)((size_t)mem - HEADER_SIZE + base->size);
+
+	size_t size = base->size;
+	size_t start = (size_t)base;
+
+	if (prev_h->magic == HEAP_MAGIC && !prev_h->allocated)
+	{
+		size += prev_h->size;
+		start = (size_t)prev_h;
+	}
+	if (next_h->magic == HEAP_MAGIC && !next_h->allocated)
+	{
+		size += next_h->size;
+	}
+
+	struct heap_alloc_header *h = (struct heap_alloc_header *)start;
+	h->allocated = false;
+	h->magic = HEAP_MAGIC;
+	h->size = size;
+
 	// Add entry into heap
 
-	struct heap_entry entry =
-	{
-		.key = base->size,
-		.address = (size_t)base,
+	struct heap_entry entry = {
+		.key = size,
+		.address = start,
 	};
-	
+
 	heap_insert(&heap, entry);
 }
