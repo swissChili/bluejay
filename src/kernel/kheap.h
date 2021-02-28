@@ -34,9 +34,12 @@ struct heap_alloc_footer
 int heap_parent(int i);
 int heap_left(int i);
 int heap_right(int i);
-void heap_delete(struct min_heap *heap, int k);
+void heap_delete(struct min_heap *heap, int i);
 void heap_insert(struct min_heap *heap, struct heap_entry e);
 void heap_decrease(struct min_heap *heap, int k, struct heap_entry to);
+void heap_decrease_entry(struct min_heap *heap, struct heap_entry from,
+						 struct heap_entry to);
+void heap_delete_entry(struct min_heap *heap, struct heap_entry e);
 
 struct heap_entry heap_lookup_min(struct min_heap *heap, int min, bool *ok,
 								  bool delete, int *i);

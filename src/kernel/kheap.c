@@ -136,3 +136,40 @@ struct heap_entry heap_lookup_min(struct min_heap *heap, int min, bool *ok,
 		return (struct heap_entry){0};
 	}
 }
+
+static int heap_entry_index(struct min_heap *heap, struct heap_entry e)
+{
+	size_t key = e.key;
+	int i = 0;
+
+	struct heap_entry *a = heap->elements;
+
+	while (i < heap->size && a[i].key != key)
+	{
+		int left = heap_left(i),
+			right = heap_right(i);
+
+		if (left >= heap->size)
+			i = right;
+		else if (right >= heap->size)
+			i = left;
+		else
+			i = a[left].key < a[right].key ? left : right;
+	}
+
+	if (i >= heap->size)
+		return -1;
+	else
+		return i;
+}
+
+void heap_decrease_entry(struct min_heap *heap, struct heap_entry from,
+						 struct heap_entry to)
+{
+	heap_decrease(heap, heap_entry_index(heap, from), to);
+}
+
+void heap_delete_entry(struct min_heap *heap, struct heap_entry e)
+{
+	heap_delete(heap, heap_entry_index(heap, e));
+}

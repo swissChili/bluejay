@@ -157,7 +157,8 @@ void free(void *mem)
 
 	// Header of block before this one
 	struct heap_alloc_header *prev_h =
-		(struct heap_alloc_header *)((size_t)prev_f - prev_f->size + FOOTER_SIZE);
+		(struct heap_alloc_header *)((size_t)prev_f - prev_f->size +
+									 FOOTER_SIZE);
 
 	// Header of block after this one
 	struct heap_alloc_header *next_h =
@@ -189,4 +190,80 @@ void free(void *mem)
 	};
 
 	heap_insert(&heap, entry);
+}
+
+void *realloc(void *mem, size_t size)
+{
+	if (!mem)
+		return NULL; // freeing NULL ptr
+
+	struct heap_alloc_header *base =
+		(struct heap_alloc_header *)((size_t)mem - HEADER_SIZE);
+	struct heap_alloc_header *next =
+		(struct heap_alloc_header *)((size_t)base + base->size);
+
+	if (!next->allocated &&
+		next->size + base->size - HEADER_SIZE - FOOTER_SIZE >= size)
+	{
+		// Okay, we can just expand this block
+		// Actually, need to check if there is enough space remaining for an
+		// additional block, otherwise, just add that memory to this block (
+		// same as is done in malloc )
+
+		struct heap_alloc_footer *f;
+
+		size_t remaining =
+			base->size + next->size - size - HEADER_SIZE - FOOTER_SIZE;
+
+		struct heap_entry old_entry = {
+			.key = next->size,
+			.address = (size_t)next,
+		};
+
+		if (remaining <= HEADER_SIZE + FOOTER_SIZE + 8)
+		{
+			// Just join this into the same memory chunk
+			f = (struct heap_alloc_footer *)(next + next->size - FOOTER_SIZE);
+
+			heap_delete_entry(&heap, old_entry);
+		}
+		else
+		{
+			f = mem + size;
+			struct heap_alloc_header *new_h =
+				(struct heap_alloc_header *)(f + FOOTER_SIZE);
+
+			struct heap_alloc_footer *new_f =
+				(struct heap_alloc_footer *)(new_h + remaining - FOOTER_SIZE);
+
+			new_h->allocated = false;
+			new_h->size = new_f->size = remaining;
+			new_h->magic = HEAP_MAGIC;
+
+			struct heap_entry entry = {
+				.key = remaining,
+				.address = (size_t)new_h,
+			};
+
+			heap_decrease_entry(&heap, old_entry, entry);
+		}
+
+		size_t full_size = (size_t)f - (size_t)base + FOOTER_SIZE;
+
+		f->size = full_size;
+		base->size = full_size;
+		base->magic = HEAP_MAGIC;
+		base->allocated = true;
+	}
+	else
+	{
+		void *new = malloc(size);
+		if (!new)
+			return new;
+
+		memcpy(new, mem, base->size - HEADER_SIZE - FOOTER_SIZE);
+		free(mem);
+
+		return new;
+	}
 }
