@@ -254,6 +254,8 @@ void *realloc(void *mem, size_t size)
 		base->size = full_size;
 		base->magic = HEAP_MAGIC;
 		base->allocated = true;
+
+		return mem;
 	}
 	else
 	{

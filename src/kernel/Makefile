@@ -13,14 +13,16 @@ SOURCES = 	boot.o \
 			switch_table.o \
 			scan_codes.o \
 			kheap.o \
-			alloc.o
+			alloc.o \
+			vfs.o
+
+JAYROOT = ../../
 CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding \
-			-m32 -O2 -g -Wall -Wno-unused-function -Wno-unused-variable
+			-m32 -O2 -g -Wall -Wno-unused-function -Wno-unused-variable \
+			-I$(JAYROOT)/include
 LDFLAGS = -Tlink.ld -melf_i386
 ASMFLAGS = -felf
 QEMUFLAGS = -d cpu_reset
-
-JAYROOT = ../../
 
 kernel.elf: $(SOURCES)
 	ld $(LDFLAGS) -o $@ $^
