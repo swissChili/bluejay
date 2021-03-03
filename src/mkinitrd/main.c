@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 			.size = file_size(in),
 		};
 
-		strncpy(file.name, 64, argv[i + 2]);
+		strcpy(file.name, argv[i + 2]);
 
 		char c;
 		while ((c = getc(in)) != EOF)

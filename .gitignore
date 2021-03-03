@@ -5,3 +5,7 @@
 *.a
 *.so
 compile_commands.json
+**/.clangd
+*.img
+bin/*
+!bin/*.txt
