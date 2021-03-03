@@ -5,3 +5,5 @@ kernel:
 
 mkinitrd:
 	$(MAKE) -C mkinitrd
+
+.PHONY: kernel mkinitrd

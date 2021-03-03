@@ -1,1 +1,15 @@
-[]
+[
+    {
+        "arguments": [
+            "cc",
+            "-c",
+            "-O2",
+            "-I../..//include",
+            "-o",
+            "main.o",
+            "main.c"
+        ],
+        "directory": "/home/ch/dev/bluejay/src/mkinitrd",
+        "file": "main.c"
+    }
+]

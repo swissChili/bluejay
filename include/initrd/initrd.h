@@ -1,5 +1,7 @@
 #pragma once
 
+#define INITRD_MAGIC 0xaa77dbf6
+
 struct initrd_global_header
 {
 	unsigned int magic;

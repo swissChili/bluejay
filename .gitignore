@@ -4,4 +4,4 @@
 *.o
 *.a
 *.so
-compile-commands.json
+compile_commands.json

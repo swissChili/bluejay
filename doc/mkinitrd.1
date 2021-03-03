@@ -1,0 +1,12 @@
+.TH mkinitrd 1 "2 March 2021" "1" "Make initial ramdisk"
+.SH SYNOPSIS
+mkinitrd <output> [input...]
+.SH DESCRIPTION
+Make initial ramdisk from list of input files.
+Generated ramdisk should be placed in /boot/initrd.img of kernel boot ISO.
+
+Make sure that each input path is formatted as it should appear in the file system.
+I.e.: treat each path passed to mkinitrd as absolute.
+
+Paths must be a maximum of 63 characters long (64 including NULL byte).
+Paths longer than this will be truncated.
