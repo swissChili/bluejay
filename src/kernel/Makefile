@@ -14,7 +14,8 @@ SOURCES = 	boot.o \
 			scan_codes.o \
 			kheap.o \
 			alloc.o \
-			vfs.o
+			vfs.o \
+			multiboot.o
 
 JAYROOT = ../../
 CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding \

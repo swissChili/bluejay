@@ -5,8 +5,9 @@
 #include "paging.h"
 #include "timer.h"
 #include "vga.h"
+#include "multiboot.h"
 
-int kmain(void *mboot)
+int kmain(struct multiboot *mboot)
 {
 	init_paging();
 	init_vga();
@@ -48,6 +49,17 @@ int kmain(void *mboot)
 	int *four = malloc(sizeof(int));
 	*four = 4;
 	kprintf("Allocated four = %d (%x)\n", *four, four);
+
+	// Load initrd
+	struct multiboot mb = make_multiboot_physical(mboot);
+
+	kassert(mb.mods_count, "No multiboot modules loaded!");
+	kprintf("mboot->mods_addr = %d (0x%x)\n", mb.mods_addr, mb.mods_addr);
+	uint *initrd_loc = mb.mods_addr[0],
+		*initrd_end = mboot->mods_addr[1];
+
+	kprintf("initrd is at 0x%x to 0x%x\n", initrd_loc, initrd_end);
+
 
 	asm volatile("sti");
 
