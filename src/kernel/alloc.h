@@ -12,3 +12,5 @@ void free(void *mem);
 void *realloc(void *mem, size_t size);
 
 void init_allocator();
+
+void test_allocator();

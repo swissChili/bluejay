@@ -31,6 +31,7 @@ typedef uint (* fs_write_t)(struct fs_node *node, size_t offset, size_t size, uc
 typedef void (* fs_open_t)(struct fs_node *node);
 typedef void (* fs_close_t)(struct fs_node *node);
 
+// Dirent should be FREED BY CALLER
 typedef struct fs_dirent *(* fs_readdir_t)(struct fs_node *node, uint index);
 typedef struct fs_node *(* fs_finddir_t)(struct fs_node *node, char *name);
 
@@ -66,3 +67,5 @@ void fs_close(struct fs_node *node);
 
 struct fs_dirent *fs_readdir(struct fs_node *node, uint index);
 struct fs_node *fs_finddir(struct fs_node *node, char *name);
+
+void init_vfs();

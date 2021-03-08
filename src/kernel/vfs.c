@@ -1,5 +1,7 @@
 #include "vfs.h"
 
+struct fs_node root, dev, initrd;
+
 uint fs_read(struct fs_node *node, size_t offset, size_t size, uchar *buffer)
 {
 	if (!node || !node->vtable || !node->vtable->read)
@@ -46,4 +48,13 @@ struct fs_node *fs_finddir(struct fs_node *node, char *name)
 		return NULL;
 
 	return node->vtable->finddir(node, name);
+}
+
+struct fs_dirent *root_readdir(struct fs_node *node, uint index)
+{
+
+}
+
+void init_vfs()
+{
 }

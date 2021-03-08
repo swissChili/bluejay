@@ -10,7 +10,7 @@ struct multiboot
 	uint boot_device;
 	char *cmdline;
 	uint mods_count;
-	uint **mods_addr;
+	uchar **mods_addr;
 	uint num;
 	uint size;
 	uint addr;

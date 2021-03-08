@@ -15,7 +15,8 @@ SOURCES = 	boot.o \
 			kheap.o \
 			alloc.o \
 			vfs.o \
-			multiboot.o
+			multiboot.o \
+			vfs_initrd.o
 
 JAYROOT = ../../
 CFLAGS = -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding \

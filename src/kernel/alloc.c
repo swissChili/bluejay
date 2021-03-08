@@ -269,3 +269,27 @@ void *realloc(void *mem, size_t size)
 		return new;
 	}
 }
+
+void test_allocator()
+{
+	int *one = malloc(sizeof(int));
+	int *two = malloc(sizeof(int));
+
+	*one = 1;
+	*two = 2;
+
+	int *array = malloc(sizeof(int[12]));
+
+	for (int i = 0; i < 12; i++)
+		array[i] = i;
+
+	kprintf("Allocated one, two, array[3] = %d, %d, %d\n", *one, *two,
+			array[3]);
+	kprintf("[%x, %x, %x]\n", one, two, array);
+
+	kprintf("Freeing two\n");
+	free(two);
+	int *four = malloc(sizeof(int));
+	*four = 4;
+	kprintf("Allocated four = %d (%x)\n", *four, four);
+}
