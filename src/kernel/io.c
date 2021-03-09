@@ -4,13 +4,11 @@
 #include "pic.h"
 
 bool pressed_keys[LAST_KBD_KEY];
-char special_key_mappings[LAST_KBD_KEY - FIRST_KBD_KEY] =
-{
+char special_key_mappings[LAST_KBD_KEY - FIRST_KBD_KEY] = {
 	[KBD_ENTER - FIRST_KBD_KEY] = '\n',
 	[KBD_SPACEBAR - FIRST_KBD_KEY] = ' ',
 	[KBD_TAB - FIRST_KBD_KEY] = '\t',
 	[KBD_BACKSPACE - FIRST_KBD_KEY] = '\b',
-	0
 };
 
 void outb(ushort port, uchar val)
@@ -48,6 +46,31 @@ void *memcpy(void *dest, const void *src, size_t n)
 		((uchar *)dest)[i] = ((uchar *)src)[i];
 	}
 	return dest;
+}
+
+uint strlen(char *a)
+{
+	int i = 0;
+	for (; *a; i++)
+	{
+	}
+
+	return i;
+}
+
+int strcmp(char *a, char *b)
+{
+	int al = strlen(a), bl = strlen(b);
+
+	if (al != bl)
+		return bl - al;
+
+	for (int i = 0; i < al; i++)
+	{
+		if (a[i] != b[i])
+			return -1;
+	}
+	return 0;
 }
 
 void io_wait()

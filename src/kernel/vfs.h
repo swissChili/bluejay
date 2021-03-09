@@ -31,9 +31,8 @@ typedef uint (* fs_write_t)(struct fs_node *node, size_t offset, size_t size, uc
 typedef void (* fs_open_t)(struct fs_node *node);
 typedef void (* fs_close_t)(struct fs_node *node);
 
-// Dirent should be FREED BY CALLER
-typedef struct fs_dirent *(* fs_readdir_t)(struct fs_node *node, uint index);
-typedef struct fs_node *(* fs_finddir_t)(struct fs_node *node, char *name);
+typedef uint (* fs_readdir_t)(struct fs_node *node, uint index, struct fs_dirent *dirent);
+typedef uint (* fs_finddir_t)(struct fs_node *node, char *name, struct fs_node *out);
 
 struct fs_vtable
 {
@@ -57,15 +56,29 @@ enum fs_flags
 	FS_MOUNT = 8,   /* Can be or'd with others */
 };
 
+extern struct fs_node root, dev, initrd;
+
 /* Not to be confused normal open, close, etc functions, these operate
- * on the VFS directly */
+ * on the VFS directly
+ * read and write return the number of bytes written/read,  */
 
 uint fs_read(struct fs_node *node, size_t offset, size_t size, uchar *buffer);
 uint fs_write(struct fs_node *node, size_t offset, size_t size, uchar *buffer);
 void fs_open(struct fs_node *node);
 void fs_close(struct fs_node *node);
 
-struct fs_dirent *fs_readdir(struct fs_node *node, uint index);
-struct fs_node *fs_finddir(struct fs_node *node, char *name);
+/* For all of the functions that return integers;
+ * 0 = okay
+ * non-zero = error */
+
+uint fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out);
+uint fs_finddir(struct fs_node *node, char *name, struct fs_node *out);
+
+/* Returns the following error codes:
+ * 0: success
+ * 1: target is not a directory
+ * 2: target is already a mount point
+ * 3: source is not a directory */
+uint fs_mount(struct fs_node *target, struct fs_node *source);
 
 void init_vfs();

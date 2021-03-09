@@ -5,6 +5,7 @@
 #include "paging.h"
 #include "timer.h"
 #include "vga.h"
+#include "vfs.h"
 #include "multiboot.h"
 
 int kmain(struct multiboot *mboot)
@@ -18,10 +19,6 @@ int kmain(struct multiboot *mboot)
 	init_allocator();
 	init_kbd();
 
-	vga_set_color(LIGHT_GREEN, BLACK);
-	vga_write("Setup complete!\n");
-	vga_set_color(WHITE, BLACK);
-
 #ifdef TEST_ALLOC
 	test_allocator();
 #endif
@@ -34,6 +31,13 @@ int kmain(struct multiboot *mboot)
 	uchar *initrd_loc = mb.mods_addr[0];
 
 	kprintf("initrd is at 0x%x to 0x%x\n", initrd_loc);
+
+	init_vfs();
+	kprintf("VFS initialized\n");
+
+	vga_set_color(LIGHT_GREEN, BLACK);
+	vga_write("Setup complete!\n");
+	vga_set_color(WHITE, BLACK);
 
 	asm volatile("sti");
 
