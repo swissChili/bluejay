@@ -54,6 +54,8 @@ int main(int argc, char **argv)
 		};
 
 		strcpy(file.name, argv[i + 2]);
+		fwrite(&file, sizeof(file), 1, out);
+//		fprintf(stderr, "file name is %s, sizeof(file) = 0x%lx\n", file.name, sizeof(file));
 
 		char c;
 		while ((c = getc(in)) != EOF)

@@ -12,6 +12,6 @@ struct initrd_file_header
 {
 	char name[64];
 	unsigned long size;
-};
+} __attribute__((packed));
 
 /* that's it! */

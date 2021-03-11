@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "vga.h"
 #include "vfs.h"
+#include "vfs_initrd.h"
 #include "multiboot.h"
 
 int kmain(struct multiboot *mboot)
@@ -33,16 +34,17 @@ int kmain(struct multiboot *mboot)
 	kprintf("initrd is at 0x%x to 0x%x\n", initrd_loc);
 
 	init_vfs();
+	init_initrd_vfs(initrd_loc);
 	kprintf("VFS initialized\n");
 
 	vga_set_color(LIGHT_GREEN, BLACK);
 	vga_write("Setup complete!\n");
 	vga_set_color(WHITE, BLACK);
 
-	kprintf("fs_readdir(\"/\")\n");
+	kprintf("fs_readdir(\"/dev/initrd\")\n");
 
 	struct fs_dirent dirent;
-	for (int i = 0; fs_readdir(&root, i, &dirent); i++)
+	for (int i = 0; fs_readdir(&initrd, i, &dirent); i++)
 	{
 		kprintf("name: %s, inode: %d\n", dirent.name, dirent.inode);
 	}
