@@ -39,6 +39,14 @@ int kmain(struct multiboot *mboot)
 	vga_write("Setup complete!\n");
 	vga_set_color(WHITE, BLACK);
 
+	kprintf("fs_readdir(\"/\")\n");
+
+	struct fs_dirent dirent;
+	for (int i = 0; fs_readdir(&root, i, &dirent); i++)
+	{
+		kprintf("name: %s, inode: %d\n", dirent.name, dirent.inode);
+	}
+
 	asm volatile("sti");
 
 	while (true)

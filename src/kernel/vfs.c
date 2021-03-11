@@ -36,25 +36,25 @@ void fs_close(struct fs_node *node)
 	node->vtable->close(node);
 }
 
-uint fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
+bool fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 {
 	if (!node || !node->vtable || !node->vtable->readdir ||
 		(node->flags & 7) != FS_DIRECTORY)
-		return 1;
+		return false;
 
 	return node->vtable->readdir(node, index, out);
 }
 
-uint fs_finddir(struct fs_node *node, char *name, struct fs_node *out)
+struct fs_node *fs_finddir(struct fs_node *node, char *name)
 {
 	if (!node || !node->vtable || !node->vtable->finddir ||
 		(node->flags & 7) != FS_DIRECTORY)
-		return 1;
+		return NULL;
 
-	return node->vtable->finddir(node, name, out);
+	return node->vtable->finddir(node, name);
 }
 
-uint root_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
+bool root_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 {
 	if (node == &root && index == 0)
 	{
@@ -62,48 +62,45 @@ uint root_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 		memcpy(out->name, "dev", 4);
 		out->inode = -1;
 
-		return 0;
+		return true;
 	}
 	else
-		return 1;
+		return false;
 }
 
-uint root_finddir(struct fs_node *node, char *name, struct fs_node *out)
+struct fs_node *root_finddir(struct fs_node *node, char *name)
 {
 	if (!strcmp(name, "dev"))
 	{
-		*out = dev;
-		return 0;
+		return &dev;
 	}
-
-	return 1;
+	else return NULL;
 }
 
-uint dev_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
+bool dev_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 {
 	if (node == &dev && index == 0)
 	{
 		// initrd
 		memcpy(out->name, "dirent", 7);
 		out->inode = -1;
-		return 0;
+		return true;
 	}
 	else
-		return 1;
+		return false;
 }
 
-uint dev_finddir(struct fs_node *node, char *name, struct fs_node *out)
+struct fs_node *dev_finddir(struct fs_node *node, char *name)
 {
 	if (node != &dev)
-		return 1;
+		return NULL;
 
 	if (!strcmp(name, "initrd"))
 	{
-		*out = initrd;
-		return 0;
+		return &initrd;
 	}
 
-	return 1;
+	return NULL;
 }
 
 void init_vfs()
@@ -121,6 +118,9 @@ void init_vfs()
 
 	root_v.readdir = root_readdir;
 	root_v.finddir = root_finddir;
+
+	dev_v.readdir = dev_readdir;
+	dev_v.finddir = dev_finddir;
 }
 
 uint fs_mount(struct fs_node *target, struct fs_node *source)

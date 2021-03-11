@@ -31,8 +31,8 @@ typedef uint (* fs_write_t)(struct fs_node *node, size_t offset, size_t size, uc
 typedef void (* fs_open_t)(struct fs_node *node);
 typedef void (* fs_close_t)(struct fs_node *node);
 
-typedef uint (* fs_readdir_t)(struct fs_node *node, uint index, struct fs_dirent *dirent);
-typedef uint (* fs_finddir_t)(struct fs_node *node, char *name, struct fs_node *out);
+typedef bool (* fs_readdir_t)(struct fs_node *node, uint index, struct fs_dirent *dirent);
+typedef struct fs_node *(* fs_finddir_t)(struct fs_node *node, char *name);
 
 struct fs_vtable
 {
@@ -67,12 +67,8 @@ uint fs_write(struct fs_node *node, size_t offset, size_t size, uchar *buffer);
 void fs_open(struct fs_node *node);
 void fs_close(struct fs_node *node);
 
-/* For all of the functions that return integers;
- * 0 = okay
- * non-zero = error */
-
-uint fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out);
-uint fs_finddir(struct fs_node *node, char *name, struct fs_node *out);
+bool fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out);
+struct fs_node *fs_finddir(struct fs_node *node, char *name);
 
 /* Returns the following error codes:
  * 0: success
