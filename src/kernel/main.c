@@ -9,7 +9,7 @@
 #include "vfs_initrd.h"
 #include "multiboot.h"
 
-int kmain(struct multiboot *mboot)
+int kmain(struct multiboot_info *mboot)
 {
 	init_paging();
 	init_vga();
@@ -25,16 +25,25 @@ int kmain(struct multiboot *mboot)
 #endif
 
 	// Load initrd
-	struct multiboot mb = make_multiboot_physical(mboot);
+	struct multiboot_info mb = make_multiboot_physical(mboot);
 
 	kassert(mb.mods_count, "No multiboot modules loaded!");
 	kprintf("mboot->mods_addr = %d (0x%x)\n", mb.mods_addr, mb.mods_addr);
-	uchar *initrd_loc = mb.mods_addr[0];
+	uchar *initrd_loc = (uchar *)((uint *)mb.mods_addr)[0];
 
 	kprintf("initrd is at 0x%x to 0x%x\n", initrd_loc);
 
+	kprintf("%x |", initrd_loc);
+	for (int i = 0; i < 32; i++)
+	{
+		kprintf(" %x", initrd_loc[i]);
+		if (i % 8 == 0)
+			kprintf("\n");
+	}
+	kprintf("\n");
+
 	init_vfs();
-	init_initrd_vfs(initrd_loc);
+	//init_initrd_vfs(initrd_loc);
 	kprintf("VFS initialized\n");
 
 	vga_set_color(LIGHT_GREEN, BLACK);
@@ -44,7 +53,7 @@ int kmain(struct multiboot *mboot)
 	kprintf("fs_readdir(\"/dev/initrd\")\n");
 
 	struct fs_dirent dirent;
-	for (int i = 0; fs_readdir(&initrd, i, &dirent); i++)
+	for (int i = 0; fs_readdir(&root, i, &dirent); i++)
 	{
 		kprintf("name: %s, inode: %d\n", dirent.name, dirent.inode);
 	}
