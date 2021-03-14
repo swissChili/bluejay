@@ -1,0 +1,61 @@
+init(kernel, kernel.elf)
+
+preset(freestanding)
+preset(optimize)
+preset(debug)
+preset(32)
+preset(warn)
+preset(nasm)
+
+archetype(c)
+archetype(asm)
+
+depends(initrd, $(ROOT)/boot/initrd, initrd.img)
+
+LDFLAGS = -Tlink.ld -melf_i386
+ASMFLAGS = -felf
+QEMUFLAGS = -d cpu_reset
+
+OBJECTS = 	boot.o \
+			main.o \
+			descriptor_tables.o \
+			io.o \
+			vga.o \
+			gdt_flush.o \
+			idt.o \
+			log.o \
+			irq.o \
+			pic.o \
+			timer.o \
+			paging.o \
+			switch_table.o \
+			scan_codes.o \
+			kheap.o \
+			alloc.o \
+			vfs.o \
+			multiboot.o \
+			vfs_initrd.o
+
+type(custom_link)
+
+debug: kernel.elf
+	qemu-system-i386 -s -S -kernel kernel.elf &
+	@echo run "target remote localhost:1234" to connect to qemu
+	gdb
+	@pkill qemu-system-i38
+
+qemu: kernel.elf
+	qemu-system-i386 $(QEMUFLAGS) -monitor stdio -kernel kernel.elf -no-reboot
+
+qemu-iso: install
+	qemu-system-i386 $(QEMUFLAGS) -monitor stdio $(ROOT)/bin/bluejay.iso
+
+scan_codes.c: gen_scan_codes.py scan_codes.tsv 
+	python3 $< > $@
+
+install: kernel.elf lib(initrd)
+	cp kernel.elf $(ROOT)/boot/
+	rm -f $(ROOT)/bin/bluejay.iso
+	grub-mkrescue -o $(ROOT)/bin/bluejay.iso $(ROOT)
+
+finish

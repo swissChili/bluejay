@@ -1,0 +1,10 @@
+init(initrd, initrd.img)
+
+depends(mkinitrd, $(ROOT)/src/mkinitrd, mkinitrd)
+
+SOURCES = config
+
+initrd.img: $(SOURCES) | lib(mkinitrd)
+	lib(mkinitrd) $@ $^
+
+finish

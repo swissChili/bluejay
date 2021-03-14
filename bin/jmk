@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Jay MaKe
+
+dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+root="$(dirname $dir)"
+jmkscript="$root/share/jmk/jmk.m4"
+
+for file in $(find -name Jmk); do
+    echo "Processing $file" > /dev/stderr
+    outdir="$(dirname $file)"
+    m4 -D jmk_root="$root" -D jmk_build_cmd="$0" -D jmk_build_dir="$(pwd)" "$jmkscript" "$file" > "$outdir/Makefile" || exit 1
+done

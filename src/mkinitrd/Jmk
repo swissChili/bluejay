@@ -1,0 +1,16 @@
+init(mkinitrd)
+
+preset(optimize)
+preset(warn)
+
+archetype(c)
+
+OBJECTS = main.o
+
+phony(install)
+install: mkinitrd
+	cp $< $(ROOT)/bin
+
+type(executable)
+
+finish

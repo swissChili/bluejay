@@ -26,30 +26,25 @@ int kmain(struct multiboot_info *mboot)
 
 	// Load initrd
 	struct multiboot_info mb = make_multiboot_physical(mboot);
+	init_vfs();
 
+#ifdef INITRD
 	kassert(mb.mods_count, "No multiboot modules loaded!");
 	kprintf("mboot->mods_addr = %d (0x%x)\n", mb.mods_addr, mb.mods_addr);
 	uchar *initrd_loc = (uchar *)((uint *)mb.mods_addr)[0];
 
 	kprintf("initrd is at 0x%x to 0x%x\n", initrd_loc);
 
-	kprintf("%x |", initrd_loc);
-	for (int i = 0; i < 32; i++)
-	{
-		kprintf(" %x", initrd_loc[i]);
-		if (i % 8 == 0)
-			kprintf("\n");
-	}
-	kprintf("\n");
+	init_initrd_vfs(initrd_loc);
+#endif
 
-	init_vfs();
-	//init_initrd_vfs(initrd_loc);
 	kprintf("VFS initialized\n");
 
 	vga_set_color(LIGHT_GREEN, BLACK);
-	vga_write("Setup complete!\n");
+	kprintf("Setup complete!\n");
 	vga_set_color(WHITE, BLACK);
 
+#ifdef TEST_VFS_INITRD
 	kprintf("fs_readdir(\"/dev/initrd\")\n");
 
 	struct fs_dirent dirent;
@@ -57,6 +52,7 @@ int kmain(struct multiboot_info *mboot)
 	{
 		kprintf("name: %s, inode: %d\n", dirent.name, dirent.inode);
 	}
+#endif
 
 	asm volatile("sti");
 
