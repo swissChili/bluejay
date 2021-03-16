@@ -8,12 +8,14 @@
 #include "vfs.h"
 #include "vfs_initrd.h"
 #include "multiboot.h"
+#include "syscall.h"
 
 int kmain(struct multiboot_info *mboot)
 {
 	init_paging();
 	init_vga();
 	init_descriptor_tables();
+	init_syscall();
 	vga_clear();
 
 	init_timer(20);
