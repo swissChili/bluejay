@@ -35,7 +35,8 @@ OBJECTS = 	boot.o \
 			vfs.o \
 			multiboot.o \
 			vfs_initrd.o \
-			syscall.o
+			syscall.o \
+			task.o
 
 type(custom_link)
 

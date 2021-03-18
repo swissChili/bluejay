@@ -4,7 +4,7 @@
 #include "registers.h"
 
 #define VIRT_TO_PHYS(virt) ((uint)(virt) - 0xC0000000)
-#define PHYS_TO_VIRT(phys) ((uint)(phys) + 0xC0000000)
+#define PHYS_TO_VIRT(phys) ((void *)(phys) + 0xC0000000)
 #define KERNEL_VIRTUAL_BASE 0xC0000000
 #define KERNEL_PAGE_NUMBER (KERNEL_VIRTUAL_BASE >> 22)
 

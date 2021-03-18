@@ -7,7 +7,7 @@
 
 extern uint end;
 static size_t palloc_base = (size_t)&end;
-static size_t malloc_base = (size_t)&end + 0x2000;
+static size_t malloc_base = (size_t)&end + 0x8000;
 
 #define HEADER_SIZE sizeof(struct heap_alloc_header)
 #define FOOTER_SIZE sizeof(struct heap_alloc_footer)
@@ -24,11 +24,18 @@ void *_kmalloc(size_t size, bool align, void **phys)
 
 	if (phys)
 	{
-		*phys = (void *)palloc_base;
+		*phys = (void *)VIRT_TO_PHYS((void *)palloc_base);
 	}
 
 	size_t addr = palloc_base;
 	palloc_base += size;
+
+	if (palloc_base >= malloc_base)
+	{
+		kpanic("fatal error: placeholder kmalloc has overrun malloc() memory,"
+			   " cannot recover.");
+	}
+
 	return (void *)addr;
 }
 
