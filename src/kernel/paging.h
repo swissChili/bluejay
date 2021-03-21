@@ -11,9 +11,12 @@
 /* defined in switch_table.s */
 extern uint load_page_directory(uint table_address);
 extern void enable_paging();
+extern uint kernel_page_directory[1024];
 
 void init_paging();
 
+void map_page_to(uint *dir, void *virt, void *frame_p, bool writable, bool user);
 void alloc_frame(uint *page_table_entry, bool user, bool writable);
+void alloc_page(uint *dir, uint *page);
 void alloc_kernel_page(uint *page);
 void page_fault(struct registers *regs);

@@ -3,59 +3,55 @@
 #include "io.h"
 #include "paging.h"
 
-uint clone_page_table(uint table)
+struct process processes[1024] = {0};
+struct ll_task_i *first_task = NULL, *last_task = NULL, *current_task = NULL;
+
+void init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 {
-	// is this table a 4mb mapping OR is it not mapped?
-	// See Intel manual volume 3 figure 4-4.
+	asm volatile("cli");
 
-	if (table & 1 << 7 || !(table & 1))
-	{
-		// if so, return as is, 4mb mappings only used by kernel and should
-		// be mapped to the same location
-		return table;
-	}
-	else
-	{
-		// else, look for the used pages in this table, copy them to a new
-		// frame, and store them in a new table, then return that table
-		// TODO: add copy on write
+	processes[0] = (struct process){
+		.exists = true,
+		.id = 0,
+		.ring = 0,
+		.uid = 0,
+	};
+	strcpy(processes[0].name, "kernel");
 
-		uint new_p;
-		uint *new = kmalloc_ap(sizeof(uint[1024]), (void **)&new_p);
+	first_task = last_task = current_task = malloc(sizeof(struct ll_task_i));
 
-		// We don't care about the lower 12 bits, just want the address
-		uint *old_virt = PHYS_TO_VIRT((uint *)(table ^ 0xfff));
+	first_task->next = NULL;
+	first_task->task = (struct task){
+		.proc = &processes[0],
+		.esp = kernel_esp,
+		.ebp = kernel_ebp,
+		.eip = kernel_eip,
+		.kernel = true,
+		.page_directory = kernel_page_directory,
+	};
 
-		for (int i = 0; i < 1024; i++)
-		{
-			if (old_virt[i] & 1)
-			{
-				// If mapped
-
-				// again, don't care about bottom 12 bits
-				uchar *old_page = PHYS_TO_VIRT(old_virt[i] ^ 0xfff);
-
-				alloc_frame(&new[i], BOOL(old_virt[i] & 1 << 2),
-							BOOL(old_virt[i] & 1 << 1));
-
-				uchar *new_page = PHYS_TO_VIRT(new[i] ^ 0xfff);
-				memcpy(new_page, old_page, 0x1000);
-			}
-		}
-
-		return new_p | (table & 0xfff); // same lower 12 bits
-	}
+	asm volatile("sti");
 }
 
-uint *clone_page_directory(uint *dir)
+struct process *get_process(uint pid)
 {
-	uint new_p;
-	uint *new = kmalloc_ap(sizeof(uint[1024]), (void **)&new_p);
+	if (pid < 1024)
+		return &processes[pid];
+	else
+		return NULL;
+}
 
-	for (int i = 0; i < 1024; i++)
-	{
-		new[i] = clone_page_table(dir[i]);
-	}
+int get_task_id()
+{
+	return current_task->task.id;
+}
 
-	return new;
+int get_process_id()
+{
+	return current_task->task.proc->id;
+}
+
+void spawn_thread(void (* function)(void *data), void *data)
+{
+
 }

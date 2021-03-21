@@ -48,6 +48,11 @@ void *memcpy(void *dest, const void *src, size_t n)
 	return dest;
 }
 
+void strcpy(char *dest, char *src)
+{
+	memcpy(dest, src, strlen(src) + 1);
+}
+
 uint strlen(char *a)
 {
 	int i = 0;

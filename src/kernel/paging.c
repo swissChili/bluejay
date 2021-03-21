@@ -10,7 +10,7 @@ static uint frames[0xffffffff / 0x1000 / 32];
 static ulong num_frames;
 
 static uint first_page_table[1024] __attribute__((aligned(4096)));
-static uint kernel_page_directory[1024] __attribute__((aligned(4096)));
+uint kernel_page_directory[1024] __attribute__((aligned(4096)));
 
 /* frame utils */
 
@@ -101,20 +101,39 @@ uint *get_or_create_table(uint *dir, uint table, bool user, bool rw)
 	return page_table;
 }
 
+void unmap_page(uint *dir, void *virt)
+{
+	uint page = ((size_t)virt / 0x1000) % 1024;
+	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
+
+	table[page] = 0;
+}
+
+void map_page_to(uint *dir, void *virt, void *frame_p, bool writable, bool user)
+{
+	uint page = ((size_t)virt / 0x1000) % 1024;
+	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
+
+	table[page] = (((uint)frame_p) ^ 0xfff) | 1 | writable << 1 | user << 2;
+}
+
 void alloc_kernel_page(uint *virt)
+{
+	alloc_page(kernel_page_directory, virt);
+}
+
+void alloc_page(uint *dir, uint *virt)
 {
 	// Page number % pages per table
 	uint page = ((size_t)virt / 0x1000) % 1024;
-	uint *table = get_or_create_table(kernel_page_directory, (size_t)virt >> 22,
-									  false, false);
+	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
 
 	alloc_frame(&table[page], false, false);
 }
 
 void alloc_kernel_page_range(uint *from, uint *to)
 {
-	uint f = (size_t)from / 0x1000,
-		t = (size_t)to / 0x1000;
+	uint f = (size_t)from / 0x1000, t = (size_t)to / 0x1000;
 
 	do
 	{

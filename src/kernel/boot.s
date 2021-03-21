@@ -136,6 +136,7 @@ in_higher_half:
 	
 	add ebx, 0xC0000000			; Translate to virtual address
 	push ebx					; Holds multiboot header location
+	push esp 					; Initial kernel stack
 	call kmain
 
 .end:
