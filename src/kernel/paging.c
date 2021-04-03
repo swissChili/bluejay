@@ -5,9 +5,9 @@
 #include "log.h"
 #include "pic.h"
 
+#define NUM_FRAMES 0xffffffff / 0x1000 / 32
 /* frames bitset, 0 = free, 1 = used */
-static uint frames[0xffffffff / 0x1000 / 32];
-static ulong num_frames;
+static uint frames[NUM_FRAMES];
 
 static uint first_page_table[1024] __attribute__((aligned(4096)));
 uint kernel_page_directory[1024] __attribute__((aligned(4096)));
@@ -36,7 +36,7 @@ static void clear_frame(size_t frame_addr)
 
 static uint first_free_frame()
 {
-	for (int i = 0; i < num_frames / BITS; i++)
+	for (int i = 0; i < NUM_FRAMES / BITS; i++)
 	{
 		/*
 		 * If there are any zeroes, ~ will yield a non-zero result,
@@ -47,10 +47,13 @@ static uint first_free_frame()
 
 		for (int j = 0; j < BITS; j++)
 		{
-			if ((frames[i] & 1 << j) == 0)
+			if ((frames[i] & (1 << j)) == 0)
 			{
 				/* found unused frame */
-				return i * BITS + j;
+				uint frame = i * BITS + j;
+				kprintf("first_free_frame returning %d\n", frame);
+//				kpanic("asdf");
+				return frame;
 			}
 		}
 	}
@@ -61,7 +64,7 @@ static uint first_free_frame()
 
 void alloc_frame(uint *page_table_entry, bool user, bool writable)
 {
-	if (*page_table_entry >> 12)
+	if (*page_table_entry & 1)
 		return; /* frame already allocated */
 
 	uint frame = first_free_frame();
@@ -83,7 +86,7 @@ void map_4mb(uint *dir, size_t virt_start, size_t phys_start, bool user,
 
 	for (uint i = 0; i < 1024 * 0x1000; i += 0x1000)
 	{
-		set_frame(page + i);
+		set_frame(i);
 	}
 
 	dir[table] = 0b10000011;
@@ -93,7 +96,7 @@ uint *get_or_create_table(uint *dir, uint table, bool user, bool rw)
 {
 	if (dir[table] >> 12)
 	{
-		return (uint *)(size_t)(dir[table] ^ 0xfff);
+		return (uint *)(size_t)PHYS_TO_VIRT((dir[table] ^ 0xfff));
 	}
 
 	uint *page_table = kmalloc_a(sizeof(uint[1024]));
@@ -129,6 +132,9 @@ void alloc_page(uint *dir, uint *virt)
 	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
 
 	alloc_frame(&table[page], false, false);
+
+	kprintf("alloc_page table[page] = %d (0x%x)\n", table[page], table[page]);
+	return;
 }
 
 void alloc_kernel_page_range(uint *from, uint *to)

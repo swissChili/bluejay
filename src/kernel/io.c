@@ -55,8 +55,8 @@ void strcpy(char *dest, char *src)
 
 uint strlen(char *a)
 {
-	int i = 0;
-	for (; *a; i++)
+	uint i = 0;
+	for (; a[i]; i++)
 	{
 	}
 

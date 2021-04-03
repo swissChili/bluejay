@@ -15,7 +15,7 @@ struct multiboot_info make_multiboot_physical(struct multiboot_info *old)
 	TO_VIRT(mb.cmdline, char);
 
 	kprintf("mb.mods_addr = %d, 0x%x\n", mb.mods_addr, mb.mods_addr);
-	kassert((size_t)mb.mods_addr > 0xc0000000, "mb.mods_addr PHYSICAL");
+	kassert((size_t)mb.mods_addr >= 0xc0000000, "mb.mods_addr PHYSICAL");
 	for (int i = 0; i < mb.mods_count + 1; i++)
 	{
 		TO_VIRT(*(uint *)(mb.mods_addr+i), uint);

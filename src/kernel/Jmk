@@ -36,14 +36,18 @@ OBJECTS = 	boot.o \
 			multiboot.o \
 			vfs_initrd.o \
 			syscall.o \
-			task.o
+			task.o \
+			task_api.o
 
 type(custom_link)
+
+debug-wait: kernel.elf
+	qemu-system-i386 -s -S -kernel kernel.elf
 
 debug: kernel.elf
 	qemu-system-i386 -s -S -kernel kernel.elf &
 	@echo run "target remote localhost:1234" to connect to qemu
-	gdb
+	gdb $<
 	@pkill qemu-system-i38
 
 qemu: kernel.elf

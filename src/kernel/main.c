@@ -2,13 +2,30 @@
 #include "descriptor_tables.h"
 #include "io.h"
 #include "log.h"
+#include "multiboot.h"
 #include "paging.h"
+#include "syscall.h"
+#include "task.h"
 #include "timer.h"
-#include "vga.h"
 #include "vfs.h"
 #include "vfs_initrd.h"
-#include "multiboot.h"
-#include "syscall.h"
+#include "vga.h"
+
+void greet()
+{
+	kprintf("Hello from get_task_id() = %d, get_process_id() = %d\n",
+			get_task_id(), get_process_id());
+}
+
+void other_thread()
+{
+	greet();
+	kprintf("Other thread returning...\n");
+	switch_task();
+
+	while (true)
+		asm volatile("hlt");
+}
 
 int kmain(struct multiboot_info *mboot)
 {
@@ -55,6 +72,16 @@ int kmain(struct multiboot_info *mboot)
 		kprintf("name: %s, inode: %d\n", dirent.name, dirent.inode);
 	}
 #endif
+
+	kprintf("initializing tasks\n");
+	init_tasks();
+	kprintf("\ndone initializing tasks\n");
+
+	greet();
+	spawn_thread(other_thread);
+	kprintf("thread spawned\n");
+	switch_task();
+	kprintf("Back in main thread\n");
 
 	asm volatile("sti");
 
