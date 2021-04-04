@@ -17,14 +17,13 @@ void greet()
 			get_task_id(), get_process_id());
 }
 
-void other_thread()
+void other_thread(size_t data)
 {
-	while (true)
-	{
-		greet();
-		for (int i = 0; i < 0xffffff; i++)
-			asm volatile("nop");
-	}
+	kprintf("data is 0x%x\n", data);
+	greet();
+	kprintf("Returning from other_thread\n");
+
+	return;
 }
 
 int kmain(struct multiboot_info *mboot)
@@ -77,19 +76,15 @@ int kmain(struct multiboot_info *mboot)
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
 
-	spawn_thread(other_thread);
+	spawn_thread(other_thread, NULL);
 
-	asm volatile("sti");
+	greet();
 
-	while (true)
-	{
-		greet();
-		for (int i = 0; i < 0xffffff; i++)
-			asm volatile("nop");
-	}
+	asm volatile("cli");
 
 	while (true)
 		asm volatile("hlt");
+
 
 	return 0xCAFEBABE;
 }

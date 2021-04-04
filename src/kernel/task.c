@@ -32,6 +32,7 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 	first_task = last_task = current_task = malloc(sizeof(struct ll_task_i));
 
 	first_task->next = NULL;
+	first_task->prev = NULL;
 	first_task->task = (struct task){
 		.proc = &processes[0],
 		.esp = kernel_esp,
@@ -61,27 +62,26 @@ int get_process_id()
 	return current_task->task.proc->id;
 }
 
-void spawn_thread(void (*function)())
+void spawn_thread(void (*function)(void *), void *data)
 {
 	asm volatile("cli");
 
 	struct process *proc = current_task->task.proc;
 	// Virtual address of page directory (in kernel memory)
 	uint *dir_v = PHYS_TO_VIRT(proc->page_directory_p);
-	// Virtual location of new stack
-	uint new_stack_base_v = proc->last_stack_pos - sizeof(uint);
+
+	// Virtual location of new stack, with space reserved for argument and
+	// return address to kill_this_thread().
+	uint new_stack_base_v = proc->last_stack_pos;
 	proc->last_stack_pos -= 0x1000;
 
 	// Alloc a new page in the current process mapping to the new stack
 	alloc_page(dir_v, (void *)proc->last_stack_pos);
 
-	// <TEST>: see if we can assign to the new stack memory (ie: did mapping succeed)
-	uint *base = (uint *)new_stack_base_v;
-
-	kprintf("base = 0x%x\n", base);
-
-	*base = 0;
-	// </TEST>
+	new_stack_base_v -= sizeof(uint);
+	*((uint *)new_stack_base_v) = (size_t)data;
+	new_stack_base_v -= sizeof(uint);
+	*((uint *)new_stack_base_v) = (size_t)&kill_this_thread;
 
 	struct ll_task_i *ll_task = malloc(sizeof(struct ll_task_i));
 	memset(ll_task, 0, sizeof(struct ll_task_i));
@@ -93,7 +93,45 @@ void spawn_thread(void (*function)())
 	task->eip = (uint)function;
 
 	last_task->next = ll_task;
+	ll_task->prev = last_task;
 	last_task = ll_task;
+
+	asm volatile("sti");
+}
+
+void kill_this_thread()
+{
+	asm volatile("cli");
+
+	if (current_task->prev == NULL && current_task->next == NULL)
+	{
+		kpanic("You may not kill the last task in the kernel");
+	}
+
+	struct ll_task_i *task = first_task,
+		*old_task = current_task;
+
+	if (current_task->prev != NULL)
+		current_task->prev->next = current_task->next;
+
+	if (current_task->next != NULL)
+	{
+		// If this is NULL, task will be first_task, which can't be the current task
+		// because we know there are more than one task, and this is the last one.
+		current_task->next->prev = current_task->prev;
+		task = current_task->next;
+	}
+
+	if (current_task == first_task)
+		first_task = current_task->next;
+
+	if (current_task == last_task)
+		last_task = current_task->prev;
+
+	current_task = task;
+	free(old_task);
+
+	switch_to_task(&current_task->task);
 
 	asm volatile("sti");
 }

@@ -27,7 +27,7 @@ struct task
 
 struct ll_task_i
 {
-	struct ll_task_i *next;
+	struct ll_task_i *next, *prev;
 	struct task task;
 };
 
@@ -43,5 +43,7 @@ int get_task_id();
 // For compatibility I guess
 #define getpid get_process_id
 
-void spawn_thread(void (*function)());
+void spawn_thread(void (*function)(void *), void *data);
+void kill_this_thread();
 extern void switch_task();
+void switch_to_task(struct task *task);
