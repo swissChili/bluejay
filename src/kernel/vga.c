@@ -18,8 +18,6 @@ static void move_cursor()
 	outb(0x3d5, pos >> 8);
 	outb(0x3d4, 0x0f);
 	outb(0x3d5, pos & 0xff);
-
-	io_wait();
 }
 
 static void scroll()

@@ -78,6 +78,7 @@ int kmain(struct multiboot_info *mboot)
 	kprintf("\ndone initializing tasks\n");
 
 	greet();
+	kprintf("other_thread = 0x%x\n", &other_thread);
 	spawn_thread(other_thread);
 	kprintf("thread spawned\n");
 

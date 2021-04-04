@@ -26,8 +26,6 @@ void strcpy(char *dest, char *src);
 int strcmp(char *a, char *b);
 uint strlen(char *a);
 
-void io_wait();
-
 uchar kbd_scan_code();
 void kbd_handle_input(struct registers *registers);
 void init_kbd();

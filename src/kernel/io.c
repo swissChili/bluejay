@@ -78,11 +78,6 @@ int strcmp(char *a, char *b)
 	return 0;
 }
 
-void io_wait()
-{
-	asm volatile("outb %0, $0x80" ::"a"(0));
-}
-
 uchar kbd_scan_code()
 {
 	return inb(KBD_DATA_PORT);

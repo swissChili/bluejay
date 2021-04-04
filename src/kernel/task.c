@@ -73,10 +73,11 @@ void spawn_thread(void (*function)())
 	// Virtual address of page directory (in kernel memory)
 	uint *dir_v = PHYS_TO_VIRT(proc->page_directory_p);
 	// Virtual location of new stack
-	uint new_stack_base_v = proc->last_stack_pos = proc->last_stack_pos - 0x1000;
+	uint new_stack_base_v = proc->last_stack_pos - sizeof(uint);
+	proc->last_stack_pos -= 0x1000;
 
 	// Alloc a new page in the current process mapping to the new stack
-	alloc_page(dir_v, (void *)new_stack_base_v);
+	alloc_page(dir_v, (void *)proc->last_stack_pos);
 
 	// <TEST>: see if we can assign to the new stack memory (ie: did mapping succeed)
 	uint *base = (uint *)new_stack_base_v;

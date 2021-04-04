@@ -18,11 +18,8 @@ void init_timer(uint hz)
 	uint divisor = TIMER_FREQ / hz;
 
 	outb(0x43, 0x36);
-	io_wait();
 	uchar l = divisor & 0xff, h = (divisor >> 8) & 0xff;
 
 	outb(0x40, l);
-	io_wait();
 	outb(0x40, h);
-	io_wait();
 }
