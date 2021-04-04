@@ -100,7 +100,7 @@ uint *get_or_create_table(uint *dir, uint table, bool user, bool rw)
 	}
 
 	uint *page_table = kmalloc_a(sizeof(uint[1024]));
-	dir[table] = (uint)page_table | 1 | rw << 1 | user << 2;
+	dir[table] = VIRT_TO_PHYS(page_table) | 1 | rw << 1 | user << 2;
 	return page_table;
 }
 
@@ -130,6 +130,8 @@ void alloc_page(uint *dir, uint *virt)
 	// Page number % pages per table
 	uint page = ((size_t)virt / 0x1000) % 1024;
 	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
+	kprintf("table = 0x%x (virt)\n", table);
+	kprintf("dir entry = 0x%x\n", dir[(size_t)virt >> 22]);
 
 	alloc_frame(&table[page], false, false);
 

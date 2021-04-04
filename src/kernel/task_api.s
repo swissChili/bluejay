@@ -13,13 +13,15 @@ switch_task:
 	ret
 
 	[global _switch_to_task]
+	;; _switch_to_task(uint page_directory, uint eip, uint ebp, uint esp)
 _switch_to_task:				; (page_directory, eip, ebp, esp)
 	add esp, 4					; We don't care about the return address
-	pop eax 					; Instruction pointer
-	pop ebp 					; Frame pointer
-	pop ebx 					; Stack pointer
-	pop ecx 					; Page directory
 
+	pop ecx 					; Page directory
+	pop eax 					; eip
+	pop ebp
+	pop ebx						; esp
+	
 	mov esp, ebx 				; Reset old stack
 
 	mov cr3, ecx 				; Set page directory

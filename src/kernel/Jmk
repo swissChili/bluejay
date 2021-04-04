@@ -13,7 +13,7 @@ archetype(asm)
 depends(initrd, $(ROOT)/boot/initrd, initrd.img)
 
 LDFLAGS += -Tlink.ld -melf_i386
-ASMFLAGS += -felf
+ASMFLAGS += -felf -Fdwarf
 QEMUFLAGS = -d cpu_reset
 
 OBJECTS = 	boot.o \

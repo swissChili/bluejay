@@ -80,6 +80,7 @@ int kmain(struct multiboot_info *mboot)
 	greet();
 	spawn_thread(other_thread);
 	kprintf("thread spawned\n");
+
 	switch_task();
 	kprintf("Back in main thread\n");
 

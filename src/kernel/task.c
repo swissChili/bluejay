@@ -84,7 +84,6 @@ void spawn_thread(void (*function)())
 	kprintf("base = 0x%x\n", base);
 
 	*base = 0;
-	kpanic("in spawn_thread\n");
 	// </TEST>
 
 	struct ll_task_i *ll_task = malloc(sizeof(struct ll_task_i));
