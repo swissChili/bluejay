@@ -10,8 +10,6 @@ static uint next_task_id = 0;
 
 void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 {
-	asm volatile("cli");
-
 	kprintf("_init_tasks\n");
 
 	processes[0] = (struct process){
@@ -43,8 +41,6 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 	};
 
 	kprintf("Returning from _init_tasks\n");
-
-	asm volatile("sti");
 }
 
 struct process *get_process(uint pid)

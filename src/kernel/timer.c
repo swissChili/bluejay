@@ -3,12 +3,14 @@
 #include "log.h"
 #include "pic.h"
 #include "registers.h"
+#include "task.h"
 
 static ulong tick = 0;
 
 static void timer_cb(struct registers *regs)
 {
-	// do nothing :)
+	// Preemptive multitasking!
+	switch_task();
 }
 
 void init_timer(uint hz)

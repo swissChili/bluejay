@@ -19,12 +19,12 @@ void greet()
 
 void other_thread()
 {
-	greet();
-	kprintf("Other thread returning...\n");
-	switch_task();
-
 	while (true)
-		asm volatile("hlt");
+	{
+		greet();
+		for (int i = 0; i < 0xffffff; i++)
+			asm volatile("nop");
+	}
 }
 
 int kmain(struct multiboot_info *mboot)
@@ -77,15 +77,16 @@ int kmain(struct multiboot_info *mboot)
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
 
-	greet();
-	kprintf("other_thread = 0x%x\n", &other_thread);
 	spawn_thread(other_thread);
-	kprintf("thread spawned\n");
-
-	switch_task();
-	kprintf("Back in main thread\n");
 
 	asm volatile("sti");
+
+	while (true)
+	{
+		greet();
+		for (int i = 0; i < 0xffffff; i++)
+			asm volatile("nop");
+	}
 
 	while (true)
 		asm volatile("hlt");
