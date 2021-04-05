@@ -153,8 +153,6 @@ void _do_switch_task(uint eip, uint ebp, uint esp)
 	// sti is called in switch_to_task
 	asm volatile("cli");
 
-	kprintf("\nin _do_switch_task(%d, %d, %d)\n", eip, ebp, esp);
-
 	// save context for this task
 	current_task->task.ebp = ebp;
 	current_task->task.esp = esp;
@@ -162,10 +160,6 @@ void _do_switch_task(uint eip, uint ebp, uint esp)
 
 	if (current_task->next == NULL)
 	{
-		// Start from the first task if there are more tasks, or just return
-		if (current_task == first_task)
-			return; // No context switch necessary
-
 		current_task = first_task;
 	}
 	else
@@ -173,8 +167,6 @@ void _do_switch_task(uint eip, uint ebp, uint esp)
 		// Continue the next task
 		current_task = current_task->next;
 	}
-
-	kprintf("Will switch to task id %d\n", current_task->task.id);
 
 	switch_to_task(&current_task->task);
 }

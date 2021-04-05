@@ -82,6 +82,10 @@ int kmain(struct multiboot_info *mboot)
 
 	asm volatile("cli");
 
+	switch_task();
+
+	kprintf("Switched task, this should have done nothing.\n");
+
 	while (true)
 		asm volatile("hlt");
 
