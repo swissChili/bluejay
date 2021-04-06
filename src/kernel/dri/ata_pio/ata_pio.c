@@ -3,7 +3,7 @@
 #include <io.h>
 #include <log.h>
 
-static uchar test_buffer[256 * 4];
+static ushort test_buffer[256];
 
 void ata_pio_wait_bsy()
 {
@@ -19,7 +19,7 @@ void ata_pio_wait_drq()
 
 uint ata_pio_get_error()
 {
-
+	return inb(ATA_ERR);
 }
 
 static void ata_pio_send_init(uint lba, uchar num_sectors)
@@ -63,11 +63,28 @@ void ata_pio_write_sectors(uint lba, uchar num_sectors, void *buffer)
 				 "S"(buffer));
 }
 
+static void print_buffer()
+{
+	for (int i = 0; i < 256; i++)
+	{
+		kprintf("%d ", test_buffer[i]);
+		if (i % 16 == 0)
+			kprintf("\n");
+	}
+}
+
 void test_ata_pio()
 {
 	kprintf("Going to ata_pio_read_sectors\n");
-	ata_pio_read_sectors(test_buffer, 0, 1);
 
-	for (int i = 0; i < 256 * 4; i += 64)
-		kprintf("Byte %d = %d\n", test_buffer[i]);
+	ata_pio_read_sectors(test_buffer, 0, 1);
+	print_buffer();
+
+	for (int i = 0; i < 256; i++)
+		test_buffer[i] = i;
+
+	ata_pio_write_sectors(0, 1, test_buffer);
+
+	ata_pio_read_sectors(test_buffer, 0, 1);
+	print_buffer();
 }
