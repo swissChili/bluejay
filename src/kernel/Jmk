@@ -11,6 +11,9 @@ archetype(c)
 archetype(asm)
 
 depends(initrd, $(ROOT)/boot/initrd, initrd.img)
+depends(ata_pio, dri/ata_pio, ata_pio.a)
+
+CFLAGS += -I $(ROOT)/include/kernel
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf
@@ -37,7 +40,8 @@ OBJECTS = 	boot.o \
 			vfs_initrd.o \
 			syscall.o \
 			task.o \
-			task_api.o
+			task_api.o \
+			lib(ata_pio)
 
 type(custom_link)
 

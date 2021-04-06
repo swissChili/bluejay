@@ -10,6 +10,7 @@
 #include "vfs.h"
 #include "vfs_initrd.h"
 #include "vga.h"
+#include <dri/ata_pio/ata_pio.h>
 
 void greet()
 {
@@ -76,15 +77,13 @@ int kmain(struct multiboot_info *mboot)
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
 
+#ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
 
 	greet();
+#endif
 
-	asm volatile("cli");
-
-	switch_task();
-
-	kprintf("Switched task, this should have done nothing.\n");
+	test_ata_pio();
 
 	while (true)
 		asm volatile("hlt");
