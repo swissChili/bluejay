@@ -17,6 +17,11 @@ void ata_pio_wait_drq()
 	{}
 }
 
+uint ata_pio_get_error()
+{
+
+}
+
 static void ata_pio_send_init(uint lba, uchar num_sectors)
 {
 	outb(ATA_PORT_DRIVE_SEL, 0xe0 | (lba >> 24));
@@ -26,44 +31,42 @@ static void ata_pio_send_init(uint lba, uchar num_sectors)
 	outb(ATA_PORT_LBA_HIGH, (lba >> 16) & 0xff);
 }
 
-void ata_pio_read_sectors(uchar *buffer, uint lba, uchar num_sectors)
+void ata_pio_read_sectors(void *buffer, uint lba, uchar num_sectors)
 {
 	ata_pio_wait_bsy();
 
 	ata_pio_send_init(lba, num_sectors);
 	outb(ATA_PORT_CMD, ATA_CMD_READ);
 
-	for (int i = 0; i < num_sectors; i++)
-	{
-		ata_pio_wait_bsy();
-		ata_pio_wait_drq();
+	ata_pio_wait_bsy();
 
-		for (int j = 0; j < 256; j++)
-			buffer[i * 256 + j] = inb(ATA_PORT_DATA);
-	}
+	asm volatile("rep insw" ::
+				 "c"(num_sectors * 256),
+				 "d"(ATA_PORT_DATA),
+				 "D"(buffer));
+
+	ata_pio_wait_bsy();
 }
 
-void ata_pio_write_sectors(uint lba, uchar num_sectors, uchar *buffer)
+void ata_pio_write_sectors(uint lba, uchar num_sectors, void *buffer)
 {
 	ata_pio_wait_bsy();
 
 	ata_pio_send_init(lba, num_sectors);
 	outb(ATA_PORT_CMD, ATA_CMD_WRITE);
 
-	for (int i = 0; i < num_sectors; i++)
-	{
-		ata_pio_wait_bsy();
-		ata_pio_wait_drq();
+	ata_pio_wait_bsy();
 
-		for (int j = 0; j < 256; j++)
-			outb(ATA_PORT_DATA, buffer[i * 256 + j]);
-	}
+	asm volatile("rep outsw" ::
+				 "c"(num_sectors * 256),
+				 "d"(ATA_PORT_DATA),
+				 "S"(buffer));
 }
 
 void test_ata_pio()
 {
 	kprintf("Going to ata_pio_read_sectors\n");
-	ata_pio_read_sectors(test_buffer, 0, 4);
+	ata_pio_read_sectors(test_buffer, 0, 1);
 
 	for (int i = 0; i < 256 * 4; i += 64)
 		kprintf("Byte %d = %d\n", test_buffer[i]);
