@@ -6,9 +6,9 @@ preset(debug)
 preset(32)
 preset(warn)
 
-CFLAGS += -I $(ROOT)/include/kernel
-
 archetype(c)
+
+CFLAGS += -I$(ROOT)/include/kernel
 
 OBJECTS = pci.o
 

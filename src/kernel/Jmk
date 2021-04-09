@@ -12,6 +12,9 @@ archetype(asm)
 
 depends(initrd, $(ROOT)/boot/initrd, initrd.img)
 depends(ata_pio, dri/ata_pio, ata_pio.a)
+depends(pci, dri/pci, pci.a)
+# AHCI not yet implemented
+# depends(ahci, dri/ahci, ahci.a)
 
 CFLAGS += -I $(ROOT)/include/kernel
 
@@ -41,7 +44,8 @@ OBJECTS = 	boot.o \
 			syscall.o \
 			task.o \
 			task_api.o \
-			lib(ata_pio)
+			lib(ata_pio) \
+			lib(pci)
 
 type(custom_link)
 
