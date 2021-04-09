@@ -16,8 +16,10 @@ struct kbd_scan_code_info
 extern struct kbd_scan_code_info scan_code_table[0xff];
 
 void outb(ushort port, uchar val);
+void outl(ushort port, uint val);
 uchar inb(ushort port);
 ushort inw(ushort port);
+uint inl(ushort port);
 
 /* Random string.h stuff, TODO: move to own header */
 void *memset(void *s, int c, size_t n);

@@ -30,6 +30,18 @@ ushort inw(ushort port)
 	return ret;
 }
 
+void outl(ushort port, uint val)
+{
+	asm volatile("outl %1, %0" : : "dN"(port), "a"(val));
+}
+
+uint inl(ushort port)
+{
+	uint ret;
+	asm volatile("inl %1, %0" : "=a"(ret) : "dN"(port));
+	return ret;
+}
+
 void *memset(void *s, int c, size_t n)
 {
 	for (size_t i = 0; i < n; i++)

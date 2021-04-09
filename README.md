@@ -26,7 +26,9 @@ thing and doing it well is certainly a consideration.
 - [ ] Filesystem
   - [x] Virtual file system
   - [x] Initial ramdisk
-  - [ ] ATA/SATA drivers
+  - [ ] Storage device drivers
+    - [x] ATA PIO
+    - [ ] SATA
   - [ ] Filesystem drivers
     - [ ] EXT2
     - [ ] FAT32
@@ -39,6 +41,12 @@ thing and doing it well is certainly a consideration.
   - [ ] Lisp API
 - [ ] Graphical subsystem
   - [ ] Graphical environment in Lisp
+- [ ] Network stack in Lisp
+  - [ ] Ethernet driver
+  - [ ] IP
+  - [ ] TCP
+    - [ ] Graphical applications like browser, IRC client
+  - [ ] UDP
 
 ## Documentation
 

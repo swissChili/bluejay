@@ -1,0 +1,17 @@
+init(pci, pci.a)
+
+preset(freestanding)
+preset(optimize)
+preset(debug)
+preset(32)
+preset(warn)
+
+CFLAGS += -I $(ROOT)/include/kernel
+
+archetype(c)
+
+OBJECTS = pci.o
+
+type(static_lib)
+
+finish

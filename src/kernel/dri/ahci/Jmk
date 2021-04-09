@@ -1,0 +1,17 @@
+init(ahci, ahci.a)
+
+preset(freestanding)
+preset(optimize)
+preset(debug)
+preset(32)
+preset(warn)
+
+CFLAGS += -I $(ROOT)/include/kernel
+
+archetype(c)
+
+OBJECTS = ahci.o
+
+type(static_lib)
+
+finish
