@@ -1,0 +1,10 @@
+BasedOnStyle: Microsoft
+
+AlignAfterOpenBracket: Align
+SpacesInSquareBrackets: true
+SpaceInEmptyBlock: true
+SpacesInConditionalStatement: true
+SpaceBeforeParens: Always
+UseTab: ForIndentation
+TabWidth: 4
+ColumnLimit: 80

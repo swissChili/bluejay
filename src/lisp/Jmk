@@ -1,0 +1,18 @@
+init(lisp, lisp)
+
+preset(optimize)
+preset(32)
+preset(debug)
+preset(warn)
+
+archetype(c)
+
+OBJECTS = main.o lisp.o
+
+type(executable)
+
+run: lisp
+	status_log(RUN, ./lisp)
+	@./lisp
+
+finish

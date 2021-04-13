@@ -74,7 +74,7 @@ dnl type is used to specify the target type
 define(type,
     `ifelse($1, executable,
 `$(jmk_target): $(OBJECTS)
-status_log(CC, dollar_at)
+status_log(LD, dollar_at)
 	@$(CC) -o dollar_at $^ $(CFLAGS)',
     $1, static_lib,
 `$(jmk_target): $(OBJECTS)

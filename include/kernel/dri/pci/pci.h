@@ -2,6 +2,12 @@
 
 #include <kint.h>
 
+enum
+{
+	PCI_CONFIG_ADDRESS = 0xCF8,
+	PCI_CONFIG_DATA = 0xCFC,
+};
+
 struct pci_config_address
 {
 	union
