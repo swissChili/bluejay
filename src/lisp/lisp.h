@@ -80,6 +80,7 @@ struct value car (struct value v);
 struct value cdr (struct value v);
 bool listp (struct value v);
 bool nilp (struct value v);
+int length (struct value v);
 
 void printval (struct value v, int depth);
 
@@ -91,3 +92,10 @@ void del_stristream (struct istream *stristream);
 void err (const char *msg);
 
 extern struct value nil;
+
+#define FOREACH(item, list)                                                    \
+	for ( ; listp (list); )                                                    \
+		for ( struct value item = car (list), _foreach_current = list;         \
+		      !nilp (_foreach_current);                                        \
+		      _foreach_current = cdr (_foreach_current),                       \
+		                   item = car (_foreach_current) )

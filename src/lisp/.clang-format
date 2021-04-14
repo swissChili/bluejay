@@ -8,3 +8,5 @@ SpaceBeforeParens: Always
 UseTab: ForIndentation
 TabWidth: 4
 ColumnLimit: 80
+
+ForEachMacros: ['FOREACH']

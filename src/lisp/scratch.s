@@ -40,4 +40,7 @@ lisp_function:
 	push [ebp - 4]
 	push [ebp + 4]				; The function's return address
 	call whatever
+
+	mov esp, ebp 				; Finally clean up
+	pop ebp
 	ret

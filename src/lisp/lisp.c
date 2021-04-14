@@ -176,7 +176,7 @@ void printval (struct value v, int depth)
 		{
 			printf ("list:\n");
 
-			for (struct value n = v; !nilp (n); n = cdr (n))
+			for ( struct value n = v; !nilp (n); n = cdr (n) )
 			{
 				printval (car (n), depth + 1);
 			}
@@ -384,8 +384,7 @@ bool listp (struct value v)
 {
 	struct value *next = &v;
 
-	while ( next->tag.type == T_CONS &&
-	        cdr(*next).tag.type == T_CONS )
+	while ( next->tag.type == T_CONS && cdr (*next).tag.type == T_CONS )
 	{
 		next = &next->value.cons_val->cdr;
 	}
@@ -412,4 +411,14 @@ struct value cdr (struct value v)
 bool nilp (struct value v)
 {
 	return v.tag.type == T_NIL;
+}
+
+int length (struct value v)
+{
+	int i = 0;
+
+	FOREACH (item, v)
+		i++;
+
+	return i;
 }

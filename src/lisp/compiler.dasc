@@ -1,0 +1,67 @@
+#include "compiler.h"
+
+#include <dasm_proto.h>
+#include <dasm_x86.h>
+
+#define value_size sizeof (struct value)
+
+|.arch x86;
+
+|.macro setup, nvars;
+| push ebp;
+| mov ebp, esp;
+| sub esp, value_size *nvars;
+|.endmacro;
+
+|.macro cleanup;
+| mov esp, ebp;
+| pop ebp;
+| ret;
+|.endmacro;
+
+dasm_State *d;
+unsigned int npc = 8;
+
+struct function *find_function (struct environment *env, char *name)
+{
+	struct function *f = env->first;
+
+	while ( strcmp (f->name, name) != 0 )
+	{
+		if ( f->prev )
+			f = f->prev;
+		else
+			return NULL;
+	}
+
+	return f;
+}
+
+void compile (struct istream *is)
+{
+	|.section code;
+	dasm_init (&d, DASM_MAXSECTION);
+
+	|.globals lbl_;
+	void *labels[ lbl__MAX ];
+	dasm_setupglobal (&d, labels, lbl__MAX);
+
+	|.actionlist lisp_actions;
+	dasm_setup (&d, lisp_actions);
+
+	dasm_growpc (&d, npc);
+}
+
+// First pass populates local
+void firstpass (struct value val, struct environment *env, struct local *local)
+{
+}
+
+// Second pass generates code
+void secondpass (struct value val, struct environment *env, struct local *local)
+{
+}
+
+void toplevel (struct value val, struct environment *env)
+{
+}

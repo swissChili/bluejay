@@ -7,7 +7,21 @@ preset(warn)
 
 archetype(c)
 
-OBJECTS = main.o lisp.o
+CFLAGS += -Ivendor/luajit/dynasm
+
+OBJECTS = main.o \
+			lisp.o \
+			compiler.o
+
+LUA = vendor/luajit/src/host/minilua
+
+vendor/luajit/src/host/minilua: vendor/luajit/src/host/minilua.c
+	status_log(CC, $<)
+	@$(CC) $< -o $@ -lm
+
+compiler.c: compiler.dasc
+	status_log(DYNASM, $<)
+	@$(LUA) vendor/luajit/dynasm/dynasm.lua -o $@ $<
 
 type(executable)
 
@@ -17,6 +31,6 @@ run: lisp
 
 format:
 	status_log(FORMAT, *)
-	@clang-format -i *.c *.h
+	@clang-format -i *.c *.h *.dasc
 
 finish

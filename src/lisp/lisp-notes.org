@@ -1,0 +1,36 @@
+#+TITLE: Lisp Notes
+#+AUTHOR: swissChili
+
+* Compiler
+
+  The compiler will using DynASM to generate code at runtime. It won’t
+  be a JIT (no interpreter), strictly a dynamic compiler.
+
+  For now I won’t even have a register allocator, all variables and
+  temporaries will be stored on the stack. This makes more or less
+  sense considering they will need to be put on the stack anyway when
+  a function is called.
+
+  An example assembly is in =scratch.s=.
+
+** First Pass
+
+   The first pass will involve finding all the local variables
+   (i.e. anything defined with =let=) and all the temporary values
+   necessary. Once a variable is out of scope, its stack space becomes
+   usable by other variables. Similarly, once a temporary is used, its
+   space becomes available. Variables are addressable by name but
+   temporaries are not.
+
+** Second Pass
+
+   The second pass will actually generate assembly. First enough space
+   will be reserved on the stack for the variables and temporaries,
+   then the AST will be walked as before to generate all the
+   appropriate function calls.
+
+   When a function call is generated, first temporaries are allocated
+   for all its arguments. Then the sub-expressions are compiled left to
+   right given these temporary locations as the outputs. For now we
+   will assume that everything is either a variable or a function
+   call, there will be no literals yet.
