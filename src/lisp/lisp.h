@@ -1,8 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
-
-extern unsigned int cons_magic;
+#include <stdio.h>
 
 enum type
 {
@@ -61,21 +60,34 @@ struct istream
 	int (*get) (struct istream *s);
 
 	int (*read) (struct istream *s, char *buffer, int size);
+
+	void (*showpos) (struct istream *s, FILE *out);
 };
 
-bool startswith (struct istream *s, const char *pattern);
+bool startswith (struct istream *s, char *pattern);
 
 bool readsym (struct istream *is, struct value *val);
 bool readstr (struct istream *is, struct value *val);
+bool readlist (struct istream *is, struct value *val);
 
+struct value strval (char *str);
 struct value cons (struct value car, struct value cdr);
 bool read1 (struct istream *is, struct value *val);
-struct value read (struct istream);
-struct value readn (struct istream);
+struct value read (struct istream *is);
+struct value readn (struct istream *is);
+
+struct value car (struct value v);
+struct value cdr (struct value v);
+bool listp (struct value v);
+bool nilp (struct value v);
 
 void printval (struct value v, int depth);
 
 struct istream *new_stristream (char *str, int length);
 // same as above but null terminated
 struct istream *new_stristream_nt (char *str);
-void del_stristream(struct istream *stristream);
+void del_stristream (struct istream *stristream);
+
+void err (const char *msg);
+
+extern struct value nil;

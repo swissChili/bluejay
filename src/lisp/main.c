@@ -2,7 +2,13 @@
 
 int main (int argc, char **argv)
 {
-	struct istream *is = new_stristream_nt ("abcde \"asdf dsf sdf\"");
+	if ( argc < 2 )
+	{
+		puts ("pass the string you want to parse as the first argument please");
+		return 1;
+	}
+
+	struct istream *is = new_stristream_nt (argv[ 1 ]);
 	struct value val;
 
 	while ( read1 (is, &val) )

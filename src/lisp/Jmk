@@ -13,6 +13,10 @@ type(executable)
 
 run: lisp
 	status_log(RUN, ./lisp)
-	@./lisp
+	@./lisp "$$(cat test.lisp)"
+
+format:
+	status_log(FORMAT, *)
+	@clang-format -i *.c *.h
 
 finish
