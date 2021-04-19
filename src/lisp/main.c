@@ -9,7 +9,7 @@ int main (int argc, char **argv)
 	}
 
 	struct istream *is = new_stristream_nt (argv[ 1 ]);
-	struct value val;
+	value_t val;
 
 	while ( read1 (is, &val) )
 	{

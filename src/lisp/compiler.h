@@ -41,11 +41,5 @@ struct local
 	struct variable *first;
 };
 
-// First pass populates local
-void firstpass (struct value val, struct environment *env, struct local *local);
-// Second pass generates code
-void secondpass (struct value val, struct environment *env,
-                 struct local *local);
-void toplevel (struct value val, struct environment *env);
 void compile (struct istream *is);
 struct function *find_function (struct environment *env, char *name);

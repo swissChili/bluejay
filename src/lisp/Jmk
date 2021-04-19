@@ -1,4 +1,8 @@
+# -*- mode:makefile -*-
+
 init(lisp, lisp)
+
+option(PLAT, "`platform to build for: either linux or bluejay'", linux)
 
 preset(optimize)
 preset(32)
@@ -12,6 +16,12 @@ CFLAGS += -Ivendor/luajit/dynasm
 OBJECTS = main.o \
 			lisp.o \
 			compiler.o
+
+ifeq ($(PLAT),linux)
+OBJECTS += plat/linux.o
+else
+$(error linux is the only supported option for PLAT)
+endif
 
 LUA = vendor/luajit/src/host/minilua
 

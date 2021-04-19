@@ -15,39 +15,41 @@ enum type
 	T_CONS,
 };
 
-struct tag
-{
-	unsigned int type : 3;
-	unsigned int length : 29;
-} __attribute__ ((packed));
+#define INT_MASK 0b11
+#define INT_TAG 0b00
+
+#define CHAR_MASK 0xff
+#define CHAR_TAG 0b00001111
+
+#define BOOL_MASK 0b1111111
+#define BOOL_TAG 0b0011111
+
+#define HEAP_MASK 0b111
+
+#define CONS_TAG 0b001
+#define VECTOR_TAG 0b010
+#define STRING_TAG 0b100
+#define SYMBOL_TAG 0b101
+#define CLOSURE_TAG 0b110
 
 struct cons;
 
-union value_type {
-	int int_val;
-	float float_val;
-	struct cons *cons_val;
-	char *symbol_val; // interned
-	char *string_val;
-};
-
-struct value
-{
-	struct tag tag;
-	union value_type value;
-} __attribute__ ((packed));
+typedef unsigned int value_t;
 
 struct cons
 {
 	int magic;
 	int marked; // must be reserved
-	struct value car, cdr;
+	value_t car, cdr;
 };
 
 struct alloc_list
 {
 	int type;
-	union value_type data;
+	union
+	{
+		struct cons *cons_val;
+	};
 	struct alloc_list *next, *prev;
 };
 
@@ -66,23 +68,31 @@ struct istream
 
 bool startswith (struct istream *s, char *pattern);
 
-bool readsym (struct istream *is, struct value *val);
-bool readstr (struct istream *is, struct value *val);
-bool readlist (struct istream *is, struct value *val);
+bool readsym (struct istream *is, value_t *val);
+bool readstr (struct istream *is, value_t *val);
+bool readlist (struct istream *is, value_t *val);
 
-struct value strval (char *str);
-struct value cons (struct value car, struct value cdr);
-bool read1 (struct istream *is, struct value *val);
-struct value read (struct istream *is);
-struct value readn (struct istream *is);
+value_t intval (int i);
+value_t strval (char *str);
+value_t cons (value_t car, value_t cdr);
+bool read1 (struct istream *is, value_t *val);
+value_t read (struct istream *is);
+value_t readn (struct istream *is);
 
-struct value car (struct value v);
-struct value cdr (struct value v);
-bool listp (struct value v);
-bool nilp (struct value v);
-int length (struct value v);
+value_t car (value_t v);
+value_t cdr (value_t v);
+value_t *carref (value_t v);
+value_t *cdrref (value_t v);
 
-void printval (struct value v, int depth);
+bool integerp (value_t v);
+bool symbolp (value_t v);
+bool stringp (value_t v);
+bool consp (value_t v);
+bool listp (value_t v);
+bool nilp (value_t v);
+int length (value_t v);
+
+void printval (value_t v, int depth);
 
 struct istream *new_stristream (char *str, int length);
 // same as above but null terminated
@@ -91,11 +101,11 @@ void del_stristream (struct istream *stristream);
 
 void err (const char *msg);
 
-extern struct value nil;
+extern value_t nil;
 
 #define FOREACH(item, list)                                                    \
 	for ( ; listp (list); )                                                    \
-		for ( struct value item = car (list), _foreach_current = list;         \
+		for ( value_t item = car (list), _foreach_current = list;              \
 		      !nilp (_foreach_current);                                        \
 		      _foreach_current = cdr (_foreach_current),                       \
-		                   item = car (_foreach_current) )
+		              item = car (_foreach_current) )

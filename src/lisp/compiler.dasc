@@ -1,3 +1,5 @@
+/* -*- mode:c -*- */
+
 #include "compiler.h"
 
 #include <dasm_proto.h>
@@ -10,7 +12,7 @@
 |.macro setup, nvars;
 | push ebp;
 | mov ebp, esp;
-| sub esp, value_size *nvars;
+| sub esp, (value_size * nvars);
 |.endmacro;
 
 |.macro cleanup;
@@ -50,18 +52,4 @@ void compile (struct istream *is)
 	dasm_setup (&d, lisp_actions);
 
 	dasm_growpc (&d, npc);
-}
-
-// First pass populates local
-void firstpass (struct value val, struct environment *env, struct local *local)
-{
-}
-
-// Second pass generates code
-void secondpass (struct value val, struct environment *env, struct local *local)
-{
-}
-
-void toplevel (struct value val, struct environment *env)
-{
 }

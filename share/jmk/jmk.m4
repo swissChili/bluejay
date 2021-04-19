@@ -24,6 +24,10 @@ jmk_clean_libs =
 
 MAKEFILE_DEPTH ?= 1
 
+ifneq (,$(wildcard ./Jmk.options))
+     include Jmk.options
+endif
+
 all: $(jmk_target)')
 
 dnl preset applies a certain configuration preset to the project
@@ -84,6 +88,11 @@ status_log(AR, dollar_at)
 `$(jmk_target): $(OBJECTS)
 status_log(LD, dollar_at)
 	@$(LD) $(LDFLAGS) -o dollar_at $^')')
+
+define(option,
+`$1 ?= $3
+jmk_options += $1
+jmk_option_help_$1 = $2 (default: $3)')
 
 dnl finish is required at the end of the Jmk file to generate some
 dnl final declarations

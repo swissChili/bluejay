@@ -1,4 +1,6 @@
 #include "lisp.h"
+#include "plat/plat.h"
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -9,23 +11,30 @@
 
 struct alloc_list *first_a = NULL, *last_a = NULL;
 
-struct value nil = {.tag = {.type = T_NIL}};
+value_t nil = 0b00101111; // magic ;)
 
 void err (const char *msg)
 {
 	fprintf (stderr, "ERROR: %s\n", msg);
 }
 
-struct value cons (struct value car, struct value cdr)
+value_t intval (int i)
 {
-	struct cons *c = malloc (sizeof (struct cons));
+	i <<= 2;
+	i |= INT_TAG;
+	return i;
+}
+
+value_t cons (value_t car, value_t cdr)
+{
+	struct cons *c = malloc_aligned (sizeof (struct cons));
 
 	c->car = car;
 	c->cdr = cdr;
 
 	struct alloc_list *item = malloc (sizeof (struct alloc_list));
 	item->type = T_CONS;
-	item->data.cons_val = c;
+	item->cons_val = c;
 
 	if ( last_a )
 	{
@@ -39,9 +48,8 @@ struct value cons (struct value car, struct value cdr)
 		first_a = last_a = item;
 	}
 
-	struct value v;
-	v.tag.type = T_CONS;
-	v.value.cons_val = c;
+	value_t v = (value_t) c;
+	v |= CONS_TAG;
 
 	return v;
 }
@@ -68,7 +76,7 @@ bool issym (char c)
 	return isalpha (c) || isallowedchar (c) || isdigit (c);
 }
 
-bool readsym (struct istream *is, struct value *val)
+bool readsym (struct istream *is, value_t *val)
 {
 	skipws (is);
 
@@ -76,7 +84,7 @@ bool readsym (struct istream *is, struct value *val)
 		return false;
 
 	int size = 8;
-	char *s = malloc (size);
+	char *s = malloc_aligned (size);
 
 	s[ 0 ] = is->get (is);
 
@@ -87,7 +95,7 @@ bool readsym (struct istream *is, struct value *val)
 			if ( i >= size )
 			{
 				size *= 2;
-				s = realloc (s, size);
+				s = realloc_aligned (s, size);
 			}
 
 			s[ i ] = is->get (is);
@@ -95,16 +103,15 @@ bool readsym (struct istream *is, struct value *val)
 		else
 		{
 			s[ i ] = 0;
-			val->tag.type = T_SYMBOL;
-			val->tag.length = i - 1;
-			val->value.symbol_val = s;
+			*val = (value_t) s;
+			*val |= SYMBOL_TAG;
 
 			return true;
 		}
 	}
 }
 
-bool readstr (struct istream *is, struct value *val)
+bool readstr (struct istream *is, value_t *val)
 {
 	skipws (is);
 
@@ -113,7 +120,7 @@ bool readstr (struct istream *is, struct value *val)
 
 	bool escape = false;
 	int size = 8;
-	char *s = malloc (size);
+	char *s = malloc_aligned (size);
 
 	(void)is->get (is);
 
@@ -124,7 +131,7 @@ bool readstr (struct istream *is, struct value *val)
 			if ( i >= size )
 			{
 				size *= 2;
-				s = realloc (s, size);
+				s = realloc_aligned (s, size);
 			}
 
 			char c = is->get (is);
@@ -149,34 +156,34 @@ bool readstr (struct istream *is, struct value *val)
 		{
 			is->get (is);
 
-			val->tag.type = T_STRING;
-			val->tag.length = i;
-			val->value.string_val = s;
+			*val = (value_t) s;
+			*val |= STRING_TAG;
 
 			return true;
 		}
 	}
 }
 
-void printval (struct value v, int depth)
+void printval (value_t v, int depth)
 {
 	for ( int i = 0; i < depth; i++ )
 		printf ("  ");
 
-	switch ( v.tag.type )
+	if ( symbolp (v) )
 	{
-	case T_SYMBOL:
-		printf ("'%s\n", v.value.symbol_val);
-		return;
-	case T_STRING:
-		printf ("\"%s\"\n", v.value.string_val);
-		return;
-	case T_CONS:
+		printf ("'%s\n", (char *) (v ^ SYMBOL_TAG));
+	}
+	else if ( stringp (v) )
+	{
+		printf ("\"%s\"\n", (char *) (v ^ STRING_TAG));
+	}
+	else if ( consp (v) )
+	{
 		if ( listp (v) )
 		{
 			printf ("list:\n");
 
-			for ( struct value n = v; !nilp (n); n = cdr (n) )
+			for ( value_t n = v; !nilp (n); n = cdr (n) )
 			{
 				printval (car (n), depth + 1);
 			}
@@ -184,19 +191,21 @@ void printval (struct value v, int depth)
 		else
 		{
 			printf ("cons:\n");
-			printval (v.value.cons_val->car, depth + 1);
-			printval (v.value.cons_val->cdr, depth + 1);
+			printval (car (v), depth + 1);
+			printval (cdr (v), depth + 1);
 		}
-		break;
-	case T_NIL:
+	}
+	else if ( nilp (v) )
+	{
 		printf ("nil\n");
-		break;
-	default:
-		printf ("<unknown %d>\n", v.tag.type);
+	}
+	else
+	{
+		printf ("<unknown %d>\n", v);
 	}
 }
 
-bool readlist (struct istream *is, struct value *val)
+bool readlist (struct istream *is, value_t *val)
 {
 	skipws (is);
 
@@ -218,7 +227,7 @@ bool readlist (struct istream *is, struct value *val)
 	return true;
 }
 
-bool read1 (struct istream *is, struct value *val)
+bool read1 (struct istream *is, value_t *val)
 {
 	if ( readsym (is, val) )
 		return true;
@@ -232,17 +241,17 @@ bool read1 (struct istream *is, struct value *val)
 	return false;
 }
 
-struct value readn (struct istream *is)
+value_t readn (struct istream *is)
 {
-	struct value first = nil;
-	struct value *last = &first;
+	value_t first = nil;
+	value_t *last = &first;
 
-	struct value read_val;
+	value_t read_val;
 
 	while ( read1 (is, &read_val) )
 	{
 		*last = cons (read_val, nil);
-		last = &last->value.cons_val->cdr;
+		last = cdrref (*last);
 	}
 
 	return first;
@@ -370,55 +379,97 @@ bool startswith (struct istream *s, char *pattern)
 	return res;
 }
 
-struct value strval (char *str)
+value_t strval (char *str)
 {
-	struct value v;
-	v.tag.type = T_STRING;
-	v.tag.length = strlen (str);
-	v.value.string_val = str;
+	value_t v;
+
+	char *a = malloc_aligned (strlen (str) + 1);
+	v = (value_t) a;
+	v |= STRING_TAG;
 
 	return v;
 }
 
-bool listp (struct value v)
+bool integerp (value_t v)
 {
-	struct value *next = &v;
+	return (v & INT_MASK) == INT_TAG;
+}
 
-	while ( next->tag.type == T_CONS && cdr (*next).tag.type == T_CONS )
+bool symbolp (value_t v)
+{
+	return (v & HEAP_MASK) == SYMBOL_TAG;
+}
+
+bool stringp (value_t v)
+{
+	return (v & HEAP_MASK) == STRING_TAG;
+}
+
+bool consp (value_t v)
+{
+	return (v & HEAP_MASK) == CONS_TAG;
+}
+
+bool listp (value_t v)
+{
+	value_t next = v;
+
+	while ( consp (next) )
 	{
-		next = &next->value.cons_val->cdr;
+		next = cdr (next);
 	}
 
-	return next->value.cons_val->cdr.tag.type == T_NIL;
+	return nilp (next);
 }
 
-struct value car (struct value v)
+value_t car (value_t v)
 {
-	if ( v.tag.type != T_CONS )
+	if ( !consp (v) )
 		return nil;
 
-	return v.value.cons_val->car;
+	return *carref (v);
 }
 
-struct value cdr (struct value v)
+value_t cdr (value_t v)
 {
-	if ( v.tag.type != T_CONS )
+	if ( !consp (v) )
 		return nil;
 
-	return v.value.cons_val->cdr;
+	return *cdrref (v);
 }
 
-bool nilp (struct value v)
+value_t *carref (value_t v)
 {
-	return v.tag.type == T_NIL;
+	if ( !consp (v) )
+		return NULL;
+
+	struct cons *c = (void *) (v ^ CONS_TAG);
+	return &c->car;
 }
 
-int length (struct value v)
+value_t *cdrref (value_t v)
+{
+	if ( !consp (v) )
+		return NULL;
+
+	struct cons *c = (void *) (v ^ CONS_TAG);
+	return &c->cdr;
+}
+
+bool nilp (value_t v)
+{
+	return v == nil;
+}
+
+int length (value_t v)
 {
 	int i = 0;
 
 	FOREACH (item, v)
+	{
+		(void) item;
 		i++;
+	}
 
 	return i;
 }

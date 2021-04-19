@@ -10,3 +10,4 @@
 bin/*
 !bin/jmk
 **/Makefile
+**/Jmk.options
