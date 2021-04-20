@@ -28,7 +28,7 @@ enum type
 
 #define CONS_TAG 0b001
 #define VECTOR_TAG 0b010
-#define STRING_TAG 0b100
+#define STRING_TAG 0b011
 #define SYMBOL_TAG 0b101
 #define CLOSURE_TAG 0b110
 
@@ -71,6 +71,7 @@ bool startswith (struct istream *s, char *pattern);
 bool readsym (struct istream *is, value_t *val);
 bool readstr (struct istream *is, value_t *val);
 bool readlist (struct istream *is, value_t *val);
+bool readint (struct istream *is, value_t *val);
 
 value_t intval (int i);
 value_t strval (char *str);

@@ -177,6 +177,10 @@ void printval (value_t v, int depth)
 	{
 		printf ("\"%s\"\n", (char *) (v ^ STRING_TAG));
 	}
+	else if ( integerp (v) )
+	{
+		printf ("%d\n", v >> 2);
+	}
 	else if ( consp (v) )
 	{
 		if ( listp (v) )
@@ -227,12 +231,32 @@ bool readlist (struct istream *is, value_t *val)
 	return true;
 }
 
+bool readint (struct istream *is, value_t *val)
+{
+	int number = 0;
+
+	if ( !isdigit (is->peek (is)) )
+		return false;
+
+	while ( isdigit (is->peek (is)) )
+	{
+		number *= 10;
+		number += is->get (is) - '0';
+	}
+
+	*val = intval (number);
+	return true;
+}
+
 bool read1 (struct istream *is, value_t *val)
 {
 	if ( readsym (is, val) )
 		return true;
 
 	if ( readstr (is, val) )
+		return true;
+
+	if ( readint (is, val) )
 		return true;
 
 	if ( readlist (is, val) )
