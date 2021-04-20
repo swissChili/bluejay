@@ -53,3 +53,35 @@ void compile (struct istream *is)
 
 	dasm_growpc (&d, npc);
 }
+
+void compile_expression (struct environment *env, struct local *local,
+                         value_t val, dasm_State **Dst)
+{
+	if ( integerp (val) || stringp (val) || symbolp (val) )
+	{
+		| mov eax, val;
+	}
+	else if ( listp (val) )
+	{
+		value_t func = car (val);
+		if ( !symbolp (func) )
+			err ("function name must be a symbol");
+
+		struct function *func = find_function (env, func ^ SYMBOL_TAG);
+		value_t args = cdr (val);
+		int nargs = length (args);
+
+		if ( nargs != func->nargs )
+			err ("wrong number of args");
+
+		for ( int i = length (args) - 1; i >= 0; i++ )
+		{
+			compile_expression (env, local, elt (args, i), Dst);
+			| push eax;
+		}
+
+		| call (func->code_addr);
+		| add esp, (nargs * 4);
+		// result in eax
+	}
+}

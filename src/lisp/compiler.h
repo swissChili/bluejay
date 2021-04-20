@@ -2,6 +2,8 @@
 
 #include "lisp.h"
 #include <stdbool.h>
+#include <stdint.h>
+#include <dasm_proto.h>
 
 struct function
 {
@@ -9,12 +11,12 @@ struct function
 	int nargs; // number of arguments
 
 	union {
-		struct value (*def0) ();
-		struct value (*def1) (struct value);
-		struct value (*def2) (struct value, struct value);
-		struct value (*def3) (struct value, struct value, struct value);
+		value_t (*def0) ();
+		value_t (*def1) (value_t);
+		value_t (*def2) (value_t, value_t);
+		value_t (*def3) (value_t, value_t, value_t);
 		void *code_ptr;
-		unsigned long code_addr;
+		uintrptr_t code_addr;
 	};
 
 	struct function *prev;
@@ -41,5 +43,7 @@ struct local
 	struct variable *first;
 };
 
+void compile_expression (struct environment *env, struct local *local,
+                         value_t val, dasm_State **Dst);
 void compile (struct istream *is);
 struct function *find_function (struct environment *env, char *name);

@@ -46,8 +46,7 @@ struct cons
 struct alloc_list
 {
 	int type;
-	union
-	{
+	union {
 		struct cons *cons_val;
 	};
 	struct alloc_list *next, *prev;
@@ -92,6 +91,7 @@ bool consp (value_t v);
 bool listp (value_t v);
 bool nilp (value_t v);
 int length (value_t v);
+value_t elt (value_t v, int index);
 
 void printval (value_t v, int depth);
 

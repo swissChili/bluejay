@@ -16,6 +16,7 @@ value_t nil = 0b00101111; // magic ;)
 void err (const char *msg)
 {
 	fprintf (stderr, "ERROR: %s\n", msg);
+	exit (1);
 }
 
 value_t intval (int i)
@@ -48,7 +49,7 @@ value_t cons (value_t car, value_t cdr)
 		first_a = last_a = item;
 	}
 
-	value_t v = (value_t) c;
+	value_t v = (value_t)c;
 	v |= CONS_TAG;
 
 	return v;
@@ -103,7 +104,7 @@ bool readsym (struct istream *is, value_t *val)
 		else
 		{
 			s[ i ] = 0;
-			*val = (value_t) s;
+			*val = (value_t)s;
 			*val |= SYMBOL_TAG;
 
 			return true;
@@ -156,7 +157,7 @@ bool readstr (struct istream *is, value_t *val)
 		{
 			is->get (is);
 
-			*val = (value_t) s;
+			*val = (value_t)s;
 			*val |= STRING_TAG;
 
 			return true;
@@ -171,11 +172,11 @@ void printval (value_t v, int depth)
 
 	if ( symbolp (v) )
 	{
-		printf ("'%s\n", (char *) (v ^ SYMBOL_TAG));
+		printf ("'%s\n", (char *)(v ^ SYMBOL_TAG));
 	}
 	else if ( stringp (v) )
 	{
-		printf ("\"%s\"\n", (char *) (v ^ STRING_TAG));
+		printf ("\"%s\"\n", (char *)(v ^ STRING_TAG));
 	}
 	else if ( integerp (v) )
 	{
@@ -408,7 +409,7 @@ value_t strval (char *str)
 	value_t v;
 
 	char *a = malloc_aligned (strlen (str) + 1);
-	v = (value_t) a;
+	v = (value_t)a;
 	v |= STRING_TAG;
 
 	return v;
@@ -467,7 +468,7 @@ value_t *carref (value_t v)
 	if ( !consp (v) )
 		return NULL;
 
-	struct cons *c = (void *) (v ^ CONS_TAG);
+	struct cons *c = (void *)(v ^ CONS_TAG);
 	return &c->car;
 }
 
@@ -476,7 +477,7 @@ value_t *cdrref (value_t v)
 	if ( !consp (v) )
 		return NULL;
 
-	struct cons *c = (void *) (v ^ CONS_TAG);
+	struct cons *c = (void *)(v ^ CONS_TAG);
 	return &c->cdr;
 }
 
@@ -491,9 +492,19 @@ int length (value_t v)
 
 	FOREACH (item, v)
 	{
-		(void) item;
+		(void)item;
 		i++;
 	}
 
 	return i;
+}
+
+value_t elt (value_t v, int index)
+{
+	for ( int = 0; i < index; i++ )
+	{
+		v = cdr (v);
+	}
+
+	return car (v);
 }

@@ -15,7 +15,8 @@ CFLAGS += -Ivendor/luajit/dynasm
 
 OBJECTS = main.o \
 			lisp.o \
-			compiler.o
+			compiler.o \
+			lib/std.o
 
 ifeq ($(PLAT),linux)
 OBJECTS += plat/linux.o
