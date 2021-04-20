@@ -9,6 +9,30 @@ value_t l_plus (value_t a, value_t b)
 	return (((a >> 2) + (b >> 2)) << 2) | INT_TAG;
 }
 
+value_t l_minus (value_t a, value_t b)
+{
+	if ( !integerp (a) || !integerp (b) )
+		return nil;
+
+	return (((a >> 2) - (b >> 2)) << 2) | INT_TAG;
+}
+
+value_t l_times (value_t a, value_t b)
+{
+	if ( !integerp (a) || !integerp (b) )
+		return nil;
+
+	return (((a >> 2) * (b >> 2)) << 2) | INT_TAG;
+}
+
+value_t l_divide (value_t a, value_t b)
+{
+	if ( !integerp (a) || !integerp (b) )
+		return nil;
+
+	return (((a >> 2) / (b >> 2)) << 2) | INT_TAG;
+}
+
 void add_function (struct environment *env, char *name, void *func, int nargs)
 {
 	struct function *last,
@@ -26,4 +50,7 @@ void add_function (struct environment *env, char *name, void *func, int nargs)
 void load_std (struct environment *env)
 {
 	add_function (env, "+", l_plus, 2);
+	add_function (env, "-", l_minus, 2);
+	add_function (env, "*", l_times, 2);
+	add_function (env, "/", l_divide, 2);
 }
