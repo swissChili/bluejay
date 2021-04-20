@@ -1,4 +1,5 @@
 #include "std.h"
+#include <stdlib.h>
 
 value_t l_plus (value_t a, value_t b)
 {
@@ -19,7 +20,7 @@ void add_function (struct environment *env, char *name, void *func, int nargs)
 	new->nargs = nargs;
 	new->code_ptr = func;
 
-	env->prev = new;
+	env->first = new;
 }
 
 void load_std (struct environment *env)

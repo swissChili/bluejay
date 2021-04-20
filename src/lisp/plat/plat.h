@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <dasm_proto.h>
 
 /* Platform specific definitions */
 
@@ -9,3 +10,5 @@
 void *malloc_aligned (size_t size);
 void *realloc_aligned (void *addr, size_t size);
 void free_aligned (void *addr);
+
+void *link (dasm_State **Dst);

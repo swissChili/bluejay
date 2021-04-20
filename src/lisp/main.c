@@ -1,4 +1,5 @@
 #include "lisp.h"
+#include "compiler.h"
 
 int main (int argc, char **argv)
 {
@@ -13,8 +14,13 @@ int main (int argc, char **argv)
 
 	while ( read1 (is, &val) )
 	{
-		printval (val, 0);
+//		printval (val, 0);
+		compile (val);
 	}
+
+	/* printf ("COMPILING\n"); */
+
+	return 0;
 
 	del_stristream (is);
 }

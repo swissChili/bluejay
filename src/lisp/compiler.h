@@ -1,9 +1,9 @@
 #pragma once
 
 #include "lisp.h"
+#include <dasm_proto.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <dasm_proto.h>
 
 struct function
 {
@@ -16,7 +16,7 @@ struct function
 		value_t (*def2) (value_t, value_t);
 		value_t (*def3) (value_t, value_t, value_t);
 		void *code_ptr;
-		uintrptr_t code_addr;
+		uintptr_t code_addr;
 	};
 
 	struct function *prev;
@@ -45,5 +45,7 @@ struct local
 
 void compile_expression (struct environment *env, struct local *local,
                          value_t val, dasm_State **Dst);
-void compile (struct istream *is);
+void compile_expr_to_func (struct environment *env, char *name, value_t val,
+                           dasm_State **Dst);
+void compile (value_t val);
 struct function *find_function (struct environment *env, char *name);

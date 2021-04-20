@@ -1,11 +1,13 @@
 /* -*- mode:c -*- */
 
 #include "compiler.h"
+#include "plat/plat.h"
+#include "lib/std.h"
 
 #include <dasm_proto.h>
 #include <dasm_x86.h>
 
-#define value_size sizeof (struct value)
+#define value_size sizeof (value_t)
 
 |.arch x86;
 
@@ -39,7 +41,7 @@ struct function *find_function (struct environment *env, char *name)
 	return f;
 }
 
-void compile (struct istream *is)
+void compile (value_t val)
 {
 	|.section code;
 	dasm_init (&d, DASM_MAXSECTION);
@@ -52,6 +54,17 @@ void compile (struct istream *is)
 	dasm_setup (&d, lisp_actions);
 
 	dasm_growpc (&d, npc);
+
+	struct environment env;
+	env.first = NULL;
+	char *name = "main";
+	load_std (&env);
+
+	printval (val, 0);
+	compile_expr_to_func (&env, name, val, &d);
+
+	value_t (*fun)() = find_function (&env, name)->def0;
+	printval (fun (), 0);
 }
 
 void compile_expression (struct environment *env, struct local *local,
@@ -63,25 +76,42 @@ void compile_expression (struct environment *env, struct local *local,
 	}
 	else if ( listp (val) )
 	{
-		value_t func = car (val);
-		if ( !symbolp (func) )
-			err ("function name must be a symbol");
+		value_t fsym = car (val);
 
-		struct function *func = find_function (env, func ^ SYMBOL_TAG);
+		if ( !symbolp (fsym) )
+		{
+			err ("function name must be a symbol");
+		}
+
+		struct function *func = find_function (env, (char *) (fsym ^ SYMBOL_TAG));
 		value_t args = cdr (val);
 		int nargs = length (args);
 
 		if ( nargs != func->nargs )
 			err ("wrong number of args");
 
-		for ( int i = length (args) - 1; i >= 0; i++ )
+		for ( int i = length (args) - 1; i >= 0; i-- )
 		{
 			compile_expression (env, local, elt (args, i), Dst);
 			| push eax;
 		}
 
-		| call (func->code_addr);
+		| mov ebx, (func->code_addr);
+		| call ebx;
 		| add esp, (nargs * 4);
 		// result in eax
 	}
+}
+
+void compile_expr_to_func (struct environment *env, char *name, value_t val,
+                           dasm_State **Dst)
+{
+	| setup 0;
+
+	struct local local;
+	compile_expression (env, &local, val, Dst);
+	
+	| cleanup;
+
+	add_function (env, name, link (Dst), 0);
 }

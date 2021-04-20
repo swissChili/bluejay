@@ -490,18 +490,15 @@ int length (value_t v)
 {
 	int i = 0;
 
-	FOREACH (item, v)
-	{
-		(void)item;
+	for ( ; !nilp (v); v = cdr (v) )
 		i++;
-	}
 
 	return i;
 }
 
 value_t elt (value_t v, int index)
 {
-	for ( int = 0; i < index; i++ )
+	for ( int i = 0; i < index; i++ )
 	{
 		v = cdr (v);
 	}
