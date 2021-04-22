@@ -10,17 +10,10 @@ int main (int argc, char **argv)
 	}
 
 	struct istream *is = new_stristream_nt (argv[ 1 ]);
-	value_t val;
 
-	while ( read1 (is, &val) )
-	{
-//		printval (val, 0);
-		compile (val);
-	}
+	struct environment env = compile_all (is);
+	value_t (*lisp_main) () = find_function(&env, "main")->def0;
+	lisp_main ();
 
-	/* printf ("COMPILING\n"); */
-
-	return 0;
-
-	del_stristream (is);
+//	del_stristream (is);
 }

@@ -505,3 +505,11 @@ value_t elt (value_t v, int index)
 
 	return car (v);
 }
+
+bool symstreq (value_t sym, char *str)
+{
+	if ( (sym & HEAP_MASK) != SYMBOL_TAG )
+		return false;
+
+	return strcmp ((char *) (sym ^ SYMBOL_TAG), str) == 0;
+}

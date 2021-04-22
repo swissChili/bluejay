@@ -1,5 +1,6 @@
-(defun my-fun (a b)
-  (display t "%a\n" (+ a b)))
+(defun two-plus-two ()
+  (+ 2 2))
 
 (defun main ()
-  (my-fun pi 4 773832))
+  (print "64 / (2 + 2) =")
+  (print (/ 64 (two-plus-two))))

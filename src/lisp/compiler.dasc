@@ -41,30 +41,73 @@ struct function *find_function (struct environment *env, char *name)
 	return f;
 }
 
-void compile (value_t val)
+void compile_tl (value_t val, struct environment *env)
 {
-	|.section code;
-	dasm_init (&d, DASM_MAXSECTION);
+	if ( !listp (val) )
+		err ("Top level must be a list");
+	
+	value_t form = car (val);
+	value_t args = cdr (val);
 
-	|.globals lbl_;
-	void *labels[ lbl__MAX ];
-	dasm_setupglobal (&d, labels, lbl__MAX);
+	if ( symstreq (form, "defun") )
+	{
+		dasm_State *d;
+		dasm_State **Dst = &d;
 
-	|.actionlist lisp_actions;
-	dasm_setup (&d, lisp_actions);
+		|.section code;
+		dasm_init (&d, DASM_MAXSECTION);
+		
+		|.globals lbl_;
+		void *labels[ lbl__MAX ];
+		dasm_setupglobal (&d, labels, lbl__MAX);
+		
+		|.actionlist lisp_actions;
+		dasm_setup (&d, lisp_actions);
+		
+		dasm_growpc (&d, npc);
 
-	dasm_growpc (&d, npc);
+		struct local local;
+		local.first = NULL;
+		local.num_vars = 0;
+	
+		// Generate code
+		
+		| setup 0;
+		
+		value_t name = car (args);
+		args = cdr (args);
+		value_t arglist = car (args);
+		value_t body = cdr (args);
 
+		if ( (name & HEAP_MASK) != SYMBOL_TAG )
+			err ("function name must be a symbol");
+
+		for ( ; !nilp (body); body = cdr (body) )
+		{
+			compile_expression (env, &local, car (body), Dst);
+		}
+
+		| cleanup;
+
+		add_function (env, (char *) (name ^ SYMBOL_TAG), link (Dst), length (arglist));
+
+		dasm_free (&d);
+	}
+}
+
+struct environment compile_all (struct istream *is)
+{
+	value_t val;
 	struct environment env;
 	env.first = NULL;
-	char *name = "main";
 	load_std (&env);
+	
+	while ( read1 (is, &val) )
+	{
+		compile_tl (val, &env);
+	}
 
-	printval (val, 0);
-	compile_expr_to_func (&env, name, val, &d);
-
-	value_t (*fun)() = find_function (&env, name)->def0;
-	printval (fun (), 0);
+	return env;
 }
 
 void compile_expression (struct environment *env, struct local *local,

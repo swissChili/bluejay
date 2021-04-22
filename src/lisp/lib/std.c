@@ -33,6 +33,12 @@ value_t l_divide (value_t a, value_t b)
 	return (((a >> 2) / (b >> 2)) << 2) | INT_TAG;
 }
 
+value_t l_printval (value_t val)
+{
+	printval (val, 0);
+	return nil;
+}
+
 void add_function (struct environment *env, char *name, void *func, int nargs)
 {
 	struct function *last,
@@ -53,4 +59,10 @@ void load_std (struct environment *env)
 	add_function (env, "-", l_minus, 2);
 	add_function (env, "*", l_times, 2);
 	add_function (env, "/", l_divide, 2);
+
+	add_function (env, "car", car, 1);
+	add_function (env, "cdr", cdr, 1);
+	add_function (env, "cons", cons, 2);
+
+	add_function (env, "print", l_printval, 1);
 }

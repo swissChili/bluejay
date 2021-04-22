@@ -102,11 +102,6 @@ void del_stristream (struct istream *stristream);
 
 void err (const char *msg);
 
-extern value_t nil;
+bool symstreq (value_t sym, char *str);
 
-#define FOREACH(item, list)                                                    \
-	for ( ; listp (list); )                                                    \
-		for ( value_t item = car (list), _foreach_current = list;              \
-		      !nilp (_foreach_current);                                        \
-		      _foreach_current = cdr (_foreach_current),                       \
-		              item = car (_foreach_current) )
+extern value_t nil;

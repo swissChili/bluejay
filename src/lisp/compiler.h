@@ -37,8 +37,6 @@ struct variable
 // local environment
 struct local
 {
-	// temps are accessed at ebp - 8 * (num_vars + temp)
-	bool temps[ 64 ];
 	int num_vars;
 	struct variable *first;
 };
@@ -47,5 +45,7 @@ void compile_expression (struct environment *env, struct local *local,
                          value_t val, dasm_State **Dst);
 void compile_expr_to_func (struct environment *env, char *name, value_t val,
                            dasm_State **Dst);
-void compile (value_t val);
+// Compile top-level declaration
+void compile_tl (value_t val, struct environment *env);
+struct environment compile_all (struct istream *is);
 struct function *find_function (struct environment *env, char *name);
