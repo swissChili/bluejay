@@ -57,51 +57,51 @@ struct istream
 	void *data;
 
 	// These two return -1 on error
-	int (*peek) (struct istream *s);
-	int (*get) (struct istream *s);
+	int (*peek)(struct istream *s);
+	int (*get)(struct istream *s);
 
-	int (*read) (struct istream *s, char *buffer, int size);
+	int (*read)(struct istream *s, char *buffer, int size);
 
-	void (*showpos) (struct istream *s, FILE *out);
+	void (*showpos)(struct istream *s, FILE *out);
 };
 
-bool startswith (struct istream *s, char *pattern);
+bool startswith(struct istream *s, char *pattern);
 
-bool readsym (struct istream *is, value_t *val);
-bool readstr (struct istream *is, value_t *val);
-bool readlist (struct istream *is, value_t *val);
-bool readint (struct istream *is, value_t *val);
+bool readsym(struct istream *is, value_t *val);
+bool readstr(struct istream *is, value_t *val);
+bool readlist(struct istream *is, value_t *val);
+bool readint(struct istream *is, value_t *val);
 
-value_t intval (int i);
-value_t strval (char *str);
-value_t cons (value_t car, value_t cdr);
-bool read1 (struct istream *is, value_t *val);
-value_t read (struct istream *is);
-value_t readn (struct istream *is);
+value_t intval(int i);
+value_t strval(char *str);
+value_t cons(value_t car, value_t cdr);
+bool read1(struct istream *is, value_t *val);
+value_t read(struct istream *is);
+value_t readn(struct istream *is);
 
-value_t car (value_t v);
-value_t cdr (value_t v);
-value_t *carref (value_t v);
-value_t *cdrref (value_t v);
+value_t car(value_t v);
+value_t cdr(value_t v);
+value_t *carref(value_t v);
+value_t *cdrref(value_t v);
 
-bool integerp (value_t v);
-bool symbolp (value_t v);
-bool stringp (value_t v);
-bool consp (value_t v);
-bool listp (value_t v);
-bool nilp (value_t v);
-int length (value_t v);
-value_t elt (value_t v, int index);
+bool integerp(value_t v);
+bool symbolp(value_t v);
+bool stringp(value_t v);
+bool consp(value_t v);
+bool listp(value_t v);
+bool nilp(value_t v);
+int length(value_t v);
+value_t elt(value_t v, int index);
 
-void printval (value_t v, int depth);
+void printval(value_t v, int depth);
 
-struct istream *new_stristream (char *str, int length);
+struct istream *new_stristream(char *str, int length);
 // same as above but null terminated
-struct istream *new_stristream_nt (char *str);
-void del_stristream (struct istream *stristream);
+struct istream *new_stristream_nt(char *str);
+void del_stristream(struct istream *stristream);
 
-void err (const char *msg);
+void err(const char *msg);
 
-bool symstreq (value_t sym, char *str);
+bool symstreq(value_t sym, char *str);
 
 extern value_t nil;

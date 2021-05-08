@@ -3,4 +3,5 @@
 
 (defun main ()
   (print "64 / (2 + 2) =")
-  (print (/ 64 (two-plus-two))))
+  (print (/ 64 (two-plus-two)))
+  (print nil))

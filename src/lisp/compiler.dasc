@@ -1,13 +1,13 @@
 /* -*- mode:c -*- */
 
 #include "compiler.h"
-#include "plat/plat.h"
 #include "lib/std.h"
+#include "plat/plat.h"
 
 #include <dasm_proto.h>
 #include <dasm_x86.h>
 
-#define value_size sizeof (value_t)
+#define value_size sizeof(value_t)
 
 |.arch x86;
 
@@ -26,13 +26,13 @@
 dasm_State *d;
 unsigned int npc = 8;
 
-struct function *find_function (struct environment *env, char *name)
+struct function *find_function(struct environment *env, char *name)
 {
 	struct function *f = env->first;
 
-	while ( strcmp (f->name, name) != 0 )
+	while (strcmp(f->name, name) != 0)
 	{
-		if ( f->prev )
+		if (f->prev)
 			f = f->prev;
 		else
 			return NULL;
@@ -41,120 +41,160 @@ struct function *find_function (struct environment *env, char *name)
 	return f;
 }
 
-void compile_tl (value_t val, struct environment *env)
+void compile_tl(value_t val, struct environment *env)
 {
-	if ( !listp (val) )
-		err ("Top level must be a list");
-	
-	value_t form = car (val);
-	value_t args = cdr (val);
+	if (!listp(val))
+		err("Top level must be a list");
 
-	if ( symstreq (form, "defun") )
+	value_t form = car(val);
+	value_t args = cdr(val);
+
+	if (symstreq(form, "defun"))
 	{
 		dasm_State *d;
 		dasm_State **Dst = &d;
 
 		|.section code;
-		dasm_init (&d, DASM_MAXSECTION);
-		
+		dasm_init(&d, DASM_MAXSECTION);
+
 		|.globals lbl_;
-		void *labels[ lbl__MAX ];
-		dasm_setupglobal (&d, labels, lbl__MAX);
-		
+		void *labels[lbl__MAX];
+		dasm_setupglobal(&d, labels, lbl__MAX);
+
 		|.actionlist lisp_actions;
-		dasm_setup (&d, lisp_actions);
-		
-		dasm_growpc (&d, npc);
+		dasm_setup(&d, lisp_actions);
+
+		dasm_growpc(&d, npc);
 
 		struct local local;
 		local.first = NULL;
 		local.num_vars = 0;
-	
+
 		// Generate code
-		
+
 		| setup 0;
-		
-		value_t name = car (args);
-		args = cdr (args);
-		value_t arglist = car (args);
-		value_t body = cdr (args);
 
-		if ( (name & HEAP_MASK) != SYMBOL_TAG )
-			err ("function name must be a symbol");
+		value_t name = car(args);
+		args = cdr(args);
+		value_t arglist = car(args);
+		value_t body = cdr(args);
 
-		for ( ; !nilp (body); body = cdr (body) )
+		if ((name & HEAP_MASK) != SYMBOL_TAG)
+			err("function name must be a symbol");
+
+		for (; !nilp(body); body = cdr(body))
 		{
-			compile_expression (env, &local, car (body), Dst);
+			compile_expression(env, &local, car(body), Dst);
 		}
 
 		| cleanup;
 
-		add_function (env, (char *) (name ^ SYMBOL_TAG), link (Dst), length (arglist));
+		add_function(env, (char *)(name ^ SYMBOL_TAG), link(Dst),
+		             length(arglist));
 
-		dasm_free (&d);
+		dasm_free(&d);
 	}
 }
 
-struct environment compile_all (struct istream *is)
+struct environment compile_all(struct istream *is)
 {
 	value_t val;
 	struct environment env;
 	env.first = NULL;
-	load_std (&env);
-	
-	while ( read1 (is, &val) )
+	load_std(&env);
+
+	while (read1(is, &val))
 	{
-		compile_tl (val, &env);
+		compile_tl(val, &env);
 	}
 
 	return env;
 }
 
-void compile_expression (struct environment *env, struct local *local,
-                         value_t val, dasm_State **Dst)
+int nextpc(struct local *local, dasm_State **Dst)
 {
-	if ( integerp (val) || stringp (val) || symbolp (val) )
+	int n = local->nextpc++;
+	if (n > local->npc)
+	{
+		local->npc += 16;
+		dasm_growpc(Dst, local->npc);
+	}
+	return n;
+}
+
+void compile_expression(struct environment *env, struct local *local,
+                        value_t val, dasm_State **Dst)
+{
+	if (symstreq(val, "nil"))
+	{
+		| mov eax, (nil);
+	}
+	else if (integerp(val) || stringp(val) || symbolp(val))
 	{
 		| mov eax, val;
 	}
-	else if ( listp (val) )
+	else if (listp(val))
 	{
-		value_t fsym = car (val);
+		value_t fsym = car(val);
+		value_t args = cdr(val);
+		int nargs = length(args);
 
-		if ( !symbolp (fsym) )
+		if (!symbolp(fsym))
 		{
-			err ("function name must be a symbol");
+			err("function name must be a symbol");
 		}
 
-		struct function *func = find_function (env, (char *) (fsym ^ SYMBOL_TAG));
-		value_t args = cdr (val);
-		int nargs = length (args);
-
-		if ( nargs != func->nargs )
-			err ("wrong number of args");
-
-		for ( int i = length (args) - 1; i >= 0; i-- )
+		if (symstreq(fsym, "if"))
 		{
-			compile_expression (env, local, elt (args, i), Dst);
-			| push eax;
-		}
+			if (nargs < 2 || nargs > 3)
+				err("Must give at least 2 arguments to if");
 
-		| mov ebx, (func->code_addr);
-		| call ebx;
-		| add esp, (nargs * 4);
-		// result in eax
+			compile_expression(env, local, car(args), Dst);
+			int false_label = nextpc(local, Dst),
+			    after_label = nextpc(local, Dst);
+
+			// result is in eax
+			| cmp eax, (nil);
+			| je =>false_label;
+
+			compile_expression(env, local, elt(args, 1), Dst);
+
+			|=>false_label:
+			if (nargs == 3)
+			    compile_expression(env, local, elt(args, 2), Dst);
+			|=>after_label:
+		}
+		else
+		{
+			struct function *func =
+			    find_function(env, (char *)(fsym ^ SYMBOL_TAG));
+
+			if (nargs != func->nargs)
+				err("wrong number of args");
+
+			for (int i = length(args) - 1; i >= 0; i--)
+			{
+				compile_expression(env, local, elt(args, i), Dst);
+				| push eax;
+			}
+
+			| mov ebx, (func->code_addr);
+			| call ebx;
+			| add esp, (nargs * 4);
+			// result in eax
+		}
 	}
 }
 
-void compile_expr_to_func (struct environment *env, char *name, value_t val,
-                           dasm_State **Dst)
+void compile_expr_to_func(struct environment *env, char *name, value_t val,
+                          dasm_State **Dst)
 {
 	| setup 0;
 
 	struct local local;
-	compile_expression (env, &local, val, Dst);
-	
+	compile_expression(env, &local, val, Dst);
+
 	| cleanup;
 
-	add_function (env, name, link (Dst), 0);
+	add_function(env, name, link(Dst), 0);
 }

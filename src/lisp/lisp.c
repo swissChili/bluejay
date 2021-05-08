@@ -13,31 +13,31 @@ struct alloc_list *first_a = NULL, *last_a = NULL;
 
 value_t nil = 0b00101111; // magic ;)
 
-void err (const char *msg)
+void err(const char *msg)
 {
-	fprintf (stderr, "ERROR: %s\n", msg);
-	exit (1);
+	fprintf(stderr, "ERROR: %s\n", msg);
+	exit(1);
 }
 
-value_t intval (int i)
+value_t intval(int i)
 {
 	i <<= 2;
 	i |= INT_TAG;
 	return i;
 }
 
-value_t cons (value_t car, value_t cdr)
+value_t cons(value_t car, value_t cdr)
 {
-	struct cons *c = malloc_aligned (sizeof (struct cons));
+	struct cons *c = malloc_aligned(sizeof(struct cons));
 
 	c->car = car;
 	c->cdr = cdr;
 
-	struct alloc_list *item = malloc (sizeof (struct alloc_list));
+	struct alloc_list *item = malloc(sizeof(struct alloc_list));
 	item->type = T_CONS;
 	item->cons_val = c;
 
-	if ( last_a )
+	if (last_a)
 	{
 		item->prev = last_a;
 		last_a->next = item;
@@ -55,55 +55,55 @@ value_t cons (value_t car, value_t cdr)
 	return v;
 }
 
-void skipws (struct istream *is)
+void skipws(struct istream *is)
 {
-	while ( isspace (is->peek (is)) )
-		is->get (is);
+	while (isspace(is->peek(is)))
+		is->get(is);
 }
 
-bool isallowedchar (char c)
+bool isallowedchar(char c)
 {
 	return (c >= '#' && c <= '\'') || (c >= '*' && c <= '/') ||
 	       (c >= '>' && c <= '@');
 }
 
-bool issymstart (char c)
+bool issymstart(char c)
 {
-	return isalpha (c) || isallowedchar (c);
+	return isalpha(c) || isallowedchar(c);
 }
 
-bool issym (char c)
+bool issym(char c)
 {
-	return isalpha (c) || isallowedchar (c) || isdigit (c);
+	return isalpha(c) || isallowedchar(c) || isdigit(c);
 }
 
-bool readsym (struct istream *is, value_t *val)
+bool readsym(struct istream *is, value_t *val)
 {
-	skipws (is);
+	skipws(is);
 
-	if ( !issymstart (is->peek (is)) )
+	if (!issymstart(is->peek(is)))
 		return false;
 
 	int size = 8;
-	char *s = malloc_aligned (size);
+	char *s = malloc_aligned(size);
 
-	s[ 0 ] = is->get (is);
+	s[0] = is->get(is);
 
-	for ( int i = 1;; i++ )
+	for (int i = 1;; i++)
 	{
-		if ( issym (is->peek (is)) )
+		if (issym(is->peek(is)))
 		{
-			if ( i >= size )
+			if (i >= size)
 			{
 				size *= 2;
-				s = realloc_aligned (s, size);
+				s = realloc_aligned(s, size);
 			}
 
-			s[ i ] = is->get (is);
+			s[i] = is->get(is);
 		}
 		else
 		{
-			s[ i ] = 0;
+			s[i] = 0;
 			*val = (value_t)s;
 			*val |= SYMBOL_TAG;
 
@@ -112,37 +112,37 @@ bool readsym (struct istream *is, value_t *val)
 	}
 }
 
-bool readstr (struct istream *is, value_t *val)
+bool readstr(struct istream *is, value_t *val)
 {
-	skipws (is);
+	skipws(is);
 
-	if ( is->peek (is) != '"' )
+	if (is->peek(is) != '"')
 		return false;
 
 	bool escape = false;
 	int size = 8;
-	char *s = malloc_aligned (size);
+	char *s = malloc_aligned(size);
 
-	(void)is->get (is);
+	(void)is->get(is);
 
-	for ( int i = 0;; i++ )
+	for (int i = 0;; i++)
 	{
-		if ( is->peek (is) != '"' )
+		if (is->peek(is) != '"')
 		{
-			if ( i >= size )
+			if (i >= size)
 			{
 				size *= 2;
-				s = realloc_aligned (s, size);
+				s = realloc_aligned(s, size);
 			}
 
-			char c = is->get (is);
+			char c = is->get(is);
 
-			if ( escape && c == 'n' )
+			if (escape && c == 'n')
 				c = '\n';
-			else if ( escape && c == '\\' )
+			else if (escape && c == '\\')
 				c = '\\';
 
-			if ( c == '\\' && !escape )
+			if (c == '\\' && !escape)
 			{
 				escape = true;
 				i--; // will be incremented again, UGLY.
@@ -150,12 +150,12 @@ bool readstr (struct istream *is, value_t *val)
 			else
 			{
 				escape = false;
-				s[ i ] = c;
+				s[i] = c;
 			}
 		}
 		else
 		{
-			is->get (is);
+			is->get(is);
 
 			*val = (value_t)s;
 			*val |= STRING_TAG;
@@ -165,118 +165,118 @@ bool readstr (struct istream *is, value_t *val)
 	}
 }
 
-void printval (value_t v, int depth)
+void printval(value_t v, int depth)
 {
-	for ( int i = 0; i < depth; i++ )
-		printf ("  ");
+	for (int i = 0; i < depth; i++)
+		printf("  ");
 
-	if ( symbolp (v) )
+	if (symbolp(v))
 	{
-		printf ("'%s\n", (char *)(v ^ SYMBOL_TAG));
+		printf("'%s\n", (char *)(v ^ SYMBOL_TAG));
 	}
-	else if ( stringp (v) )
+	else if (stringp(v))
 	{
-		printf ("\"%s\"\n", (char *)(v ^ STRING_TAG));
+		printf("\"%s\"\n", (char *)(v ^ STRING_TAG));
 	}
-	else if ( integerp (v) )
+	else if (integerp(v))
 	{
-		printf ("%d\n", v >> 2);
+		printf("%d\n", v >> 2);
 	}
-	else if ( consp (v) )
+	else if (consp(v))
 	{
-		if ( listp (v) )
+		if (listp(v))
 		{
-			printf ("list:\n");
+			printf("list:\n");
 
-			for ( value_t n = v; !nilp (n); n = cdr (n) )
+			for (value_t n = v; !nilp(n); n = cdr(n))
 			{
-				printval (car (n), depth + 1);
+				printval(car(n), depth + 1);
 			}
 		}
 		else
 		{
-			printf ("cons:\n");
-			printval (car (v), depth + 1);
-			printval (cdr (v), depth + 1);
+			printf("cons:\n");
+			printval(car(v), depth + 1);
+			printval(cdr(v), depth + 1);
 		}
 	}
-	else if ( nilp (v) )
+	else if (nilp(v))
 	{
-		printf ("nil\n");
+		printf("nil\n");
 	}
 	else
 	{
-		printf ("<unknown %d>\n", v);
+		printf("<unknown %d>\n", v);
 	}
 }
 
-bool readlist (struct istream *is, value_t *val)
+bool readlist(struct istream *is, value_t *val)
 {
-	skipws (is);
+	skipws(is);
 
-	if ( is->peek (is) != '(' )
+	if (is->peek(is) != '(')
 		return false;
 
-	is->get (is);
+	is->get(is);
 
-	*val = readn (is);
+	*val = readn(is);
 
-	if ( is->peek (is) != ')' )
+	if (is->peek(is) != ')')
 	{
-		is->showpos (is, stderr);
-		err ("Unterminated list");
+		is->showpos(is, stderr);
+		err("Unterminated list");
 		return false;
 	}
-	is->get (is);
+	is->get(is);
 
 	return true;
 }
 
-bool readint (struct istream *is, value_t *val)
+bool readint(struct istream *is, value_t *val)
 {
 	int number = 0;
 
-	if ( !isdigit (is->peek (is)) )
+	if (!isdigit(is->peek(is)))
 		return false;
 
-	while ( isdigit (is->peek (is)) )
+	while (isdigit(is->peek(is)))
 	{
 		number *= 10;
-		number += is->get (is) - '0';
+		number += is->get(is) - '0';
 	}
 
-	*val = intval (number);
+	*val = intval(number);
 	return true;
 }
 
-bool read1 (struct istream *is, value_t *val)
+bool read1(struct istream *is, value_t *val)
 {
-	if ( readsym (is, val) )
+	if (readsym(is, val))
 		return true;
 
-	if ( readstr (is, val) )
+	if (readstr(is, val))
 		return true;
 
-	if ( readint (is, val) )
+	if (readint(is, val))
 		return true;
 
-	if ( readlist (is, val) )
+	if (readlist(is, val))
 		return true;
 
 	return false;
 }
 
-value_t readn (struct istream *is)
+value_t readn(struct istream *is)
 {
 	value_t first = nil;
 	value_t *last = &first;
 
 	value_t read_val;
 
-	while ( read1 (is, &read_val) )
+	while (read1(is, &read_val))
 	{
-		*last = cons (read_val, nil);
-		last = cdrref (*last);
+		*last = cons(read_val, nil);
+		last = cdrref(*last);
 	}
 
 	return first;
@@ -292,27 +292,27 @@ struct stristream_private
 	int linestart;
 };
 
-int stristream_peek (struct istream *is)
+int stristream_peek(struct istream *is)
 {
 	struct stristream_private *p = is->data;
 
-	if ( p->i < p->length )
-		return p->val[ p->i ];
+	if (p->i < p->length)
+		return p->val[p->i];
 	else
 		return -1;
 }
 
-int stristream_get (struct istream *is)
+int stristream_get(struct istream *is)
 {
 	struct stristream_private *p = is->data;
 
-	if ( p->i < p->length )
+	if (p->i < p->length)
 	{
-		char c = p->val[ p->i++ ];
+		char c = p->val[p->i++];
 
 		p->fromleft++;
 
-		if ( c == '\n' )
+		if (c == '\n')
 		{
 			p->fromleft = 1;
 			p->line++;
@@ -325,46 +325,46 @@ int stristream_get (struct istream *is)
 		return -1;
 }
 
-int stristream_read (struct istream *s, char *buffer, int size)
+int stristream_read(struct istream *s, char *buffer, int size)
 {
 	struct stristream_private *p = s->data;
 
-	int len = MIN (size, p->length - p->i);
-	memcpy (buffer, p->val, len);
+	int len = MIN(size, p->length - p->i);
+	memcpy(buffer, p->val, len);
 	return len;
 }
 
-void stristream_showpos (struct istream *s, FILE *out)
+void stristream_showpos(struct istream *s, FILE *out)
 {
 	struct stristream_private *p = s->data;
 
-	fprintf (out, "line: %d, char %d\n", p->line, p->fromleft);
+	fprintf(out, "line: %d, char %d\n", p->line, p->fromleft);
 
 	int end = p->length;
 
-	for ( int i = p->linestart; i < p->length; i++ )
+	for (int i = p->linestart; i < p->length; i++)
 	{
-		if ( p->val[ i ] == '\n' )
+		if (p->val[i] == '\n')
 		{
 			end = i;
 			break;
 		}
 	}
 
-	fprintf (out, "  | %.*s\n", end - p->linestart, p->val + p->linestart);
-	fprintf (out, "  | ");
-	for ( int i = 0; i < p->fromleft - 1; i++ )
-		fprintf (out, " ");
+	fprintf(out, "  | %.*s\n", end - p->linestart, p->val + p->linestart);
+	fprintf(out, "  | ");
+	for (int i = 0; i < p->fromleft - 1; i++)
+		fprintf(out, " ");
 
-	fprintf (out, "\033[31m^\033[0m\n");
+	fprintf(out, "\033[31m^\033[0m\n");
 }
 
-struct istream *new_stristream (char *str, int length)
+struct istream *new_stristream(char *str, int length)
 {
-	struct istream *is = malloc (sizeof (struct istream));
-	struct stristream_private *p = malloc (sizeof (struct stristream_private));
+	struct istream *is = malloc(sizeof(struct istream));
+	struct stristream_private *p = malloc(sizeof(struct stristream_private));
 
-	p->val = strndup (str, length);
+	p->val = strndup(str, length);
 	p->i = 0;
 	p->length = length;
 	p->line = 1;
@@ -380,136 +380,136 @@ struct istream *new_stristream (char *str, int length)
 	return is;
 }
 
-void del_stristream (struct istream *stristream)
+void del_stristream(struct istream *stristream)
 {
 	struct stristream_private *p = stristream->data;
-	free (p->val);
-	free (p);
-	free (stristream);
+	free(p->val);
+	free(p);
+	free(stristream);
 }
 
-struct istream *new_stristream_nt (char *str)
+struct istream *new_stristream_nt(char *str)
 {
-	return new_stristream (str, strlen (str));
+	return new_stristream(str, strlen(str));
 }
 
-bool startswith (struct istream *s, char *pattern)
+bool startswith(struct istream *s, char *pattern)
 {
-	char *check = strdup (pattern);
-	s->read (s, check, strlen (pattern));
+	char *check = strdup(pattern);
+	s->read(s, check, strlen(pattern));
 
-	bool res = strcmp (check, pattern) == 0;
-	free (check);
+	bool res = strcmp(check, pattern) == 0;
+	free(check);
 
 	return res;
 }
 
-value_t strval (char *str)
+value_t strval(char *str)
 {
 	value_t v;
 
-	char *a = malloc_aligned (strlen (str) + 1);
+	char *a = malloc_aligned(strlen(str) + 1);
 	v = (value_t)a;
 	v |= STRING_TAG;
 
 	return v;
 }
 
-bool integerp (value_t v)
+bool integerp(value_t v)
 {
 	return (v & INT_MASK) == INT_TAG;
 }
 
-bool symbolp (value_t v)
+bool symbolp(value_t v)
 {
 	return (v & HEAP_MASK) == SYMBOL_TAG;
 }
 
-bool stringp (value_t v)
+bool stringp(value_t v)
 {
 	return (v & HEAP_MASK) == STRING_TAG;
 }
 
-bool consp (value_t v)
+bool consp(value_t v)
 {
 	return (v & HEAP_MASK) == CONS_TAG;
 }
 
-bool listp (value_t v)
+bool listp(value_t v)
 {
 	value_t next = v;
 
-	while ( consp (next) )
+	while (consp(next))
 	{
-		next = cdr (next);
+		next = cdr(next);
 	}
 
-	return nilp (next);
+	return nilp(next);
 }
 
-value_t car (value_t v)
+value_t car(value_t v)
 {
-	if ( !consp (v) )
+	if (!consp(v))
 		return nil;
 
-	return *carref (v);
+	return *carref(v);
 }
 
-value_t cdr (value_t v)
+value_t cdr(value_t v)
 {
-	if ( !consp (v) )
+	if (!consp(v))
 		return nil;
 
-	return *cdrref (v);
+	return *cdrref(v);
 }
 
-value_t *carref (value_t v)
+value_t *carref(value_t v)
 {
-	if ( !consp (v) )
+	if (!consp(v))
 		return NULL;
 
 	struct cons *c = (void *)(v ^ CONS_TAG);
 	return &c->car;
 }
 
-value_t *cdrref (value_t v)
+value_t *cdrref(value_t v)
 {
-	if ( !consp (v) )
+	if (!consp(v))
 		return NULL;
 
 	struct cons *c = (void *)(v ^ CONS_TAG);
 	return &c->cdr;
 }
 
-bool nilp (value_t v)
+bool nilp(value_t v)
 {
 	return v == nil;
 }
 
-int length (value_t v)
+int length(value_t v)
 {
 	int i = 0;
 
-	for ( ; !nilp (v); v = cdr (v) )
+	for (; !nilp(v); v = cdr(v))
 		i++;
 
 	return i;
 }
 
-value_t elt (value_t v, int index)
+value_t elt(value_t v, int index)
 {
-	for ( int i = 0; i < index; i++ )
+	for (int i = 0; i < index; i++)
 	{
-		v = cdr (v);
+		v = cdr(v);
 	}
 
-	return car (v);
+	return car(v);
 }
 
-bool symstreq (value_t sym, char *str)
+bool symstreq(value_t sym, char *str)
 {
-	if ( (sym & HEAP_MASK) != SYMBOL_TAG )
+	if ((sym & HEAP_MASK) != SYMBOL_TAG)
 		return false;
 
-	return strcmp ((char *) (sym ^ SYMBOL_TAG), str) == 0;
+	return strcmp((char *)(sym ^ SYMBOL_TAG), str) == 0;
 }

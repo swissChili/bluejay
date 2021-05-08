@@ -16,13 +16,8 @@ CFLAGS += -Ivendor/luajit/dynasm
 OBJECTS = main.o \
 			lisp.o \
 			compiler.o \
-			lib/std.o
-
-ifeq ($(PLAT),linux)
-OBJECTS += plat/linux.o
-else
-$(error linux is the only supported option for PLAT)
-endif
+			lib/std.o \
+			plat/linux.o
 
 LUA = vendor/luajit/src/host/minilua
 
@@ -42,6 +37,6 @@ run: lisp
 
 format:
 	status_log(FORMAT, *)
-	@clang-format -i *.c *.h *.dasc
+	@clang-format -i *.c *.h *.dasc plat/* lib/*
 
 finish
