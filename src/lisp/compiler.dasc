@@ -64,11 +64,13 @@ void compile_tl(value_t val, struct environment *env)
 		|.actionlist lisp_actions;
 		dasm_setup(&d, lisp_actions);
 
-		dasm_growpc(&d, npc);
-
 		struct local local;
 		local.first = NULL;
 		local.num_vars = 0;
+		local.npc = 8;
+		local.nextpc = 0;
+
+		dasm_growpc(&d, local.npc);
 
 		// Generate code
 
@@ -158,7 +160,7 @@ void compile_expression(struct environment *env, struct local *local,
 			| je =>false_label;
 
 			compile_expression(env, local, elt(args, 1), Dst);
-
+			| jmp =>after_label;
 			|=>false_label:
 			if (nargs == 3)
 			    compile_expression(env, local, elt(args, 2), Dst);
