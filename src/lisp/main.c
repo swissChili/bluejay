@@ -9,11 +9,17 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	struct istream *is = new_stristream_nt(argv[1]);
+	struct istream *is = new_fistream(argv[1], false);
+
+	if (is == NULL)
+	{
+		fprintf(stderr, "Could not open %s\n", argv[1]);
+		return 1;
+	}
 
 	struct environment env = compile_all(is);
 	value_t (*lisp_main)() = find_function(&env, "main")->def0;
 	lisp_main();
 
-	//	del_stristream (is);
+	del_fistream(is);
 }

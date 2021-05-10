@@ -17,7 +17,8 @@ OBJECTS = main.o \
 			lisp.o \
 			compiler.o \
 			lib/std.o \
-			plat/linux.o
+			plat/linux.o \
+			istream.o
 
 LUA = vendor/luajit/src/host/minilua
 
@@ -33,7 +34,7 @@ type(executable)
 
 run: lisp
 	status_log(RUN, ./lisp)
-	@./lisp "$$(cat test.lisp)"
+	@./lisp ./test.lisp
 
 format:
 	status_log(FORMAT, *)

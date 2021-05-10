@@ -1,5 +1,6 @@
 #pragma once
 
+#include "istream.h"
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -52,19 +53,6 @@ struct alloc_list
 	struct alloc_list *next, *prev;
 };
 
-struct istream
-{
-	void *data;
-
-	// These two return -1 on error
-	int (*peek)(struct istream *s);
-	int (*get)(struct istream *s);
-
-	int (*read)(struct istream *s, char *buffer, int size);
-
-	void (*showpos)(struct istream *s, FILE *out);
-};
-
 bool startswith(struct istream *s, char *pattern);
 
 bool readsym(struct istream *is, value_t *val);
@@ -95,13 +83,9 @@ value_t elt(value_t v, int index);
 
 void printval(value_t v, int depth);
 
-struct istream *new_stristream(char *str, int length);
-// same as above but null terminated
-struct istream *new_stristream_nt(char *str);
-void del_stristream(struct istream *stristream);
-
 void err(const char *msg);
 
 bool symstreq(value_t sym, char *str);
 
 extern value_t nil;
+extern value_t t;

@@ -7,6 +7,9 @@
 #include <dasm_proto.h>
 #include <dasm_x86.h>
 
+#include <stdlib.h>
+#include <string.h>
+
 #define value_size sizeof(value_t)
 
 |.arch x86;
@@ -73,6 +76,7 @@ void compile_tl(value_t val, struct environment *env)
 		dasm_growpc(&d, local.npc);
 
 		// Generate code
+		// TODO: first pass, extract bound and free variables
 
 		| setup 0;
 
@@ -83,6 +87,17 @@ void compile_tl(value_t val, struct environment *env)
 
 		if ((name & HEAP_MASK) != SYMBOL_TAG)
 			err("function name must be a symbol");
+
+		value_t a = arglist;
+		for (int i = 0; !nilp(a); a = cdr(a), i++)
+		{
+			if (!symbolp(car(a)))
+			{
+				err("defun argument must be a symbol");
+			}
+
+			add_variable(&local, V_ARGUMENT, (char *)(car(a) ^ SYMBOL_TAG), i);
+		}
 
 		for (; !nilp(body); body = cdr(body))
 		{
@@ -131,7 +146,11 @@ void compile_expression(struct environment *env, struct local *local,
 	{
 		| mov eax, (nil);
 	}
-	else if (integerp(val) || stringp(val) || symbolp(val))
+	else if (symstreq(val, "t"))
+	{
+		| mov eax, (t);
+	}
+	else if (integerp(val) || stringp(val))
 	{
 		| mov eax, val;
 	}
@@ -161,7 +180,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 			compile_expression(env, local, elt(args, 1), Dst);
 			| jmp =>after_label;
-			|=>false_label:
+			|=>false_label:;
 			if (nargs == 3)
 			    compile_expression(env, local, elt(args, 2), Dst);
 			|=>after_label:
@@ -170,6 +189,9 @@ void compile_expression(struct environment *env, struct local *local,
 		{
 			struct function *func =
 			    find_function(env, (char *)(fsym ^ SYMBOL_TAG));
+
+			if (func == NULL)
+				err("Function undefined");
 
 			if (nargs != func->nargs)
 				err("wrong number of args");
@@ -182,8 +204,25 @@ void compile_expression(struct environment *env, struct local *local,
 
 			| mov ebx, (func->code_addr);
 			| call ebx;
-			| add esp, (nargs * 4);
+			| add esp, (nargs * value_size);
 			// result in eax
+		}
+	}
+	else if (symbolp(val))
+	{
+		// For now ignore global variables, only search locally
+		struct variable *v = find_variable(local, (char *)(val ^ SYMBOL_TAG));
+
+		if (!v)
+			err("Variable unbound");
+
+		switch (v->type)
+		{
+		case V_ARGUMENT:
+			| mov eax, dword [ebp + value_size * (v->number + 2)];
+			break;
+		default:
+			err("Sorry, can only access V_ARGUMENT variables for now :(");
 		}
 	}
 }
@@ -199,4 +238,38 @@ void compile_expr_to_func(struct environment *env, char *name, value_t val,
 	| cleanup;
 
 	add_function(env, name, link(Dst), 0);
+}
+
+struct variable *add_variable(struct local *local, enum var_type type,
+                              char *name, int number)
+{
+	struct variable *var = malloc(sizeof(struct variable));
+	var->prev = local->first;
+	var->type = type;
+	var->name = name;
+	var->number = number;
+
+	local->first = var;
+
+	return var;
+}
+
+void destroy_local(struct local *local)
+{
+	for (struct variable *v = local->first; v;)
+	{
+		struct variable *t = v;
+		v = v->prev;
+		free(t);
+	}
+}
+
+struct variable *find_variable(struct local *local, char *name)
+{
+	struct variable *v = local->first;
+
+	for (; v && strcmp(v->name, name) != 0; v = v->prev)
+	{}
+
+	return v;
 }

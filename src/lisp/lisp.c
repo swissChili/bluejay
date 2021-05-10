@@ -7,11 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MIN(a, b) (a) > (b) ? (b) : (a)
-
 struct alloc_list *first_a = NULL, *last_a = NULL;
 
 value_t nil = 0b00101111; // magic ;)
+value_t t = 1 << 3;
 
 void err(const char *msg)
 {
@@ -280,117 +279,6 @@ value_t readn(struct istream *is)
 	}
 
 	return first;
-}
-
-struct stristream_private
-{
-	char *val;
-	int i;
-	int length;
-	int line;
-	int fromleft;
-	int linestart;
-};
-
-int stristream_peek(struct istream *is)
-{
-	struct stristream_private *p = is->data;
-
-	if (p->i < p->length)
-		return p->val[p->i];
-	else
-		return -1;
-}
-
-int stristream_get(struct istream *is)
-{
-	struct stristream_private *p = is->data;
-
-	if (p->i < p->length)
-	{
-		char c = p->val[p->i++];
-
-		p->fromleft++;
-
-		if (c == '\n')
-		{
-			p->fromleft = 1;
-			p->line++;
-			p->linestart = p->i;
-		}
-
-		return c;
-	}
-	else
-		return -1;
-}
-
-int stristream_read(struct istream *s, char *buffer, int size)
-{
-	struct stristream_private *p = s->data;
-
-	int len = MIN(size, p->length - p->i);
-	memcpy(buffer, p->val, len);
-	return len;
-}
-
-void stristream_showpos(struct istream *s, FILE *out)
-{
-	struct stristream_private *p = s->data;
-
-	fprintf(out, "line: %d, char %d\n", p->line, p->fromleft);
-
-	int end = p->length;
-
-	for (int i = p->linestart; i < p->length; i++)
-	{
-		if (p->val[i] == '\n')
-		{
-			end = i;
-			break;
-		}
-	}
-
-	fprintf(out, "  | %.*s\n", end - p->linestart, p->val + p->linestart);
-	fprintf(out, "  | ");
-	for (int i = 0; i < p->fromleft - 1; i++)
-		fprintf(out, " ");
-
-	fprintf(out, "\033[31m^\033[0m\n");
-}
-
-struct istream *new_stristream(char *str, int length)
-{
-	struct istream *is = malloc(sizeof(struct istream));
-	struct stristream_private *p = malloc(sizeof(struct stristream_private));
-
-	p->val = strndup(str, length);
-	p->i = 0;
-	p->length = length;
-	p->line = 1;
-	p->fromleft = 1;
-	p->linestart = 0;
-
-	is->data = p;
-	is->get = stristream_get;
-	is->peek = stristream_peek;
-	is->read = stristream_read;
-	is->showpos = stristream_showpos;
-
-	return is;
-}
-
-void del_stristream(struct istream *stristream)
-{
-	struct stristream_private *p = stristream->data;
-	free(p->val);
-	free(p);
-	free(stristream);
-}
-
-struct istream *new_stristream_nt(char *str)
-{
-	return new_stristream(str, strlen(str));
 }
 
 bool startswith(struct istream *s, char *pattern)

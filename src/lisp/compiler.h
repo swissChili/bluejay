@@ -27,10 +27,19 @@ struct environment
 	struct function *first;
 };
 
+enum var_type
+{
+	V_BOUND,    // Bound local variable
+	V_ARGUMENT, // Bound function argument
+	V_GLOBAL,   // Global variable
+	V_FREE      // Free (lexical) variable
+};
+
 struct variable
 {
 	char *name;
-	int number;
+	uintptr_t number;
+	enum var_type type;
 	struct variable *prev;
 };
 
@@ -52,3 +61,8 @@ int nextpc(struct local *local, dasm_State **Dst);
 void compile_tl(value_t val, struct environment *env);
 struct environment compile_all(struct istream *is);
 struct function *find_function(struct environment *env, char *name);
+struct variable *add_variable(struct local *local, enum var_type type,
+                              char *name, int number);
+// Might return null
+struct variable *find_variable(struct local *local, char *name);
+void destroy_local(struct local *local);
