@@ -17,9 +17,15 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+<<<<<<< HEAD
 	struct environment env = compile_all(is);
 	value_t (*lisp_main)() = find_function(&env, "main")->def0;
 	lisp_main();
 
 	del_fistream(is);
+=======
+	struct environment env = compile_all (is);
+	value_t (*lisp_main) () = find_function(&env, "main")->def0;
+	lisp_main ();
+>>>>>>> 6afa62d (Remove free)
 }
