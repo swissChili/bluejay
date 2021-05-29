@@ -14,13 +14,13 @@ uint pci_config_readd(uchar bus, uchar slot, uchar func, uchar offset)
 
 struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, uint *v)
 {
-	uint vendor;
+	uint vendor = pci_config_readd(bus, slot, func, 0);
 
-	if ((vendor = pci_config_readd(bus, slot, func, 0) != ~0))
+	if (v)
+		*v = vendor;
+
+	if (vendor != ~0)
 	{
-		if (v)
-			*v = vendor;
-
 		return pci_vendor_by_id(vendor);
 	}
 	return NULL;

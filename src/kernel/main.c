@@ -88,6 +88,7 @@ int kmain(struct multiboot_info *mboot)
 	test_ata_pio();
 #endif
 
+	kprintf("Enumerating PCI devices:\n");
 	for (int bus = 0; bus < 0xff; bus++)
 	{
 		for (int slot = 0; slot < 32; slot++)
@@ -100,7 +101,7 @@ int kmain(struct multiboot_info *mboot)
 
 				if (vendor != ~0)
 				{
-					kprintf("%d %d %d %d\n", bus, slot, func, vendor);
+					kprintf("%d %d %d --- 0x%x --- %s\n", bus, slot, func, vendor, v->name);
 				}
 			}
 		}
