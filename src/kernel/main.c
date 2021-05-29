@@ -77,7 +77,6 @@ int kmain(struct multiboot_info *mboot)
 	kprintf("initializing tasks\n");
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
-	asm volatile("sti");
 
 #ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
@@ -95,15 +94,18 @@ int kmain(struct multiboot_info *mboot)
 		{
 			for (int func = 0; func < 8; func++)
 			{
-				struct pci_vendor *v = pci_check_vendor(bus, slot, func, NULL);
-				if (v)
+				uint vendor;
+
+				struct pci_vendor *v = pci_check_vendor(bus, slot, func, &vendor);
+
+				if (vendor != ~0)
 				{
-					kprintf("%s\n", v->name);
+					kprintf("%d %d %d %d\n", bus, slot, func, vendor);
 				}
 			}
 		}
 	}
-
+	
 	while (true)
 		asm volatile("hlt");
 

@@ -9,5 +9,5 @@ enum
 	PCI_CONFIG_DATA = 0xCFC,
 };
 
-ushort pci_config_readw(uchar bus, uchar slot, uchar func, uchar offset);
-struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, ushort *v);
+uint pci_config_readd(uchar bus, uchar slot, uchar func, uchar offset);
+struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, uint *v);

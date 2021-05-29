@@ -3,7 +3,7 @@
 #include <io.h>
 #include <log.h>
 
-ushort pci_config_readw(uchar bus, uchar slot, uchar func, uchar offset)
+uint pci_config_readd(uchar bus, uchar slot, uchar func, uchar offset)
 {
 	uint address = (bus << 16) | (slot << 11) | (func << 8) | (offset << 2) | 0x80000000;
 
@@ -12,19 +12,18 @@ ushort pci_config_readw(uchar bus, uchar slot, uchar func, uchar offset)
 	return inl(PCI_CONFIG_DATA);
 }
 
-struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, ushort *v)
+struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, uint *v)
 {
-	ushort vendor;
+	uint vendor;
 
-	if ((vendor = pci_config_readw(bus, slot, func, 0) != 0xffff))
+	if ((vendor = pci_config_readd(bus, slot, func, 0) != ~0))
 	{
-		// TODO: check device and return here as well
+		if (v)
+			*v = vendor;
+
+		return pci_vendor_by_id(vendor);
 	}
-
-	if (v)
-		*v = vendor;
-
-	return pci_vendor_by_id(vendor);
+	return NULL;
 }
 
 struct pci_vendor *pci_vendor_by_id(ushort id)
