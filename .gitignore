@@ -11,3 +11,7 @@ bin/*
 !bin/jmk
 **/Makefile
 **/Jmk.options
+.gitignore
+.idea
+.vscode
+**/.#*
