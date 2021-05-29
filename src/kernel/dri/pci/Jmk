@@ -10,7 +10,11 @@ archetype(c)
 
 CFLAGS += -I$(ROOT)/include/kernel
 
-OBJECTS = pci.o
+OBJECTS = pci.o vendors.o
+
+vendors.c: vendors.csv vendors_to_h.awk
+	status_log(AWK, vendors.csv)
+	@awk -f vendors_to_h.awk vendors.csv > $@
 
 type(static_lib)
 

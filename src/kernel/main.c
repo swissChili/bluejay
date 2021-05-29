@@ -11,6 +11,7 @@
 #include "vfs_initrd.h"
 #include "vga.h"
 #include <dri/ata_pio/ata_pio.h>
+#include <dri/pci/pci.h>
 
 void greet()
 {
@@ -76,6 +77,7 @@ int kmain(struct multiboot_info *mboot)
 	kprintf("initializing tasks\n");
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
+	asm volatile("sti");
 
 #ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
@@ -83,7 +85,24 @@ int kmain(struct multiboot_info *mboot)
 	greet();
 #endif
 
+#ifdef TEST_ATA_PIO
 	test_ata_pio();
+#endif
+
+	for (int bus = 0; bus < 0xff; bus++)
+	{
+		for (int slot = 0; slot < 32; slot++)
+		{
+			for (int func = 0; func < 8; func++)
+			{
+				struct pci_vendor *v = pci_check_vendor(bus, slot, func, NULL);
+				if (v)
+				{
+					kprintf("%s\n", v->name);
+				}
+			}
+		}
+	}
 
 	while (true)
 		asm volatile("hlt");
