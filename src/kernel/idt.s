@@ -56,6 +56,8 @@ ISRNOERR 29
 ISRNOERR 30
 ISRNOERR 31
 
+ISRNOERR 128
+ISRNOERR 129
 
 	[extern isr_handler]
 isr_common:

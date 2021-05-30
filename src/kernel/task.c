@@ -17,7 +17,7 @@ void init_tasks()
 {
 	add_interrupt_handler(INIT_TASKS_INTERRUPT, _sys_init_tasks_h);
 
-	asm("int $0x80");
+	asm("int $0x81");
 }
 
 void _sys_init_tasks_h(struct registers *regs)
@@ -27,7 +27,7 @@ void _sys_init_tasks_h(struct registers *regs)
 
 void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 {
-	kpanic("_init_tasks\n");
+	kprintf("_init_tasks\n");
 
 	processes[0] = (struct process){
 		.exists = true,

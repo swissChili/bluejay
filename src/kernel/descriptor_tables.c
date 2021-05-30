@@ -89,6 +89,9 @@ void init_idt()
 		idt_set_gate(i, (uint)isrs[i], 0x08, 0x8e);
 	}
 
+	idt_set_gate(0x80, (uint)isr128, 0x08, 0x8e);
+	idt_set_gate(0x81, (uint)isr129, 0x08, 0x8e);
+
 	idt_flush((uint)&idt_pointer);
 
 	vga_write("IDT Initialized!\n");

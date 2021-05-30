@@ -80,11 +80,11 @@ int kmain(struct multiboot_info *mboot)
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
 
-#ifdef TEST_THREADS
+//#ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
 
 	greet();
-#endif
+//#endif
 
 #ifdef TEST_ATA_PIO
 	test_ata_pio();

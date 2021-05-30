@@ -104,6 +104,11 @@ extern void isr29();
 extern void isr30();
 extern void isr31();
 
+// Syscall
+extern void isr128();
+// Tasking setup
+extern void isr129();
+
 extern void irq0();
 extern void irq1();
 extern void irq2();
