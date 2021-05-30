@@ -9,8 +9,11 @@ static ulong tick = 0;
 
 static void timer_cb(struct registers *regs)
 {
-	// Preemptive multitasking!
-	switch_task();
+	if (tasks_initialized)
+	{
+		// Preemptive multitasking!
+		switch_task();
+	}
 }
 
 void init_timer(uint hz)

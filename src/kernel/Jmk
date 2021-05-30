@@ -44,6 +44,7 @@ OBJECTS = 	boot.o \
 			syscall.o \
 			task.o \
 			task_api.o \
+			faults.o \
 			lib(ata_pio) \
 			lib(pci)
 

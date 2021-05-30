@@ -3,14 +3,31 @@
 #include "io.h"
 #include "log.h"
 #include "paging.h"
+#include "pic.h"
 
 struct process processes[1024] = {0};
 struct ll_task_i *first_task = NULL, *last_task = NULL, *current_task = NULL;
 static uint next_task_id = 0;
 
+bool tasks_initialized = false;
+
+void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip);
+
+void init_tasks()
+{
+	add_interrupt_handler(INIT_TASKS_INTERRUPT, _sys_init_tasks_h);
+
+	asm("int $0x80");
+}
+
+void _sys_init_tasks_h(struct registers *regs)
+{
+	_init_tasks(regs->esp, regs->ebp, regs->eip);
+}
+
 void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 {
-	kprintf("_init_tasks\n");
+	kpanic("_init_tasks\n");
 
 	processes[0] = (struct process){
 		.exists = true,
@@ -42,6 +59,8 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 	};
 
 	kprintf("Returning from _init_tasks\n");
+
+	tasks_initialized = true;
 }
 
 struct process *get_process(uint pid)

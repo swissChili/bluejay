@@ -13,6 +13,5 @@ bin/*
 **/Jmk.options
 .gitignore
 .idea
-.vscode
 **/.#*
 src/kernel/dri/pci/vendors.c

@@ -74,6 +74,8 @@ int kmain(struct multiboot_info *mboot)
 	}
 #endif
 
+	asm volatile("sti");
+
 	kprintf("initializing tasks\n");
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
@@ -88,6 +90,7 @@ int kmain(struct multiboot_info *mboot)
 	test_ata_pio();
 #endif
 
+#ifdef TEST_PCI
 	kprintf("Enumerating PCI devices:\n");
 	for (int bus = 0; bus < 0xff; bus++)
 	{
@@ -106,7 +109,8 @@ int kmain(struct multiboot_info *mboot)
 			}
 		}
 	}
-	
+#endif
+
 	while (true)
 		asm volatile("hlt");
 

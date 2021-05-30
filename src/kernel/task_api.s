@@ -30,15 +30,3 @@ _switch_to_task:				; (page_directory, eip, ebp, esp)
 	mov cr3, ecx 				; Set page directory
 	sti
 	jmp eax 					; Jump back to code
-
-	[extern _init_tasks]
-	[global init_tasks]
-init_tasks:
-	lea eax, [esp + 4] 			; Stack pointer before call
-	mov ebx, [esp] 				; Return address
-	push ebx					; eip
-	push ebp					; ebp
-	push eax 					; esp
-	call _init_tasks
-	add esp, 12
-	ret

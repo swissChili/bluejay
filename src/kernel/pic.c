@@ -14,7 +14,9 @@
 #define ICW4_BUF_MASTER 0x0C /* Buffered mode/master */
 #define ICW4_SFNM 0x10		 /* Special fully nested (not) */
 
-void (*interrupt_handlers[256])(struct registers *);
+typedef void (*interrupt_handler_t)(struct registers *);
+
+static interrupt_handler_t interrupt_handlers[256];
 
 void pic_send_eoi(uchar interrupt)
 {
@@ -60,5 +62,5 @@ void pic_remap()
 	outb(0x21, 0x0);
 	outb(0xA1, 0x0);
 
-	return;
+	memset(interrupt_handlers, 0, sizeof(interrupt_handlers));
 }

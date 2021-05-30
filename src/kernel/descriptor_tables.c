@@ -3,6 +3,7 @@
 #include "log.h"
 #include "pic.h"
 #include "vga.h"
+#include "faults.h"
 
 extern void gdt_flush(uint gdt);
 extern void idt_flush(uint idt);
@@ -74,6 +75,8 @@ void init_idt()
 	// Remap PIC
 	pic_remap();
 
+	init_faults();
+
 	vga_set_color(CYAN, BLACK);
 	for (int i = 0; i < 16; i++)
 	{
@@ -107,5 +110,4 @@ void init_descriptor_tables()
 {
 	init_gdt();
 	init_idt();
-	memset(interrupt_handlers, 0, sizeof(interrupt_handlers));
 }
