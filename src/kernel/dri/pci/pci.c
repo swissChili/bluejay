@@ -12,15 +12,19 @@ uint pci_config_readd(uchar bus, uchar slot, uchar func, uchar offset)
 	return inl(PCI_CONFIG_DATA);
 }
 
-struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, uint *v)
+struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, ushort *v, ushort *d)
 {
-	uint vendor = pci_config_readd(bus, slot, func, 0);
+	uint vendor_device = pci_config_readd(bus, slot, func, 0);
+	ushort vendor = vendor_device & 0xffff;
 
 	if (v)
 		*v = vendor;
 
-	if (vendor != ~0)
+	if (vendor != 0xffff)
 	{
+		if (d)
+			*d = vendor_device >> 16;
+
 		return pci_vendor_by_id(vendor);
 	}
 	return NULL;
@@ -59,13 +63,13 @@ void pci_print_devices()
 		{
 			for (int func = 0; func < 8; func++)
 			{
-				uint vendor;
+				ushort vendor, device;
 
-				struct pci_vendor *v = pci_check_vendor(bus, slot, func, &vendor);
+				struct pci_vendor *v = pci_check_vendor(bus, slot, func, &vendor, &device);
 
-				if (vendor != ~0)
+				if (v)
 				{
-					kprintf("%d %d %d --- 0x%x --- %s\n", bus, slot, func, vendor, v->name);
+					kprintf("%d %d %d --- v:0x%x d:0x%x --- %s\n", bus, slot, func, vendor, device, v->name);
 				}
 			}
 		}

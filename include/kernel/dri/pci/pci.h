@@ -10,5 +10,5 @@ enum
 };
 
 uint pci_config_readd(uchar bus, uchar slot, uchar func, uchar offset);
-struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, uint *v);
+struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, ushort *v, ushort *d);
 void pci_print_devices();
