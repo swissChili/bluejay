@@ -49,3 +49,25 @@ struct pci_vendor *pci_vendor_by_id(ushort id)
 			start = guess;
 	}
 }
+
+void pci_print_devices()
+{
+	kprintf("Enumerating PCI devices:\n");
+	for (int bus = 0; bus < 0xff; bus++)
+	{
+		for (int slot = 0; slot < 32; slot++)
+		{
+			for (int func = 0; func < 8; func++)
+			{
+				uint vendor;
+
+				struct pci_vendor *v = pci_check_vendor(bus, slot, func, &vendor);
+
+				if (vendor != ~0)
+				{
+					kprintf("%d %d %d --- 0x%x --- %s\n", bus, slot, func, vendor, v->name);
+				}
+			}
+		}
+	}
+}

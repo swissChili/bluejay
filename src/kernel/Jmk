@@ -16,7 +16,10 @@ depends(pci, dri/pci, pci.a)
 # AHCI not yet implemented
 # depends(ahci, dri/ahci, ahci.a)
 
-CFLAGS += -I $(ROOT)/include/kernel
+TEST ?=
+test_defines = $(TEST:%=-DTEST_%)
+
+CFLAGS += -I $(ROOT)/include/kernel $(test_defines)
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf

@@ -83,7 +83,7 @@ int get_process_id()
 
 void spawn_thread(void (*function)(void *), void *data)
 {
-	asm volatile("cli");
+	asm("cli");
 
 	struct process *proc = current_task->task.proc;
 	// Virtual address of page directory (in kernel memory)
@@ -115,12 +115,12 @@ void spawn_thread(void (*function)(void *), void *data)
 	ll_task->prev = last_task;
 	last_task = ll_task;
 
-	asm volatile("sti");
+	asm("sti");
 }
 
 void kill_this_thread()
 {
-	asm volatile("cli");
+	asm("cli");
 
 	if (current_task->prev == NULL && current_task->next == NULL)
 	{
@@ -152,7 +152,7 @@ void kill_this_thread()
 
 	switch_to_task(&current_task->task);
 
-	asm volatile("sti");
+	asm("sti");
 }
 
 extern void _switch_to_task(uint page_directory, uint eip, uint ebp, uint esp);
@@ -170,7 +170,7 @@ void switch_to_task(struct task *task)
 void _do_switch_task(uint eip, uint ebp, uint esp)
 {
 	// sti is called in switch_to_task
-	asm volatile("cli");
+	asm("cli");
 
 	// save context for this task
 	current_task->task.ebp = ebp;

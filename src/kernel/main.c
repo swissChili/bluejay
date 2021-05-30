@@ -74,46 +74,28 @@ int kmain(struct multiboot_info *mboot)
 	}
 #endif
 
-	asm volatile("sti");
+	asm("sti");
 
 	kprintf("initializing tasks\n");
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
 
-//#ifdef TEST_THREADS
+#ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
 
 	greet();
-//#endif
+#endif
 
 #ifdef TEST_ATA_PIO
 	test_ata_pio();
 #endif
 
 #ifdef TEST_PCI
-	kprintf("Enumerating PCI devices:\n");
-	for (int bus = 0; bus < 0xff; bus++)
-	{
-		for (int slot = 0; slot < 32; slot++)
-		{
-			for (int func = 0; func < 8; func++)
-			{
-				uint vendor;
-
-				struct pci_vendor *v = pci_check_vendor(bus, slot, func, &vendor);
-
-				if (vendor != ~0)
-				{
-					kprintf("%d %d %d --- 0x%x --- %s\n", bus, slot, func, vendor, v->name);
-				}
-			}
-		}
-	}
+	pci_print_devices();
 #endif
 
 	while (true)
-		asm volatile("hlt");
-
+		asm("hlt");
 
 	return 0xCAFEBABE;
 }

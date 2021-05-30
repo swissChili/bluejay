@@ -23,6 +23,10 @@ thing and doing it well is certainly a consideration.
 - [ ] Preemptive multitasking
   - [x] Multi-threading
   - [ ] Multi-process support
+- [ ] Device drivers
+  - [x] PCI
+  - [ ] USB
+    - [ ] Mouse + keyboard drivers
 - [ ] Filesystem
   - [x] Virtual file system
   - [x] Initial ramdisk
@@ -36,6 +40,12 @@ thing and doing it well is certainly a consideration.
   - [ ] Filesystem API
   - [ ] Memory management API (`sbrk`, `mmap`, etc)
   - [ ] Process/thread API (`spawn_process`, `spawn_thread`, etc)
+- [ ] Lisp compiler
+  - [ ] JIT compiler using dynasm
+    - [x] Basic compilation
+    - [ ] Lexical closures
+    - [ ] GC
+  - [ ] Standard library
 - [ ] Lisp integrated into kernel
 - [ ] User-space driver API
   - [ ] Lisp API
