@@ -1,0 +1,17 @@
+init(ide, ide.a)
+
+preset(freestanding)
+preset(optimize)
+preset(debug)
+preset(32)
+preset(warn)
+
+archetype(c)
+
+CFLAGS += -I$(ROOT)/include/kernel
+
+OBJECTS = ide.o
+
+type(static_lib)
+
+finish

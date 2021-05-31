@@ -13,6 +13,7 @@ archetype(asm)
 depends(initrd, $(ROOT)/boot/initrd, initrd.img)
 depends(ata_pio, dri/ata_pio, ata_pio.a)
 depends(pci, dri/pci, pci.a)
+depends(ide, dri/ide, ide.a)
 # AHCI not yet implemented
 # depends(ahci, dri/ahci, ahci.a)
 
@@ -49,7 +50,8 @@ OBJECTS = 	boot.o \
 			task_api.o \
 			faults.o \
 			lib(ata_pio) \
-			lib(pci)
+			lib(pci) \
+			lib(ide)
 
 type(custom_link)
 

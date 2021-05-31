@@ -1,3 +1,4 @@
 {
-    "restructuredtext.confPath": "${workspaceFolder}/doc"
+    "restructuredtext.confPath": "${workspaceFolder}/doc",
+    "restructuredtext.languageServer.disabled": true
 }

@@ -12,6 +12,7 @@
 #include "vga.h"
 #include <dri/ata_pio/ata_pio.h>
 #include <dri/pci/pci.h>
+#include <dri/ide/ide.h>
 
 void greet()
 {
@@ -80,6 +81,13 @@ int kmain(struct multiboot_info *mboot)
 	init_tasks();
 	kprintf("\ndone initializing tasks\n");
 
+	pci_init();
+
+	// Register PCI drivers
+	ide_register();
+
+	pci_load();
+
 #ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
 
@@ -92,6 +100,7 @@ int kmain(struct multiboot_info *mboot)
 
 #ifdef TEST_PCI
 	pci_print_devices();
+	pci_print_drivers();
 #endif
 
 	while (true)

@@ -2,40 +2,51 @@
 #include <dri/pci/vendors.h>
 #include <io.h>
 #include <log.h>
+#include <alloc.h>
+
+static uint num_drivers, size_drivers;
+static struct pci_device_driver *drivers;
 
 uint pci_config_readd(uchar bus, uchar slot, uchar func, uchar offset)
 {
-	uint address = (bus << 16) | (slot << 11) | (func << 8) | (offset << 2) | 0x80000000;
+	uint address =
+		(bus << 16) | (slot << 11) | (func << 8) | (offset << 2) | 0x80000000;
 
 	outl(PCI_CONFIG_ADDRESS, address);
 
 	return inl(PCI_CONFIG_DATA);
 }
 
-struct pci_vendor *pci_check_vendor(uchar bus, uchar slot, uchar func, ushort *v, ushort *d)
+struct pci_device pci_check_device(uchar bus, uchar slot, uchar func)
 {
 	uint vendor_device = pci_config_readd(bus, slot, func, 0);
 	ushort vendor = vendor_device & 0xffff;
 
-	if (v)
-		*v = vendor;
+	struct pci_device device;
+	device.valid = false;
 
 	if (vendor != 0xffff)
 	{
-		if (d)
-			*d = vendor_device >> 16;
+		device.valid = true;
 
-		return pci_vendor_by_id(vendor);
+		device.device_id = vendor_device >> 16;
+		device.vendor = pci_vendor_by_id(vendor);
+
+		// 3rd dword
+		uint class_subclass = pci_config_readd(bus, slot, func, 2);
+		device.class = class_subclass >> 24;
+		device.subclass = (class_subclass >> 16) & 0xff;
+		device.prog_if = (class_subclass >> 8) & 0xff;
 	}
-	return NULL;
+
+	return device;
 }
 
 struct pci_vendor *pci_vendor_by_id(ushort id)
 {
 	// Find vendor using binary search
 
-	uint start = 0, 
-		max = pci_num_vendors;
+	uint start = 0, max = pci_num_vendors;
 
 	while (true)
 	{
@@ -63,15 +74,73 @@ void pci_print_devices()
 		{
 			for (int func = 0; func < 8; func++)
 			{
-				ushort vendor, device;
+				struct pci_device dev = pci_check_device(bus, slot, func);
 
-				struct pci_vendor *v = pci_check_vendor(bus, slot, func, &vendor, &device);
-
-				if (v)
+				if (dev.valid)
 				{
-					kprintf("%d %d %d --- v:0x%x d:0x%x --- %s\n", bus, slot, func, vendor, device, v->name);
+					kprintf("%d %d %d --- d:0x%x --- %d:%d:%d --- %s\n", bus,
+							slot, func, dev.device_id, dev.class, dev.subclass,
+							dev.prog_if, dev.vendor->name);
 				}
 			}
+		}
+	}
+}
+
+void pci_register_device_driver(struct pci_device_driver driver)
+{
+	if (num_drivers == size_drivers)
+	{
+		size_drivers += 8;
+		drivers = realloc(drivers, sizeof(struct pci_device_driver) * size_drivers);
+	}
+
+	driver.loaded = 0;
+	drivers[num_drivers++] = driver;
+}
+
+void pci_init()
+{
+	num_drivers = 0;
+	size_drivers = 4;
+	drivers = malloc(sizeof(struct pci_device_driver) * size_drivers);
+}
+
+void pci_load()
+{
+	for (int bus = 0; bus < 0xff; bus++)
+	{
+		for (int slot = 0; slot < 32; slot++)
+		{
+			for (int func = 0; func < 8; func++)
+			{
+				struct pci_device dev = pci_check_device(bus, slot, func);
+
+				// Do any drivers support this?
+
+				for (int i = 0; i < num_drivers; i++)
+				{
+					if (drivers[i].supports(&dev))
+					{
+						drivers[i].loaded++;
+						drivers[i].dev = dev;
+						drivers[i].init(dev, bus, slot, func);
+					}
+				}
+			}
+		}
+	}
+}
+
+void pci_print_drivers()
+{
+	kprintf("Enumerating PCI device drivers:\n");
+	for (int i = 0; i < num_drivers; i++)
+	{
+		for (int j = 0; j < drivers[i].loaded; j++)
+		{
+			struct pci_device_driver d = drivers[i];
+			kprintf("Driver: %s, vendor: %s\n", d.generic_name, d.dev.vendor->name);
 		}
 	}
 }

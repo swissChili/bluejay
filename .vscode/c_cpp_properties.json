@@ -8,12 +8,12 @@
                 "${workspaceFolder}/include/kernel",
                 "${workspaceFolder}/src/kernel"
             ],
-            "defines": [],
+            "defines": [
+                "TEST_PCI"
+            ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
-            // "cppStandard": "c++14",
             "intelliSenseMode": "linux-gcc-x86",
-            // "compileCommands": "${workspaceFolder}/compile_commands.json",
             "compilerArgs": [
                 "-nostdinc -nostdlib -O2 -m32 -g"
             ]
