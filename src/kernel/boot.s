@@ -37,7 +37,7 @@ gdt:
 	db 0						; base high
 
 	;; Second entry, code segment
-	dw 0xffffffff				; max limit
+	dw 0xffff					; max limit
 	dw 0
 
 	db 0
@@ -46,7 +46,7 @@ gdt:
 	db 0
 
 	;; Third entry, data segment
-	dw 0xffffffff				; max limit
+	dw 0xffff					; max limit
 	dw 0
 
 	db 0
@@ -55,7 +55,7 @@ gdt:
 	db 0
 
 	;; Fourth entry, user code segment
-	dw 0xffffffff				; max limit
+	dw 0xffff					; max limit
 	dw 0
 
 	db 0
@@ -64,7 +64,7 @@ gdt:
 	db 0
 
 	;; Fifth entry, user data segment
-	dw 0xffffffff				; max limit
+	dw 0xffff					; max limit
 	dw 0
 
 	db 0

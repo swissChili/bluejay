@@ -33,7 +33,7 @@ compiler.c: compiler.dasc
 type(executable)
 
 run: lisp
-	status_log(RUN, ./lisp)
+	status_log(LISP, test.lisp)
 	@./lisp ./test.lisp
 
 format:

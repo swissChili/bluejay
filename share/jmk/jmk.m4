@@ -70,7 +70,7 @@ jmk_lib_clean_$1:
 	@DO_MAKE -C $2 clean')
 
 dnl lib is used to list an external dependency declared with depends()
-define(`lib', `$(jmk_lib_path_$1)/$(jmk_lib_target_$1)')
+define(`lib', `ifelse($1,,``$0'',$(jmk_lib_path_$1)/$(jmk_lib_target_$1))')
 
 define(`phony', `jmk_custom_phony += $1')
 

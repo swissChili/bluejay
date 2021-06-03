@@ -1,6 +1,7 @@
 #include <dri/ide/ide.h>
 #include <task.h>
 #include <alloc.h>
+#include <log.h>
 
 struct ide_thread_data
 {
@@ -26,7 +27,7 @@ void ide_init(struct pci_device dev, uchar bus, uchar slot, uchar func)
     data->slot = slot;
     data->func = func;
 
-    spawn_thread(ide_thread, data);
+    spawn_thread(TASK_FUNCTION(ide_thread), data);
 }
 
 void ide_register()

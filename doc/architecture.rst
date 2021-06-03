@@ -35,8 +35,26 @@ the scheduler.
 Drivers
 -------
 
-So far I have only written very low level drivers (stuff like ATA PIO, PCI, VGA
-text mode, etc). These drivers have all been "bare-metal", ie: interfacing with
-hardware through ``in`` and ``out`` instructions. Higher level drivers will be
-built on top of existing ones. An interface will be created for defining, for
-example, PCI device drivers, or USB device drivers.
+So far drivers must be written either using plain ``in`` and ``out``
+instructions or on top of the existing PCI driver.
+
+PCI Device Drivers
+~~~~~~~~~~~~~~~~~~
+
+PCI device drivers must register a ``struct pci_device_driver`` in order to
+interface with a certain device (or class of devices). The relevant fields of
+``struct pci_device_driver`` are shown here:
+
+.. code-block::
+
+    bool (* supports)(struct pci_device *dev);
+    void (* init)(struct pci_device dev, uchar bus, uchar slot, uchar func);
+    char *generic_name;
+
+A PCI device driver must pass an instance of this structure to
+``pci_register_device_driver`` (in ``include/kernel/dri/pci/pci.h``. If
+``supports`` returns true, (for example, if the class and subclass of the
+``struct pci_device`` are supported by teh driver) ``init`` will be called. At
+this point the driver may do whatever it wishes with the PCI device, although
+all blocking operations should be done in another thread (using ``spawn_thread``
+in ``include/kernel/task.h`` for example).
