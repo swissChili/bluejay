@@ -50,6 +50,8 @@ struct local
 	struct variable *first;
 	int npc;
 	int nextpc;
+	bool *stack_slots;
+	int num_stack_slots, num_stack_entries;
 };
 
 void compile_expression(struct environment *env, struct local *local,
@@ -57,6 +59,12 @@ void compile_expression(struct environment *env, struct local *local,
 void compile_expr_to_func(struct environment *env, char *name, value_t val,
                           dasm_State **Dst);
 int nextpc(struct local *local, dasm_State **Dst);
+
+// Local utilities
+unsigned int local_alloc(struct local *local);
+void local_free(struct local *local, unsigned int slot);
+
+void walk_and_alloc(struct local *local, value_t body);
 // Compile top-level declaration
 void compile_tl(value_t val, struct environment *env);
 struct environment compile_all(struct istream *is);
