@@ -14,7 +14,7 @@ OBJECTS = pci.o vendors.o
 
 vendors.c: vendors.csv vendors_to_h.awk
 	status_log(AWK, vendors.csv)
-	@awk -f vendors_to_h.awk vendors.csv > $@
+	@dos2unix < vendors.csv | awk -f vendors_to_h.awk > $@
 
 type(static_lib)
 

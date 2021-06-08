@@ -2,8 +2,7 @@
 
 # Jay MaKe
 
-dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-root="$(dirname $dir)"
+root="$(pwd)"
 jmkscript="$root/share/jmk/jmk.m4"
 
 for file in $(find -name Jmk); do

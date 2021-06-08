@@ -1,0 +1,16 @@
+image: debian/stable
+sources:
+  - https://git.sr.ht/~swisschili/bluejay
+packages:
+  - build-essential
+  - gcc-multilib
+  - m4
+  - python3
+  - gawk
+  - nasm
+tasks:
+  - build-kernel: |
+      cd bluejay
+      ./bin/jmk
+      cd src/kernel
+      make
