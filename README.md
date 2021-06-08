@@ -1,5 +1,7 @@
 # Bluejay
 
+[![builds.sr.ht status](https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml.svg)](https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml?)
+
 <img src="share/branding/bluejay-unsplash.jpg" align="right" width="200">
 
 Bluejay is a preemptive kernel for x86. It is inspired by modern day
