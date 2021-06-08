@@ -26,6 +26,9 @@
 | ret;
 |.endmacro;
 
+|.macro local_var, index;
+|.endmacro;
+
 dasm_State *d;
 unsigned int npc = 8;
 
@@ -42,6 +45,36 @@ struct function *find_function(struct environment *env, char *name)
 	}
 
 	return f;
+}
+
+unsigned int local_alloc(struct local *local)
+{
+	for (int i = 0; i < local->num_stack_slots; i++)
+	{
+		if (local->stack_slots[i] == false)
+		{
+			local->stack_slots[i] = true;
+
+			if (i >= local->num_stack_entries)
+				local->num_stack_entries++;
+
+			return i;
+		}
+	}
+
+	int old_size = local->num_stack_slots;
+	local->num_stack_slots += 4;
+	local->stack_slots = realloc(local->stack_slots, local->num_stack_slots * sizeof(bool));
+	// unreadable: set the remaining slots to unused
+	memset(local->stack_slots + old_size, 0, local->num_stack_slots - old_size);
+	local->stack_slots[old_size] = true;
+
+	return old_size;
+}
+
+void local_free(struct local *local, unsigned int slot)
+{
+	local->stack_slots[slot] = false;
 }
 
 void compile_tl(value_t val, struct environment *env)
@@ -72,13 +105,15 @@ void compile_tl(value_t val, struct environment *env)
 		local.num_vars = 0;
 		local.npc = 8;
 		local.nextpc = 0;
+		local.stack_slots = malloc(sizeof(bool) * 4);
+		memset(local.stack_slots, 0, sizeof(bool) * 4);
+		local.num_stack_slots = 4;
+		local.num_stack_entries = 0;
 
 		dasm_growpc(&d, local.npc);
 
 		// Generate code
 		// TODO: first pass, extract bound and free variables
-
-		| setup 0;
 
 		value_t name = car(args);
 		args = cdr(args);
@@ -99,6 +134,16 @@ void compile_tl(value_t val, struct environment *env)
 			add_variable(&local, V_ARGUMENT, (char *)(car(a) ^ SYMBOL_TAG), i);
 		}
 
+		for (value_t body_ = body; !nilp(body_); body_ = cdr(body_))
+		{
+			walk_and_alloc(&local, car(body_));
+		}
+
+		| setup (local.num_stack_entries);
+
+		memset(local.stack_slots, 0, local.num_stack_slots * sizeof(bool));
+		local.num_stack_entries = 0;
+
 		for (; !nilp(body); body = cdr(body))
 		{
 			compile_expression(env, &local, car(body), Dst);
@@ -110,6 +155,31 @@ void compile_tl(value_t val, struct environment *env)
 		             length(arglist));
 
 		dasm_free(&d);
+		free(local.stack_slots);
+	}
+}
+
+void walk_and_alloc(struct local *local, value_t body)
+{
+	if (!listp(body))
+		return;
+
+	value_t args = cdr(body);
+
+	if (symstreq(car(body), "let1"))
+	{
+		int slot = local_alloc(local);
+
+		value_t expr = cdr(args);
+
+		local_free(local, slot);
+	}
+	else
+	{
+		for (; !nilp(args); args = cdr(args))
+		{
+			walk_and_alloc(local, car(args));
+		}
 	}
 }
 
@@ -185,6 +255,38 @@ void compile_expression(struct environment *env, struct local *local,
 			    compile_expression(env, local, elt(args, 2), Dst);
 			|=>after_label:
 		}
+		else if (symstreq(fsym, "let1"))
+		{
+			if (nargs < 2)
+			{
+				err("Must give at least 2 arguments to let1");
+			}
+			value_t binding = car(args);
+			value_t rest = cdr(args);
+
+			if (length(binding) != 2)
+			{
+				err("Binding list in let1 must contain exactly two entries");
+			}
+
+			value_t name = car(binding);
+			value_t value = car(cdr(binding));
+
+			compile_expression(env, local, value, Dst);
+
+			int i = local_alloc(local);
+
+			add_variable(local, V_BOUND, (char *)(name ^ SYMBOL_TAG), i);
+
+			| mov dword [ebp - ((i + 1) * value_size)], eax;
+
+			for (; !nilp(rest); rest = cdr(rest))
+			{
+				compile_expression(env, local, car(rest), Dst);
+			}
+
+			local_free(local, i);
+		}
 		else
 		{
 			struct function *func =
@@ -219,10 +321,13 @@ void compile_expression(struct environment *env, struct local *local,
 		switch (v->type)
 		{
 		case V_ARGUMENT:
-			| mov eax, dword [ebp + value_size * (v->number + 2)];
+			| mov eax, dword [ebp + (value_size * (v->number + 2))];
+			break;
+		case V_BOUND:
+			| mov eax, dword [ebp - ((v->number + 1) * value_size)]
 			break;
 		default:
-			err("Sorry, can only access V_ARGUMENT variables for now :(");
+			err("Sorry, can only access V_ARGUMENT and V_BOUND variables for now :(");
 		}
 	}
 }
