@@ -37,7 +37,7 @@ define(preset,
         $1, `optimize', `CFLAGS += -O2',
         $1, `debug', `CFLAGS += -g',
         $1, `32', `CFLAGS += -m32',
-        $1, `warn', `CFLAGS += -Wall -Wno-unused-function -Wno-unused-variable',
+        $1, `warn', `CFLAGS += -Wall -Wno-unused-function -Wno-unused-variable -Wno-incompatible-pointer-types',
         $1, `nasm', `ASM = nasm')')
 
 dnl this is really, really terrible, but to my knowledge there is no
