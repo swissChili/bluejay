@@ -24,7 +24,7 @@ CFLAGS += -I $(ROOT)/include/kernel $(test_defines)
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf
-QEMUFLAGS = -d cpu_reset
+QEMUFLAGS = -d cpu_reset -hda hd0.img
 
 OBJECTS = 	boot.o \
 			main.o \
@@ -64,7 +64,12 @@ debug: kernel.elf
 	gdb $<
 	@pkill qemu-system-i38
 
-qemu: kernel.elf
+hd0.img:
+	status_log(MKFS, $@)
+	@dd bs=4M count=8 if=/dev/zero of=$@
+	@mkfs.ext2 $@
+
+qemu: kernel.elf hd0.img
 	qemu-system-i386 $(QEMUFLAGS) -monitor stdio -kernel kernel.elf -no-reboot
 
 qemu-iso: install
@@ -72,6 +77,16 @@ qemu-iso: install
 
 scan_codes.c: gen_scan_codes.py scan_codes.tsv 
 	python3 $< > $@
+
+mount: hd0.img
+	status_log(MOUNT, $^ $(ROOT)/mnt)
+	@mkdir -p $(ROOT)/mnt
+	@mount $^ $(ROOT)/mnt
+	@if [ $$(whoami) = root ]; then echo 'You ran this as root, you probably want to chown $(ROOT)/mnt now.'; fi
+
+umount:
+	status_log(UMOUNT, $(ROOT)/mnt)
+	@umount $(ROOT)/mnt
 
 install: kernel.elf lib(initrd)
 	cp kernel.elf $(ROOT)/boot/

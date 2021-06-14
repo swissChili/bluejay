@@ -40,6 +40,13 @@ void kprintf(const char *format, ...)
 				vga_put(s);
 				break;
 			}
+			case 'b': {
+				uint v = va_arg(args, uint);
+				if (v)
+					vga_write("true");
+				else
+					vga_write("false");
+			}
 			}
 			format++;
 		}

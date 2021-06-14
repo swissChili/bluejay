@@ -1,0 +1,17 @@
+init(ext2, ext2.a)
+
+preset(freestanding)
+preset(optimize)
+preset(debug)
+preset(32)
+preset(warn)
+
+archetype(c)
+
+CFLAGS += -I/include/kernel
+
+OBJECTS = ext2.o
+
+type(static_lib)
+
+finish
