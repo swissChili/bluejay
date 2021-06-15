@@ -78,4 +78,5 @@ enum ext2_os_id
 	EXT2_OS_OTHER_BSD,
 };
 
+struct ext2_superblock ext2_read_superblock();
 void ext2_mount(struct fs_node *where);

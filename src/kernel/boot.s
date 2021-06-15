@@ -100,7 +100,7 @@ mboot:
 	[extern kmain]				; C code
 
 start equ (_start)
-	
+
 _start:
 	;; First set up GDT
 	mov eax, (gdt_pointer - KERNEL_VIRTUAL_BASE)

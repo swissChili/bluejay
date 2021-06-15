@@ -8,7 +8,7 @@ preset(warn)
 
 archetype(c)
 
-CFLAGS += -I/include/kernel
+CFLAGS += -I$(ROOT)/include/kernel
 
 OBJECTS = ext2.o
 

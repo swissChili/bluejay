@@ -14,17 +14,20 @@ depends(initrd, $(ROOT)/boot/initrd, initrd.img)
 depends(ata_pio, dri/ata_pio, ata_pio.a)
 depends(pci, dri/pci, pci.a)
 depends(ide, dri/ide, ide.a)
+depends(ext2, dri/fs/ext2, ext2.a)
 # AHCI not yet implemented
 # depends(ahci, dri/ahci, ahci.a)
 
 TEST ?=
 test_defines = $(TEST:%=-DTEST_%)
 
+FS ?= ext2
+
 CFLAGS += -I $(ROOT)/include/kernel $(test_defines)
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf
-QEMUFLAGS = -d cpu_reset -hda hd0.img
+QEMUFLAGS = -d cpu_reset -hda hd0_$(FS).img
 
 OBJECTS = 	boot.o \
 			main.o \
@@ -49,6 +52,7 @@ OBJECTS = 	boot.o \
 			task.o \
 			task_api.o \
 			faults.o \
+			lib(ext2) \
 			lib(ata_pio) \
 			lib(pci) \
 			lib(ide)
@@ -64,12 +68,12 @@ debug: kernel.elf
 	gdb $<
 	@pkill qemu-system-i38
 
-hd0.img:
+hd0_%.img:
 	status_log(MKFS, $@)
 	@dd bs=4M count=8 if=/dev/zero of=$@
-	@mkfs.ext2 $@
+	@$(patsubst hd0_%.img,mkfs.%,$@) $@
 
-qemu: kernel.elf hd0.img
+qemu: kernel.elf hd0_$(FS).img
 	qemu-system-i386 $(QEMUFLAGS) -monitor stdio -kernel kernel.elf -no-reboot
 
 qemu-iso: install
@@ -78,11 +82,11 @@ qemu-iso: install
 scan_codes.c: gen_scan_codes.py scan_codes.tsv 
 	python3 $< > $@
 
-mount: hd0.img
+mount: hd0_$(FS).img
 	status_log(MOUNT, $^ $(ROOT)/mnt)
+	@if [ $(whoami) = root ]; then echo "DON'T RUN THIS AS ROOT" && exit 1; fi
 	@mkdir -p $(ROOT)/mnt
-	@mount $^ $(ROOT)/mnt
-	@if [ $$(whoami) = root ]; then echo 'You ran this as root, you probably want to chown $(ROOT)/mnt now.'; fi
+	@sudo mount $^ $(ROOT)/mnt -o rw,uid=$$(id -u),gid=$$(id -g)
 
 umount:
 	status_log(UMOUNT, $(ROOT)/mnt)

@@ -6,6 +6,9 @@
 The Bluejay Operating System
 ============================
 
+.. image:: https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml.svg
+   :target: https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml?
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
@@ -14,8 +17,7 @@ The Bluejay Operating System
    *
 
 Bluejay is an operating system inspired by UNIX and early Lisp machines.
-Currently it only targets x86, and there are no plans to port to other
-platforms.
+Currently it only targets x86. There are no plans to port to other platforms.
 
 This documentation is incomplete, but should provide a general introduction to
 compiling and developing Bluejay.

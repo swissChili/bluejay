@@ -27,8 +27,6 @@ void _sys_init_tasks_h(struct registers *regs)
 
 void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 {
-	kprintf("_init_tasks\n");
-
 	processes[0] = (struct process){
 		.exists = true,
 		.id = 0,
@@ -44,7 +42,6 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 		.last_stack_pos = 0xFFFFF000,
 	};
 	strcpy(processes[0].name, "kernel");
-	kprintf("in _init_tasks, strlen of 'kernel' is %d\n", strlen("kernel"));
 
 	first_task = last_task = current_task = malloc(sizeof(struct ll_task_i));
 
@@ -57,8 +54,6 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 		.eip = kernel_eip,
 		.id = next_task_id++,
 	};
-
-	kprintf("Returning from _init_tasks\n");
 
 	tasks_initialized = true;
 }

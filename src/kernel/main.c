@@ -13,6 +13,7 @@
 #include <dri/ata_pio/ata_pio.h>
 #include <dri/pci/pci.h>
 #include <dri/ide/ide.h>
+#include <dri/fs/ext2/ext2.h>
 
 void greet()
 {
@@ -77,10 +78,7 @@ int kmain(struct multiboot_info *mboot)
 
 	asm("sti");
 
-	kprintf("initializing tasks\n");
 	init_tasks();
-	kprintf("\ndone initializing tasks\n");
-
 	pci_init();
 
 	// Register PCI drivers
@@ -94,14 +92,16 @@ int kmain(struct multiboot_info *mboot)
 	greet();
 #endif
 
-#ifdef TEST_ATA_PIO
-	test_ata_pio();
-#endif
-
 #ifdef TEST_PCI
 	pci_print_devices();
 	pci_print_drivers();
 #endif
+
+#ifdef TEST_ATA_PIO
+	test_ata_pio();
+#endif
+
+	ext2_mount(&root);
 
 	while (true)
 		asm("hlt");
