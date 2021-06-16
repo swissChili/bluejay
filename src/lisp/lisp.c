@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct alloc_list *first_a = NULL, *last_a = NULL;
+struct alloc *first_a = NULL, *last_a = NULL;
 
 value_t nil = 0b00101111; // magic ;)
 value_t t = 1 << 3;
@@ -27,24 +27,23 @@ value_t intval(int i)
 
 value_t cons(value_t car, value_t cdr)
 {
-	struct cons *c = malloc_aligned(sizeof(struct cons));
+	struct cons_alloc *item = malloc_aligned(sizeof(struct cons_alloc));
+	struct cons *c = &item->cons;
 
 	c->car = car;
 	c->cdr = cdr;
 
-	struct alloc_list *item = malloc(sizeof(struct alloc_list));
-	item->type = T_CONS;
-	item->cons_val = c;
+	item->alloc.type_tag = T_CONS;
 
 	if (last_a)
 	{
-		item->prev = last_a;
+		item->alloc.prev = last_a;
 		last_a->next = item;
-		item->next = NULL;
+		item->alloc.next = NULL;
 	}
 	else
 	{
-		item->prev = item->next = NULL;
+		item->alloc.prev = item->alloc.next = NULL;
 		first_a = last_a = item;
 	}
 
@@ -321,6 +320,11 @@ bool stringp(value_t v)
 bool consp(value_t v)
 {
 	return (v & HEAP_MASK) == CONS_TAG;
+}
+
+bool heapp(value_t v)
+{
+	return consp(v) || stringp(v) || symbolp(v);
 }
 
 bool listp(value_t v)

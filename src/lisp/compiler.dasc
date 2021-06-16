@@ -34,12 +34,12 @@ unsigned int npc = 8;
 
 extern void _do_gc(unsigned int ebp, unsigned int esp);
 
-static void compile_gc()
-{
-	| push esp;
-	| push ebp;
-	| call (_do_gc);
-}
+|.macro run_gc;
+| push esp;
+| push ebp;
+| mov eax, _do_gc;
+| call eax;
+|.endmacro;
 
 struct function *find_function(struct environment *env, char *name)
 {

@@ -39,18 +39,22 @@ typedef unsigned int value_t;
 
 struct cons
 {
-	int magic;
-	int marked; // must be reserved
 	value_t car, cdr;
 };
 
-struct alloc_list
+struct alloc
 {
-	int type;
-	union {
-		struct cons *cons_val;
-	};
-	struct alloc_list *next, *prev;
+	unsigned int type_tag;
+	struct alloc *prev, *next;
+	unsigned int marked;
+
+	// Whatever else
+};
+
+struct cons_alloc
+{
+	struct alloc alloc;
+	struct cons cons;
 };
 
 bool startswith(struct istream *s, char *pattern);
@@ -78,6 +82,7 @@ bool stringp(value_t v);
 bool consp(value_t v);
 bool listp(value_t v);
 bool nilp(value_t v);
+bool heapp(value_t v);
 int length(value_t v);
 value_t elt(value_t v, int index);
 

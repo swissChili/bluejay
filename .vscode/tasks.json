@@ -17,6 +17,11 @@
             "type": "shell",
             "label": "sphynx:watch",
             "command": "make -C doc/ watch"
+        },
+        {
+            "type": "shell",
+            "label": "buildLisp",
+            "command": "make -C src/lisp"
         }
     ],
 }

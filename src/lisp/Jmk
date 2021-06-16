@@ -23,11 +23,11 @@ OBJECTS = main.o \
 
 LUA = vendor/luajit/src/host/minilua
 
-vendor/luajit/src/host/minilua: vendor/luajit/src/host/minilua.c
+$(LUA): vendor/luajit/src/host/minilua.c
 	status_log(CC, $<)
 	@$(CC) $< -o $@ -lm
 
-compiler.c: compiler.dasc
+compiler.c: compiler.dasc | $(LUA)
 	status_log(DYNASM, $<)
 	@$(LUA) vendor/luajit/dynasm/dynasm.lua -o $@ $<
 

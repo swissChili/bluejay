@@ -5,6 +5,26 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug test.lisp",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/lisp/lisp",
+            "args": ["test.lisp"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/src/lisp",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "buildLisp"
+        },
+        {
             "type": "gdb",
             "request": "attach",
             "name": "Attach to QEMU",
