@@ -9,7 +9,7 @@ preset(32)
 preset(debug)
 preset(warn)
 
-archetype(c)
+archetype(c, asm)
 
 CFLAGS += -Ivendor/luajit/dynasm
 
@@ -18,7 +18,8 @@ OBJECTS = main.o \
 			compiler.o \
 			lib/std.o \
 			plat/linux.o \
-			istream.o
+			istream.o \
+			gc.o
 
 LUA = vendor/luajit/src/host/minilua
 

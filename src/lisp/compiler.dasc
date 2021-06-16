@@ -32,6 +32,15 @@
 dasm_State *d;
 unsigned int npc = 8;
 
+extern void _do_gc(unsigned int ebp, unsigned int esp);
+
+static void compile_gc()
+{
+	| push esp;
+	| push ebp;
+	| call (_do_gc);
+}
+
 struct function *find_function(struct environment *env, char *name)
 {
 	struct function *f = env->first;
