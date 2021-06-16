@@ -18,3 +18,4 @@ src/kernel/dri/pci/vendors.c
 doc/_build
 !doc/Makefile
 mnt/*
+doc/_dox*
