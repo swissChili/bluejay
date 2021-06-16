@@ -14,3 +14,11 @@ tasks:
       ./bin/jmk
       cd src/kernel
       make
+  - build-lisp: |
+      cd bluejay
+      ./bin/jmk
+      cd src/lisp
+      make
+artifacts:
+  - bluejay/src/lisp/lisp
+  - bluejay/src/kernel/kernel.elf
