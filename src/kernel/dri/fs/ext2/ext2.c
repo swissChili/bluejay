@@ -16,5 +16,12 @@ void ext2_mount(struct fs_node *where)
 {
 	struct ext2_superblock sb = ext2_read_superblock();
 
-	kprintf("Magic = 0x%x\n", sb.signature);
+	kprintf(INFO "EXT2 magic = 0x%x\n", sb.signature);
+}
+
+bool ext2_valid_filesystem()
+{
+	struct ext2_superblock sb = ext2_read_superblock();
+
+	return sb.signature == EXT2_SIGNATURE;
 }

@@ -4,7 +4,7 @@
 
 void do_syscall(struct registers *regs)
 {
-	kprintf("Syscall executed: %d\n", regs->eax);
+	kprintf(INFO "Syscall executed: %d\n", regs->eax);
 }
 
 void init_syscall()

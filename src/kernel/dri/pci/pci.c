@@ -67,7 +67,7 @@ struct pci_vendor *pci_vendor_by_id(ushort id)
 
 void pci_print_devices()
 {
-	kprintf("Enumerating PCI devices:\n");
+	kprintf(INFO "Enumerating PCI devices:\n");
 	for (int bus = 0; bus < 0xff; bus++)
 	{
 		for (int slot = 0; slot < 32; slot++)
@@ -78,7 +78,7 @@ void pci_print_devices()
 
 				if (dev.valid)
 				{
-					kprintf("%d %d %d --- d:0x%x --- %d:%d:%d --- %s\n", bus,
+					kprintf(INFO "%d %d %d --- d:0x%x --- %d:%d:%d --- %s\n", bus,
 							slot, func, dev.device_id, dev.class, dev.subclass,
 							dev.prog_if, dev.vendor->name);
 				}
@@ -134,13 +134,13 @@ void pci_load()
 
 void pci_print_drivers()
 {
-	kprintf("Enumerating PCI device drivers:\n");
+	kprintf(INFO "Enumerating PCI device drivers:\n");
 	for (int i = 0; i < num_drivers; i++)
 	{
 		for (int j = 0; j < drivers[i].loaded; j++)
 		{
 			struct pci_device_driver d = drivers[i];
-			kprintf("Driver: %s, vendor: %s\n", d.generic_name, d.dev.vendor->name);
+			kprintf(INFO "Driver: %s, vendor: %s\n", d.generic_name, d.dev.vendor->name);
 		}
 	}
 }

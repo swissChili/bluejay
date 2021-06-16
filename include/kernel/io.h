@@ -28,6 +28,9 @@ void strcpy(char *dest, char *src);
 int strcmp(char *a, char *b);
 uint strlen(char *a);
 
+bool isdigit(char c);
+uint parse_int(char *string);
+
 uchar kbd_scan_code();
 void kbd_handle_input(struct registers *registers);
 void init_kbd();

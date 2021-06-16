@@ -290,13 +290,13 @@ void test_allocator()
 	for (int i = 0; i < 12; i++)
 		array[i] = i;
 
-	kprintf("Allocated one, two, array[3] = %d, %d, %d\n", *one, *two,
+	kprintf(DEBUG "Allocated one, two, array[3] = %d, %d, %d\n", *one, *two,
 			array[3]);
-	kprintf("[%x, %x, %x]\n", one, two, array);
+	kprintf(DEBUG "[%x, %x, %x]\n", one, two, array);
 
-	kprintf("Freeing two\n");
+	kprintf(DEBUG "Freeing two\n");
 	free(two);
 	int *four = malloc(sizeof(int));
 	*four = 4;
-	kprintf("Allocated four = %d (%x)\n", *four, four);
+	kprintf(DEBUG "Allocated four = %d (%x)\n", *four, four);
 }

@@ -6,9 +6,14 @@
 static uint cursor_x = 0;
 static uint cursor_y = 0;
 
-static ushort color = WHITE;
+static uchar color = WHITE;
 
 static ushort *fb = (ushort *)PHYS_TO_VIRT(0xB8000);
+
+#define BUFFER_SIZE 16
+static char buffer[BUFFER_SIZE];
+static uint buffer_index = 0;
+static bool in_escape = false;
 
 static void move_cursor()
 {
@@ -43,8 +48,72 @@ void vga_set_color(enum vga_colors fg, enum vga_colors bg)
 	color = (bg << 4) | (fg & 0xf);
 }
 
+void got_escape()
+{
+	if (buffer[0] != '[')
+		return;
+
+	int c = parse_int(buffer+1);
+
+	static const char ansi_to_vga_colors[] =
+	{
+		[30] = BLACK,
+		RED,
+		GREEN,
+		LIGHT_BROWN,
+		BLUE,
+		MAGENTA,
+		CYAN,
+		WHITE,
+		[90] = LIGHT_GREY,
+		LIGHT_RED,
+		LIGHT_GREEN,
+		LIGHT_BROWN,
+		LIGHT_BLUE,
+		LIGHT_MAGENTA,
+		LIGHT_CYAN,
+		WHITE,
+	};
+
+	if (c == 0)
+	{
+		color = WHITE;
+	}
+	else if ((c >= 30 && c <= 37) || (c >= 90 && c <= 97))
+	{
+		color &= 0xf0;
+		color |= ansi_to_vga_colors[c];
+	}
+	else if ((c >= 40 && c <= 47) || (c >= 100 && c <= 107))
+	{
+		color &= 0x0f;
+		color |= ansi_to_vga_colors[c - 10] << 4;
+	}
+}
+
 void vga_put(char c)
 {
+	if (in_escape)
+	{
+		if (buffer_index >= BUFFER_SIZE || c == 'm')
+		{
+			// For now we are only supporting color escape sequences.
+			if (c == 'm')
+				got_escape();
+
+			// Escape sequence is too long, sorry. Failing silently.
+			in_escape = false;
+			buffer_index = 0;
+			memset(buffer, 0, sizeof(buffer));
+		}
+		else
+		{
+			buffer[buffer_index++] = c;
+		}
+
+		return;
+	}
+
 	switch (c)
 	{
 	case '\b':
@@ -59,6 +128,9 @@ void vga_put(char c)
 		cursor_y++;
 	case '\r':
 		cursor_x = 0;
+		break;
+	case 033:
+		in_escape = true;
 		break;
 	default:
 		fb[cursor_y * 80 + cursor_x] = c | (color << 8);

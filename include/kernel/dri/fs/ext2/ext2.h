@@ -78,5 +78,8 @@ enum ext2_os_id
 	EXT2_OS_OTHER_BSD,
 };
 
+#define EXT2_SIGNATURE 0xef53
+
 struct ext2_superblock ext2_read_superblock();
 void ext2_mount(struct fs_node *where);
+bool ext2_valid_filesystem();

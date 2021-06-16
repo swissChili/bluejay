@@ -4,7 +4,7 @@
 #define DECLARE_INTERRUPT(sym, name)                                           \
 	static void sym##_h(struct registers *regs)                                \
 	{                                                                          \
-		kprintf("Fault " name ": eip = 0x%x, err = 0x%x\n", regs->eip,         \
+		kprintf(ERROR "Fault " name ": eip = 0x%x, err = 0x%x\n", regs->eip,   \
 				regs->error_code);                                             \
 		asm volatile("cli");                                                   \
 		kpanic(name);                                                          \

@@ -51,7 +51,7 @@ static uint first_free_frame()
 			{
 				/* found unused frame */
 				uint frame = i * BITS + j;
-				kprintf("first_free_frame returning %d\n", frame);
+				kprintf(DEBUG "first_free_frame returning %d\n", frame);
 //				kpanic("asdf");
 				return frame;
 			}
@@ -68,7 +68,7 @@ void alloc_frame(uint *page_table_entry, bool user, bool writable)
 		return; /* frame already allocated */
 
 	uint frame = first_free_frame();
-	//	kprintf("first_free_frame found %d\n", frame);
+	//	kprintf(DEBUG "first_free_frame found %d\n", frame);
 	set_frame(frame * 0x1000); /* mark as mapped */
 	*page_table_entry = frame | 1 | writable << 1 | user << 2;
 }
@@ -130,12 +130,12 @@ void alloc_page(uint *dir, uint *virt)
 	// Page number % pages per table
 	uint page = ((size_t)virt / 0x1000) % 1024;
 	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
-	kprintf("table = 0x%x (virt)\n", table);
-	kprintf("dir entry = 0x%x\n", dir[(size_t)virt >> 22]);
+	kprintf(DEBUG "table = 0x%x (virt)\n", table);
+	kprintf(DEBUG "dir entry = 0x%x\n", dir[(size_t)virt >> 22]);
 
 	alloc_frame(&table[page], false, false);
 
-	kprintf("alloc_page table[page] = %d (0x%x)\n", table[page], table[page]);
+	kprintf(DEBUG "alloc_page table[page] = %d (0x%x)\n", table[page], table[page]);
 	return;
 }
 
@@ -183,6 +183,6 @@ void init_paging()
 
 void page_fault(struct registers *regs)
 {
-	kprintf("Page fault! eip = %d\n", regs->eip);
+	kprintf(ERROR "Page fault! eip = %d\n", regs->eip);
 	kpanic("Page fault");
 }

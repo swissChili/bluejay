@@ -81,7 +81,7 @@ void init_initrd_vfs(uchar *data)
 
 	if (h->magic != INITRD_MAGIC)
 	{
-		kprintf("initrd magic is wrong: %x should be %x\n", h->magic,
+		kprintf(ERROR "initrd magic is wrong: %x should be %x\n", h->magic,
 				INITRD_MAGIC);
 		kpanic("initrd magic");
 	}

@@ -124,3 +124,21 @@ void init_kbd()
 	memset(pressed_keys, 0, LAST_KBD_KEY);
 	add_interrupt_handler(33, kbd_handle_input);
 }
+
+bool isdigit(char c)
+{
+	return c >= '0' && c <= '9';
+}
+
+uint parse_int(char *string)
+{
+	uint number = 0;
+
+	for (; isdigit(*string); string++)
+	{
+		number *= 10;
+		number += *string - '0';
+	}
+
+	return number;
+}

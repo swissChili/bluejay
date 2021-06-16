@@ -27,7 +27,7 @@ CFLAGS += -I $(ROOT)/include/kernel $(test_defines)
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf
-QEMUFLAGS = -d cpu_reset -hda hd0_$(FS).img
+QEMUFLAGS = -hda hd0_$(FS).img
 
 OBJECTS = 	boot.o \
 			main.o \
@@ -63,7 +63,7 @@ debug-wait: kernel.elf
 	qemu-system-i386 -s -S -kernel kernel.elf
 
 debug: kernel.elf
-	qemu-system-i386 -s -S -kernel kernel.elf &
+	qemu-system-i386 -s -S $(QEMUFLAGS) -kernel kernel.elf &
 	@echo run "target remote localhost:1234" to connect to qemu
 	gdb $<
 	@pkill qemu-system-i38
@@ -74,7 +74,7 @@ hd0_%.img:
 	@$(patsubst hd0_%.img,mkfs.%,$@) $@
 
 qemu: kernel.elf hd0_$(FS).img
-	qemu-system-i386 $(QEMUFLAGS) -monitor stdio -kernel kernel.elf -no-reboot
+	qemu-system-i386 $(QEMUFLAGS) -d cpu_reset -monitor stdio -kernel kernel.elf -no-reboot
 
 qemu-iso: install
 	qemu-system-i386 $(QEMUFLAGS) -monitor stdio $(ROOT)/bin/bluejay.iso
@@ -84,9 +84,9 @@ scan_codes.c: gen_scan_codes.py scan_codes.tsv
 
 mount: hd0_$(FS).img
 	status_log(MOUNT, $^ $(ROOT)/mnt)
-	@if [ $(whoami) = root ]; then echo "DON'T RUN THIS AS ROOT" && exit 1; fi
+	@if [ "$(whoami)" = root ]; then echo "DON'T RUN THIS AS ROOT" && exit 1; fi
 	@mkdir -p $(ROOT)/mnt
-	@sudo mount $^ $(ROOT)/mnt -o rw,uid=$$(id -u),gid=$$(id -g)
+	@mount $^ $(ROOT)/mnt
 
 umount:
 	status_log(UMOUNT, $(ROOT)/mnt)

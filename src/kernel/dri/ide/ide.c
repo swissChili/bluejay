@@ -16,12 +16,12 @@ bool ide_supports(struct pci_device *dev)
 
 void ide_print_device(struct ide_device *dev)
 {
-    kprintf("<ide-device dma=%b>", dev->supports_dma);
+    kprintf(INFO "<ide-device dma=%b>", dev->supports_dma);
 }
 
 void ide_thread(struct ide_thread_data *data)
 {
-    kprintf("IDE driver thread starting: device=0x%x\n", data->dev.device_id);
+    kprintf(DEBUG "IDE driver thread starting: device=0x%x\n", data->dev.device_id);
 
     struct ide_device dev;
 

@@ -76,7 +76,7 @@ static void print_buffer()
 
 void test_ata_pio()
 {
-	kprintf("Going to ata_pio_read_sectors\n");
+	kprintf(INFO "Going to ata_pio_read_sectors\n");
 
 	ata_pio_read_sectors(test_buffer, 0, 1);
 	print_buffer();

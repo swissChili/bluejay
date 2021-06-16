@@ -17,15 +17,15 @@
 
 void greet()
 {
-	kprintf("Hello from get_task_id() = %d, get_process_id() = %d\n",
+	kprintf(DEBUG "Hello from get_task_id() = %d, get_process_id() = %d\n",
 			get_task_id(), get_process_id());
 }
 
 void other_thread(size_t data)
 {
-	kprintf("data is 0x%x\n", data);
+	kprintf(DEBUG "data is 0x%x\n", data);
 	greet();
-	kprintf("Returning from other_thread\n");
+	kprintf(DEBUG "Returning from other_thread\n");
 
 	return;
 }
@@ -52,27 +52,25 @@ int kmain(struct multiboot_info *mboot)
 
 #ifdef INITRD
 	kassert(mb.mods_count, "No multiboot modules loaded!");
-	kprintf("mboot->mods_addr = %d (0x%x)\n", mb.mods_addr, mb.mods_addr);
+	kprintf(DEBUG "mboot->mods_addr = %d (0x%x)\n", mb.mods_addr, mb.mods_addr);
 	uchar *initrd_loc = (uchar *)((uint *)mb.mods_addr)[0];
 
-	kprintf("initrd is at 0x%x to 0x%x\n", initrd_loc);
+	kprintf(DEBUG "initrd is at 0x%x to 0x%x\n", initrd_loc);
 
 	init_initrd_vfs(initrd_loc);
 #endif
 
-	kprintf("VFS initialized\n");
+	kprintf(OKAY "VFS initialized\n");
 
-	vga_set_color(LIGHT_GREEN, BLACK);
-	kprintf("Setup complete!\n");
-	vga_set_color(WHITE, BLACK);
+	kprintf(OKAY "Initial setup complete!\n");
 
 #ifdef TEST_VFS_INITRD
-	kprintf("fs_readdir(\"/dev/initrd\")\n");
+	kprintf(INFO "fs_readdir(\"/dev/initrd\")\n");
 
 	struct fs_dirent dirent;
 	for (int i = 0; fs_readdir(&root, i, &dirent); i++)
 	{
-		kprintf("name: %s, inode: %d\n", dirent.name, dirent.inode);
+		kprintf(INFO "name: %s, inode: %d\n", dirent.name, dirent.inode);
 	}
 #endif
 
@@ -85,6 +83,8 @@ int kmain(struct multiboot_info *mboot)
 	ide_register();
 
 	pci_load();
+
+	kprintf(OKAY "Loaded PCI devices\n");
 
 #ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
@@ -101,7 +101,13 @@ int kmain(struct multiboot_info *mboot)
 	test_ata_pio();
 #endif
 
-	ext2_mount(&root);
+#ifdef TEST_EXT2
+	if (ext2_valid_filesystem())
+	{
+		kprintf(INFO "Mounting EXT2 to /\n");
+		ext2_mount(&root);
+	}
+#endif
 
 	while (true)
 		asm("hlt");
