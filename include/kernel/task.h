@@ -7,6 +7,9 @@
 
 extern bool tasks_initialized;
 
+/**
+ * A process. For now there is only one, the kernel.
+ */
 struct process
 {
 	bool exists;
@@ -20,12 +23,15 @@ struct process
 	// NOTE: must be PAGE ALIGNED
 	uint last_stack_pos;
 };
-
+/**
+ * The smallest schedulable unit, a thread of a process.
+ */
 struct task
 {
 	int id;
 	struct process *proc;
-	uint stack_top_p; // stack frame PHYSICAL address
+	/// Physical address of the top of the stack.
+	uint stack_top_p;
 	uint esp, ebp, eip;
 };
 
@@ -53,7 +59,23 @@ typedef void (*task_function_t)(void *data);
 #define TASK_FUNCTION(f) ((task_function_t)(f))
 
 void spawn_thread(task_function_t function, void *data);
+
+/**
+ * Halt the current thread.
+ */
 void kill_this_thread();
+
+/**
+ * Force a task switch. Only call in a safe environment (ISR).
+ */
 extern void switch_task();
+
+/**
+ * Switch to a specific task. Only call in a safe environment (ISR).
+ */
 void switch_to_task(struct task *task);
+
+/**
+ * Internal. Do not call.
+ */
 void _sys_init_tasks_h(struct registers *regs);

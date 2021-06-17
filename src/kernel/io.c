@@ -26,20 +26,30 @@ uchar inb(ushort port)
 ushort inw(ushort port)
 {
 	ushort ret;
-	asm volatile("inw %1, %0" : "=a"(ret) : "dN"(port));
+	asm("inw %1, %0" : "=a"(ret) : "dN"(port));
 	return ret;
 }
 
 void outl(ushort port, uint val)
 {
-	asm volatile("outl %1, %0" : : "dN"(port), "a"(val));
+	asm("outl %1, %0" : : "dN"(port), "a"(val));
 }
 
 uint inl(ushort port)
 {
 	uint ret;
-	asm volatile("inl %1, %0" : "=a"(ret) : "dN"(port));
+	asm("inl %1, %0" : "=a"(ret) : "dN"(port));
 	return ret;
+}
+
+void outw(ushort port, ushort val)
+{
+	asm("outw %1, %0" :: "dN"(port), "a"(val));
+}
+
+void __attribute__((noinline)) nop()
+{
+	asm("nop");
 }
 
 void *memset(void *s, int c, size_t n)

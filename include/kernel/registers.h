@@ -2,6 +2,9 @@
 
 #include "kint.h"
 
+/**
+ * Represents the full execution state before an interrupt.
+ */
 struct registers
 {
 	uint ds;

@@ -51,6 +51,7 @@ void add_interrupt_handler(uchar interrupt, void (*handler)(struct registers *))
 
 void pic_remap()
 {
+	// I don't remember what this does.
 	outb(0x20, 0x11);
 	outb(0xA0, 0x11);
 	outb(0x21, 0x20);

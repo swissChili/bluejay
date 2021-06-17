@@ -53,9 +53,9 @@ OBJECTS = 	boot.o \
 			task_api.o \
 			faults.o \
 			lib(ext2) \
+			lib(ide) \
 			lib(ata_pio) \
-			lib(pci) \
-			lib(ide)
+			lib(pci)
 
 type(custom_link)
 

@@ -45,11 +45,8 @@ PCI device drivers must register a ``struct pci_device_driver`` in order to
 interface with a certain device (or class of devices). The relevant fields of
 ``struct pci_device_driver`` are shown here:
 
-.. code-block::
-
-    bool (* supports)(struct pci_device *dev);
-    void (* init)(struct pci_device dev, uchar bus, uchar slot, uchar func);
-    char *generic_name;
+.. doxygenstruct:: pci_device_driver
+    :project: Kernel
 
 A PCI device driver must pass an instance of this structure to
 ``pci_register_device_driver`` (in ``include/kernel/dri/pci/pci.h``. If

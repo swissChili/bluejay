@@ -84,7 +84,7 @@ int kmain(struct multiboot_info *mboot)
 
 	pci_load();
 
-	kprintf(OKAY "Loaded PCI devices\n");
+	kprintf(OKAY "Loaded PCI device drivers\n");
 
 #ifdef TEST_THREADS
 	spawn_thread(other_thread, NULL);
@@ -101,13 +101,13 @@ int kmain(struct multiboot_info *mboot)
 	test_ata_pio();
 #endif
 
-#ifdef TEST_EXT2
 	if (ext2_valid_filesystem())
 	{
-		kprintf(INFO "Mounting EXT2 to /\n");
-		ext2_mount(&root);
+		kprintf(OKAY "EXT2 filesystem is valid, again = %b\n", ext2_valid_filesystem());
+
+		//kprintf(INFO "Mounting EXT2 to /\n");
+		//ext2_mount(&root);
 	}
-#endif
 
 	while (true)
 		asm("hlt");

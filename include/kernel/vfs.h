@@ -6,18 +6,27 @@ struct fs_vtable;
 
 struct fs_node
 {
-	char name[128]; /* file name */
-	uint inode;     /* identifier */
-	uint flags;     /* type of node */
-	uint mask;      /* permissions */
-	uint gid;       /* group id */
-	uint uid;       /* user id */
-	size_t size;    /* size in bytes */
-	uint dri_res;   /* reserved for driver */
+	/** file name */
+	char name[128];
+	/** identifier */
+	uint inode;
+	/** type of node */
+	uint flags;
+	/** permissions */
+	uint mask;
+	/** group id */
+	uint gid;
+	/** user id */
+	uint uid;
+	/** size in bytes */
+	size_t size;
+	/** reserved for driver */
+	uint dri_res;
 
 	struct fs_vtable *vtable;
 
-	struct fs_node *mount; /* used for mounts */
+	/** used for mounts */
+	struct fs_node *mount;
 };
 
 struct fs_dirent
@@ -26,13 +35,13 @@ struct fs_dirent
 	uint inode;
 };
 
-typedef uint (* fs_read_t)(struct fs_node *node, size_t offset, size_t size, uchar *buffer);
-typedef uint (* fs_write_t)(struct fs_node *node, size_t offset, size_t size, uchar *buffer);
-typedef void (* fs_open_t)(struct fs_node *node);
-typedef void (* fs_close_t)(struct fs_node *node);
+typedef uint (*fs_read_t)(struct fs_node *node, size_t offset, size_t size, uchar *buffer);
+typedef uint (*fs_write_t)(struct fs_node *node, size_t offset, size_t size, uchar *buffer);
+typedef void (*fs_open_t)(struct fs_node *node);
+typedef void (*fs_close_t)(struct fs_node *node);
 
-typedef bool (* fs_readdir_t)(struct fs_node *node, uint index, struct fs_dirent *dirent);
-typedef struct fs_node *(* fs_finddir_t)(struct fs_node *node, char *name);
+typedef bool (*fs_readdir_t)(struct fs_node *node, uint index, struct fs_dirent *dirent);
+typedef struct fs_node *(*fs_finddir_t)(struct fs_node *node, char *name);
 
 struct fs_vtable
 {
@@ -52,8 +61,8 @@ enum fs_flags
 	FS_BLOCKDEVICE,
 	FS_PIPE,
 	FS_SYMLINK,
-	
-	FS_MOUNT = 8,   /* Can be or'd with others */
+
+	FS_MOUNT = 8, /* Can be or'd with others */
 };
 
 extern struct fs_node root, dev, initrd;

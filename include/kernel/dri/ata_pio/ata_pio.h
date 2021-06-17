@@ -29,6 +29,7 @@ enum
 	ATA_PORT_LBA_LOW,
 	ATA_PORT_LBA_MID,
 	ATA_PORT_LBA_HIGH,
+	ATA_PORT_STATUS = ATA_PORT_CMD,
 };
 
 // Commands
@@ -36,12 +37,15 @@ enum
 {
 	ATA_CMD_READ = 0x20,
 	ATA_CMD_WRITE = 0x30,
+	ATA_CMD_IDENTIFY = 0xec,
 };
 
 void ata_pio_wait_bsy();
 void ata_pio_wait_drq();
 void ata_pio_read_sectors(void *buffer, uint lba, uchar num_sectors);
-void ata_pio_write_sectors(uint lba, uchar num_sectors, void *buffer);
+void ata_pio_write_sectors(uint lba, uchar num_sectors, ushort *buffer);
 uint ata_pio_get_error();
 
 void test_ata_pio();
+
+void init_ata_pio();

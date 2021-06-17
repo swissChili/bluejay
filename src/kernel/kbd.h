@@ -2,15 +2,24 @@
 
 #include "kint.h"
 
+/**
+ * A scan code -> keyboard char mapping
+ */
 struct kbd_scan_codes
 {
 	bool ascii;
 	int symbol;
+	/**
+	 * Uppercase version of symbol
+	 */
 	int up_symbol;
 	uchar prefix;
 	bool brk;
 };
 
+/**
+ * Non-char keyboard keys, assigned values above 7-bit ascii range (>128)
+ */
 enum kbd_keys
 {
 	FIRST_KBD_KEY = 129,
