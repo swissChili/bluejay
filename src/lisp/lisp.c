@@ -33,13 +33,14 @@ value_t cons(value_t car, value_t cdr)
 	c->car = car;
 	c->cdr = cdr;
 
-	item->alloc.type_tag = T_CONS;
+	item->alloc.type_tag = CONS_TAG;
 
 	if (last_a)
 	{
 		item->alloc.prev = last_a;
 		last_a->next = item;
 		item->alloc.next = NULL;
+		last_a = item;
 	}
 	else
 	{

@@ -35,8 +35,9 @@ unsigned int npc = 8;
 extern void _do_gc(unsigned int ebp, unsigned int esp);
 
 |.macro run_gc;
-| push esp;
+| mov eax, esp;
 | push ebp;
+| push eax;
 | mov eax, _do_gc;
 | call eax;
 |.endmacro;
@@ -296,6 +297,15 @@ void compile_expression(struct environment *env, struct local *local,
 
 			local_free(local, i);
 		}
+		else if (symstreq(fsym, "gc"))
+		{
+			if (nargs)
+			{
+				err("gc takes no arguments");
+			}
+
+			| run_gc;
+		}
 		else
 		{
 			struct function *func =
@@ -325,7 +335,10 @@ void compile_expression(struct environment *env, struct local *local,
 		struct variable *v = find_variable(local, (char *)(val ^ SYMBOL_TAG));
 
 		if (!v)
+		{
+			fprintf(stderr, "var: %s\n", (char *)(val ^ SYMBOL_TAG));
 			err("Variable unbound");
+		}
 
 		switch (v->type)
 		{
@@ -333,7 +346,7 @@ void compile_expression(struct environment *env, struct local *local,
 			| mov eax, dword [ebp + (value_size * (v->number + 2))];
 			break;
 		case V_BOUND:
-			| mov eax, dword [ebp - ((v->number + 1) * value_size)]
+			| mov eax, dword [ebp - ((v->number + 1) * value_size)];
 			break;
 		default:
 			err("Sorry, can only access V_ARGUMENT and V_BOUND variables for now :(");

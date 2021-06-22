@@ -4,18 +4,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-enum type
-{
-	T_INT = 0,
-	T_FLOAT,
-	T_NIL,
-	T_SYMBOL,
-	T_STRING,
-	T_VECTOR,
-	T_CLASS,
-	T_CONS,
-};
-
 #define INT_MASK 0b11
 #define INT_TAG 0b00
 
@@ -42,14 +30,19 @@ struct cons
 	value_t car, cdr;
 };
 
+
+// It is integral that this be 16 bytes long so that whatever follows it is
+// still aligned to 4 bits.
 struct alloc
 {
-	unsigned int type_tag;
-	struct alloc *prev, *next;
-	unsigned int marked;
+	unsigned int type_tag;     //   4
+	struct alloc *prev, *next; // + 8
+	unsigned int mark;         // + 4 = 16
 
 	// Whatever else
 };
+
+extern struct alloc *first_a, *last_a;
 
 struct cons_alloc
 {

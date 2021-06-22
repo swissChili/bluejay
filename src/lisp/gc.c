@@ -1,7 +1,9 @@
 #include "gc.h"
 #include "lisp.h"
+#include "plat/plat.h"
 
 value_t *gc_base;
+THREAD_LOCAL static unsigned int gc_mark;
 
 void __attribute__((noinline)) gc_set_base_here()
 {
@@ -11,17 +13,52 @@ void __attribute__((noinline)) gc_set_base_here()
 	asm("movl %%esp, %0" : "=g"(gc_base));
 }
 
-void _mark(value_t value)
+void _mark(value_t value, unsigned int *marked)
 {
 	if (heapp(value))
 	{
+		void *pointer = (void *)(value & ~HEAP_MASK);
+		struct alloc *alloc = pointer - sizeof(struct alloc);
 
+		fprintf(stderr, "[ GC ] Marking 0x%p\n", pointer);
+
+		// Only recursively mark if this hasn't been marked yet. i.e. prevent
+		// marking circular references twice
+		if (alloc->mark != gc_mark)
+		{
+			++*marked;
+
+			alloc->mark = gc_mark;
+
+			// printf("[ GC ] val =");
+			// printval(alloc_to_value(alloc), 2);
+
+			switch (alloc->type_tag)
+			{
+			case CONS_TAG: {
+				struct cons_alloc *cons = (struct cons_alloc *)alloc;
+				_mark(cons->cons.car, marked);
+				_mark(cons->cons.cdr, marked);
+				break;
+			}
+			}
+		}
 	}
+}
+
+value_t alloc_to_value(struct alloc *a)
+{
+	void *val = ((void *)a) + sizeof(struct alloc);
+	return (unsigned int)val | a->type_tag;
 }
 
 void _sweep()
 {
-
+	for (struct alloc *a = first_a; a; a = a->next)
+	{
+		fprintf(stderr, "[ GC ] %s %p\n", (a->mark != gc_mark) ? "Unmarked" : "Marked", a);
+		printval(alloc_to_value(a), 2);
+	}
 }
 
 void _do_gc(unsigned int esp, unsigned int ebp)
@@ -29,7 +66,11 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 	value_t *esp_p = (value_t *)esp,
 		*ebp_p = (value_t *)ebp;
 	
-	int num_marked = 0;
+	unsigned int num_marked = 0;
+
+	gc_mark++;
+
+	fprintf(stderr, "[ GC ] %d (esp 0x%p, ebp 0x%p)\n", gc_mark, esp_p, ebp_p);
 
 	// For every stack frame until the base of the stack
 	while (esp_p < gc_base)
@@ -39,8 +80,7 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 		// frame.
 		for (; esp_p < ebp_p && esp_p < gc_base; esp_p++)
 		{
-			_mark(*esp_p);
-			num_marked++;
+			_mark(*esp_p, &num_marked);
 		}
 
 		// Set the frame pointer to the frame pointer on the stack
@@ -52,4 +92,6 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 	}
 
 	fprintf(stderr, "Marked %d\n", num_marked);
+
+	_sweep();
 }

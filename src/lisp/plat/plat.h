@@ -12,3 +12,5 @@ void *realloc_aligned(void *addr, size_t size);
 void free_aligned(void *addr);
 
 void *link(dasm_State **Dst);
+
+#define THREAD_LOCAL
