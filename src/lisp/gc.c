@@ -56,8 +56,27 @@ void _sweep()
 {
 	for (struct alloc *a = first_a; a; a = a->next)
 	{
-		fprintf(stderr, "[ GC ] %s %p\n", (a->mark != gc_mark) ? "Unmarked" : "Marked", a);
-		printval(alloc_to_value(a), 2);
+		if (pool_alive(a->pool) || a->mark == gc_mark)
+		{
+			// Marked or in living pool
+		}
+		else
+		{
+			printf("Freeing:\n");
+			printval(alloc_to_value(a), 2);
+
+			// Free and remove from allocation list
+			struct alloc *p = a->prev, *n = a->next;
+			free_aligned(a);
+
+			a = n;
+
+			if (p)
+				p->next = n;
+
+			if (n)
+				n->prev = p;
+		}
 	}
 }
 
@@ -94,4 +113,14 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 	fprintf(stderr, "Marked %d\n", num_marked);
 
 	_sweep();
+}
+
+void free_all()
+{
+	for (struct alloc *a = first_a; a;)
+	{
+		struct alloc *next = a->next;
+		free_aligned(a);
+		a = next;
+	}
 }

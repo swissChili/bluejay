@@ -23,4 +23,6 @@ int main(int argc, char **argv)
 
 	gc_set_base_here();
 	lisp_main();
+
+	free_all();
 }

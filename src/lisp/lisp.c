@@ -12,6 +12,8 @@ struct alloc *first_a = NULL, *last_a = NULL;
 value_t nil = 0b00101111; // magic ;)
 value_t t = 1 << 3;
 
+unsigned char max_pool = 0, current_pool = 0;
+
 void err(const char *msg)
 {
 	fprintf(stderr, "ERROR: %s\n", msg);
@@ -34,6 +36,7 @@ value_t cons(value_t car, value_t cdr)
 	c->cdr = cdr;
 
 	item->alloc.type_tag = CONS_TAG;
+	item->alloc.pool = current_pool;
 
 	if (last_a)
 	{
@@ -56,8 +59,20 @@ value_t cons(value_t car, value_t cdr)
 
 void skipws(struct istream *is)
 {
+start:
 	while (isspace(is->peek(is)))
 		is->get(is);
+
+	if (is->peek(is) == ';')
+	{
+		while (is->get(is) != '\n')
+		{}
+
+		// Only time I ever use labels is for stuff like this. Compiler would
+		// probably optimize this if I used recursion but I don't want to
+		// bother.
+		goto start;
+	}
 }
 
 bool isallowedchar(char c)
@@ -405,4 +420,26 @@ bool symstreq(value_t sym, char *str)
 		return false;
 
 	return strcmp((char *)(sym ^ SYMBOL_TAG), str) == 0;
+}
+
+unsigned char make_pool()
+{
+	return ++max_pool;
+}
+
+unsigned char push_pool(unsigned char pool)
+{
+	unsigned char old = current_pool;
+	current_pool = pool;
+	return old;
+}
+
+void pop_pool(unsigned char pool)
+{
+	current_pool = pool;
+}
+
+bool pool_alive(unsigned char pool)
+{
+	return pool != 0;
 }

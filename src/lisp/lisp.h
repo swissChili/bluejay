@@ -30,14 +30,36 @@ struct cons
 	value_t car, cdr;
 };
 
+/// Default pool (no pool)
+#define NO_POOL 0
+
+/**
+ * The max used pool number, don't touch this.
+ */
+extern unsigned char max_pool;
+
+/**
+ * Current allocation pool, default 0 (no pool)
+ */
+extern unsigned char current_pool;
 
 // It is integral that this be 16 bytes long so that whatever follows it is
 // still aligned to 4 bits.
 struct alloc
 {
+	/**
+	 * One of the type tags, eg CONS_TAG, etc
+	 */
 	unsigned int type_tag;     //   4
 	struct alloc *prev, *next; // + 8
-	unsigned int mark;         // + 4 = 16
+	/**
+	 * Zero if this is not part of a release pool, pool number otherwise.
+	 */
+	unsigned char pool;       // + 1
+	/**
+	 * Reserved for the GC.
+	 */
+	unsigned int mark : 24;   // + 2 = 16
 
 	// Whatever else
 };
@@ -49,6 +71,27 @@ struct cons_alloc
 	struct alloc alloc;
 	struct cons cons;
 };
+
+/**
+ * Create a new allocation pool.
+ */
+unsigned char make_pool();
+
+/**
+ * Set the allocation pull
+ * @returns the old pool, you should reset this later with pop_pool.
+ */
+unsigned char push_pool(unsigned char pool);
+
+/**
+ * Set the allocation pool and throw away the old value.
+ */
+void pop_pool(unsigned char pool);
+
+/**
+ * @returns true if pool is still alive (in scope).
+ */
+bool pool_alive(unsigned char pool);
 
 bool startswith(struct istream *s, char *pattern);
 

@@ -13,11 +13,18 @@ The Bluejay Operating System
    :maxdepth: 2
    :caption: Contents:
    :glob:
+   :hidden:
 
-   *
+   build
+   architecture
+   filesystem
+   lisp-std
+   lisp-api
+   logging
+   kernel-api
 
 Bluejay is an operating system inspired by UNIX and early Lisp machines.
 Currently it only targets x86. There are no plans to port to other platforms.
 
-This documentation is incomplete, but should provide a general introduction to
-compiling and developing Bluejay.
+This documentation should provide an introduction to compiling, developing, and
+using Bluejay.

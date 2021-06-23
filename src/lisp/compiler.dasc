@@ -195,6 +195,9 @@ void walk_and_alloc(struct local *local, value_t body)
 
 struct environment compile_all(struct istream *is)
 {
+	unsigned char pool = make_pool();
+	unsigned char pop = push_pool(pool);
+
 	value_t val;
 	struct environment env;
 	env.first = NULL;
@@ -204,6 +207,8 @@ struct environment compile_all(struct istream *is)
 	{
 		compile_tl(val, &env);
 	}
+
+	pop_pool(pop);
 
 	return env;
 }
