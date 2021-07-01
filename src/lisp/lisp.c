@@ -248,6 +248,8 @@ bool readlist(struct istream *is, value_t *val)
 
 bool readint(struct istream *is, value_t *val)
 {
+	skipws(is);
+
 	int number = 0;
 
 	if (!isdigit(is->peek(is)))
@@ -263,8 +265,70 @@ bool readint(struct istream *is, value_t *val)
 	return true;
 }
 
+bool readquote(struct istream *is, value_t *val)
+{
+	skipws(is);
+
+	char c = is->peek(is);
+
+	if (c == '\'' || c == '`' || c == ',')
+	{
+		is->get(is);
+
+		if (c == '`' && is->peek(is) == '@')
+		{
+			// This is actually a splice
+			is->get(is);
+			c = '@';
+		}
+
+		// Read the next form and wrap it in the appropriate function
+
+		value_t wrapped;
+		bool has_next = read1(is, &wrapped);
+
+		if (!has_next)
+		{
+			fprintf(stderr, "Expected a form after reader macro char %c\n", c);
+			is->showpos(is, stderr);
+			err("Invalid reader macro");
+			return false;
+		}
+
+		value_t symbol = nil;
+
+		switch (c)
+		{
+		case '\'':
+			symbol = symval("quote");
+			break;
+		case '`':
+			symbol = symval("backquote");
+			break;
+		case ',':
+			symbol = symval("unquote");
+			break;
+		case '@':
+			symbol = symval("splice");
+			break;
+		}
+
+		*val = cons(symbol, cons(wrapped, nil));
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool read1(struct istream *is, value_t *val)
 {
+	// This could all be one big short-circuiting || but that is ugly.
+	if (readquote(is, val))
+		return true;
+
 	if (readsym(is, val))
 		return true;
 
@@ -312,8 +376,21 @@ value_t strval(char *str)
 	value_t v;
 
 	char *a = malloc_aligned(strlen(str) + 1);
+	strcpy(a, str);
 	v = (value_t)a;
 	v |= STRING_TAG;
+
+	return v;
+}
+
+value_t symval(char *str)
+{
+	value_t v;
+
+	char *a = malloc_aligned(strlen(str) + 1);
+	strcpy(a, str);
+	v = (value_t)a;
+	v |= SYMBOL_TAG;
 
 	return v;
 }

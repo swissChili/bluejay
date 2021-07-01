@@ -100,8 +100,15 @@ bool readstr(struct istream *is, value_t *val);
 bool readlist(struct istream *is, value_t *val);
 bool readint(struct istream *is, value_t *val);
 
+/**
+ * Read a quoted form, including `'` (quote) `\`` (backquote) and `,` (unquote)
+ * @returns true if read successfully, and sets `val`.
+ */
+bool readquote(struct istream *is, value_t *val);
+
 value_t intval(int i);
 value_t strval(char *str);
+value_t symval(char *str);
 value_t cons(value_t car, value_t cdr);
 bool read1(struct istream *is, value_t *val);
 value_t read(struct istream *is);

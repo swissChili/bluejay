@@ -17,3 +17,5 @@
   (let1 (unused-but-bound (cons 5 6))
     (let1 (val (cons 1 (cons 2 (cons 3 nil))))
       (calls-gc val))))
+
+'(hello)
