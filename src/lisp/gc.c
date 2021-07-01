@@ -54,11 +54,12 @@ value_t alloc_to_value(struct alloc *a)
 
 void _sweep()
 {
-	for (struct alloc *a = first_a; a; a = a->next)
+	for (struct alloc *a = first_a; a;)
 	{
 		if (pool_alive(a->pool) || a->mark == gc_mark)
 		{
 			// Marked or in living pool
+			a = a->next;
 		}
 		else
 		{
