@@ -35,9 +35,12 @@ enum
 // Commands
 enum
 {
-	ATA_CMD_READ = 0x20,
-	ATA_CMD_WRITE = 0x30,
+	/// Do not retry
+	ATA_CMD_READ = 0x21,
+	/// Do not retry
+	ATA_CMD_WRITE = 0x31,
 	ATA_CMD_IDENTIFY = 0xec,
+	ATA_CMD_FLUSH_CACHE = 0xe7,
 };
 
 void ata_pio_wait_bsy();
