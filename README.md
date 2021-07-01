@@ -1,8 +1,8 @@
 # Bluejay
 
-[![builds.sr.ht status](https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml.svg)](https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml?)
-
 <img src="share/branding/bluejay-unsplash.jpg" align="right" width="200">
+
+[![builds.sr.ht status](https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml.svg)](https://builds.sr.ht/~swisschili/bluejay/commits/.build.yml?)
 
 Bluejay is a preemptive kernel for x86. It is inspired by modern day
 UNIX-like systems and 80's Lisp machines. The goal is to create a
@@ -24,19 +24,19 @@ thing and doing it well is certainly a consideration.
   - [x] Efficient kernel virtual allocator
 - [ ] Preemptive multitasking
   - [x] Multi-threading
-  - [ ] Multi-process support
+  - [ ] Multi-process support (waiting on FS)
 - [ ] Device drivers
   - [x] PCI
   - [ ] USB
     - [ ] Mouse + keyboard drivers
+  - [ ] Storage device drivers
+    - [x] ATA PIO (broken)
+    - [ ] SATA
 - [ ] Filesystem
   - [x] Virtual file system
   - [x] Initial ramdisk
-  - [ ] Storage device drivers
-    - [x] ATA PIO
-    - [ ] SATA
   - [ ] Filesystem drivers
-    - [ ] EXT2
+    - [ ] EXT2 (in progress)
     - [ ] FAT32
 - [ ] System call API
   - [ ] Filesystem API
@@ -45,9 +45,9 @@ thing and doing it well is certainly a consideration.
 - [ ] Lisp compiler
   - [ ] JIT compiler using dynasm
     - [x] Basic compilation
+    - [x] GC
     - [ ] Lexical closures
-    - [ ] GC
-  - [ ] Standard library
+  - [ ] Standard library (in progress)
 - [ ] Lisp integrated into kernel
 - [ ] User-space driver API
   - [ ] Lisp API
@@ -62,5 +62,5 @@ thing and doing it well is certainly a consideration.
 
 ## Documentation
 
-Manual pages are available in `doc/`, and additional documentation is
-available [on the wiki](https://wiki.swisschili.sh/Bluejay).
+The [Bluejay manual](https://bluejay.readthedocs.io) contains up to date
+documentation.
