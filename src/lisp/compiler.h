@@ -56,8 +56,16 @@ struct local
 
 void compile_expression(struct environment *env, struct local *local,
                         value_t val, dasm_State **Dst);
+
+/**
+ * Compile a backquoted expression
+ */
+void compile_backquote(struct environment *env, struct local *local,
+                       value_t val, dasm_State **Dst);
+
 void compile_expr_to_func(struct environment *env, char *name, value_t val,
                           dasm_State **Dst);
+
 int nextpc(struct local *local, dasm_State **Dst);
 
 // Local utilities

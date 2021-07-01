@@ -309,7 +309,7 @@ bool readquote(struct istream *is, value_t *val)
 			symbol = symval("unquote");
 			break;
 		case '@':
-			symbol = symval("splice");
+			symbol = symval("unquote-splice");
 			break;
 		}
 

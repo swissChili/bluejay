@@ -224,6 +224,23 @@ int nextpc(struct local *local, dasm_State **Dst)
 	return n;
 }
 
+void compile_backquote(struct environment *env, struct local *local,
+                       value_t val, dasm_State **Dst)
+{
+	if (!listp(val))
+	{
+		| mov eax, (val);
+	}
+	else
+	{
+		value_t fsym = car(val),
+			args = cdr(val);
+		int nargs = length(args);
+
+		// TODO
+	}
+}
+
 void compile_expression(struct environment *env, struct local *local,
                         value_t val, dasm_State **Dst)
 {
@@ -310,6 +327,42 @@ void compile_expression(struct environment *env, struct local *local,
 			}
 
 			| run_gc;
+		}
+		else if (symstreq(fsym, "quote"))
+		{
+			if (nargs != 1)
+				err("quote should take exactly 1 argument");
+
+			// Simple!
+			| mov eax, (car(args));
+		}
+		else if (symstreq(fsym, "backquote"))
+		{
+			if (nargs != 1)
+				err("backquote should take exactly 1 argument");
+
+			compile_backquote(env, local, car(args), Dst);
+		}
+		else if (symstreq(fsym, "list"))
+		{
+			| push (nil);
+
+			for (int i = nargs - 1; i >= 0; i--)
+			{
+				compile_expression(env, local, elt(args, i), Dst);
+
+				// push the ith item
+				| push eax;
+				// cons the top two stack items
+				| mov ebx, (cons);
+				| call ebx;
+				// remove the stack items from use
+				| add esp, (2 * value_size);
+				// put the new thing on the stack
+				| push eax;
+			}
+
+			| pop eax;
 		}
 		else
 		{

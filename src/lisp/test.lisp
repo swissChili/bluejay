@@ -11,11 +11,10 @@
     (print a))
 
   ; These allocations should be freed
-  (cons 12 (cons 34 (cons 45 nil)))
+  (list 12 34 56)
+  (list "a" "b" "c" "d")
   
   ; But these should not
   (let1 (unused-but-bound (cons 5 6))
-    (let1 (val (cons 1 (cons 2 (cons 3 nil))))
+    (let1 (val '(a b c d e))
       (calls-gc val))))
-
-'(hello)

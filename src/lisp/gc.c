@@ -20,8 +20,6 @@ void _mark(value_t value, unsigned int *marked)
 		void *pointer = (void *)(value & ~HEAP_MASK);
 		struct alloc *alloc = pointer - sizeof(struct alloc);
 
-		fprintf(stderr, "[ GC ] Marking 0x%p\n", pointer);
-
 		// Only recursively mark if this hasn't been marked yet. i.e. prevent
 		// marking circular references twice
 		if (alloc->mark != gc_mark)
@@ -63,9 +61,6 @@ void _sweep()
 		}
 		else
 		{
-			printf("Freeing:\n");
-			printval(alloc_to_value(a), 2);
-
 			// Free and remove from allocation list
 			struct alloc *p = a->prev, *n = a->next;
 			free_aligned(a);
@@ -90,8 +85,6 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 
 	gc_mark++;
 
-	fprintf(stderr, "[ GC ] %d (esp 0x%p, ebp 0x%p)\n", gc_mark, esp_p, ebp_p);
-
 	// For every stack frame until the base of the stack
 	while (esp_p < gc_base)
 	{
@@ -110,8 +103,6 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 		// return address.
 		esp_p += 2;
 	}
-
-	fprintf(stderr, "Marked %d\n", num_marked);
 
 	_sweep();
 }
