@@ -8,8 +8,8 @@ change the API in any way.
 In general every user-facing API in the standard library should be documented
 here.
 
-Built-in "functions"
---------------------
+Functions
+---------
 
 .. function:: (if condition true-condition [false-condition])
 
@@ -33,9 +33,6 @@ Built-in "functions"
 
 	Force the garbage collector (GC) to run.
 
-Functions
----------
-
 .. function:: (car pair)
 
 	Return the first item in ``pair``.
@@ -52,3 +49,20 @@ Functions
 
 	Print out ``val`` to standard output. This will not be formatted as an
 	s-expression, but in a manner more similar to the internal representation.
+
+.. function:: (list & items)
+
+    Returns a cons-list of items.
+
+.. function:: (quote form)
+
+    Returns form without evaluating it.
+
+    .. code-block:: lisp
+    '(cons a b)
+     
+        '(cons a b)
+        ; or
+        (quote cons a b)
+        ; is the same as
+        (list 'cons 'a 'b)
