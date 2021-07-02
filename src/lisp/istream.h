@@ -5,17 +5,22 @@
 
 #define MIN(a, b) (a) > (b) ? (b) : (a)
 
+/// Virtual class representing an input stream. Subclasses must implement every
+/// function.
 struct istream
 {
 	void *data;
 
-	// These two return -1 on error
+	/// Returns -1 on error
 	int (*peek)(struct istream *s);
+	/// Returns -1 on error
 	int (*get)(struct istream *s);
 
 	int (*read)(struct istream *s, char *buffer, int size);
 
 	void (*showpos)(struct istream *s, FILE *out);
+
+	void (*getpos)(struct istream *s, int *line, char **name);
 };
 
 struct istream *new_stristream(char *str, int length);

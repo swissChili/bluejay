@@ -81,6 +81,14 @@ void stristream_showpos(struct istream *s, FILE *out)
 	fprintf(out, "\033[31m^\033[0m\n");
 }
 
+void stristream_getpos(struct istream *is, int *line, char **name)
+{
+	struct stristream_private *p = is->data;
+
+	*name = "<input literal>";
+	*line = p->line;
+}
+
 struct istream *new_stristream(char *str, int length)
 {
 	struct istream *is = malloc(sizeof(struct istream));
@@ -98,6 +106,7 @@ struct istream *new_stristream(char *str, int length)
 	is->peek = stristream_peek;
 	is->read = stristream_read;
 	is->showpos = stristream_showpos;
+	is->getpos = stristream_getpos;
 
 	return is;
 }
@@ -120,6 +129,7 @@ struct fistream_private
 	FILE *file;
 	int next;
 	bool has_next;
+	int line;
 };
 
 int fistream_peek(struct istream *is)
@@ -138,13 +148,20 @@ int fistream_get(struct istream *is)
 {
 	struct fistream_private *p = is->data;
 
+	char c;
+
 	if (p->has_next)
 	{
 		p->has_next = false;
-		return p->next;
+		c = p->next;
 	}
+	else
+		c = fgetc(p->file);
 
-	return fgetc(p->file);
+	if (c == '\n')
+		p->line++;
+	
+	return c;
 }
 
 int fistream_read(struct istream *is, char *buffer, int size)
@@ -170,6 +187,14 @@ void fistream_showpos(struct istream *s, FILE *out)
 	// TODO: implement
 }
 
+void fistream_getpos(struct istream *is, int *line, char **name)
+{
+	struct fistream_private *p = is->data;
+
+	*line = p->line;
+	*name = "<FILE *>";
+}
+
 struct istream *new_fistream(char *path, bool binary)
 {
 	struct istream *is = malloc(sizeof(struct istream));
@@ -187,12 +212,14 @@ struct istream *new_fistream(char *path, bool binary)
 
 	p->has_next = false;
 	p->file = fp;
+	p->line = 1;
 
 	is->data = p;
 	is->get = fistream_get;
 	is->peek = fistream_peek;
 	is->read = fistream_read;
 	is->showpos = fistream_showpos;
+	is->getpos = fistream_getpos;
 
 	return is;
 }
