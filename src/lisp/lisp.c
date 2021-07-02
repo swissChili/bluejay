@@ -34,6 +34,8 @@ value_t cons(value_t car, value_t cdr)
 
 	c->car = car;
 	c->cdr = cdr;
+	c->line = 0;
+	c->name = NULL;
 
 	item->alloc.type_tag = CONS_TAG;
 	item->alloc.pool = current_pool;
@@ -344,6 +346,17 @@ bool read1(struct istream *is, value_t *val)
 	return false;
 }
 
+void set_cons_info(value_t cons, int line, char *name)
+{
+	if (!consp(cons))
+		return;
+
+	struct cons *ca = (void *)(cons ^ CONS_TAG);
+
+	ca->line = line;
+	ca->name = name;
+}
+
 value_t readn(struct istream *is)
 {
 	value_t first = nil;
@@ -353,7 +366,13 @@ value_t readn(struct istream *is)
 
 	while (read1(is, &read_val))
 	{
+		int line;
+		char *file;
+
+		is->getpos(is, &line, &file);
 		*last = cons(read_val, nil);
+		set_cons_info(*last, line, file);
+
 		last = cdrref(*last);
 	}
 

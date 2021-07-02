@@ -23,11 +23,20 @@
 
 struct cons;
 
+/// Represents a Lisp value
 typedef unsigned int value_t;
 
 struct cons
 {
 	value_t car, cdr;
+	
+	/// Line of the input file from where this was parsed, 0 if it was created
+	/// in Lisp.
+	int line;
+
+	/// Description of where the cons was parsed from, or NULL if generated in
+	/// code.
+	char *name;
 };
 
 /// Default pool (no pool)

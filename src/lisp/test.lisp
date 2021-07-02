@@ -5,10 +5,17 @@
   (print whatever)
   (gc))
 
+(defmacro weird-identity (a)
+  a)
+
+(defmacro weird-const (a b)
+  a)
+
 (defun main ()
   (let1 (a (add-two 3))
     (print "a is")
-    (print a))
+    (print (weird-identity a))
+    (print (weird-const a 4)))
 
   ; These allocations should be freed
   (list 12 34 56)

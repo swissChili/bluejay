@@ -39,7 +39,7 @@ value_t l_printval(value_t val)
 	return nil;
 }
 
-void add_function(struct environment *env, char *name, void *func, int nargs)
+void add_function(struct environment *env, char *name, void *func, int nargs, enum namespace ns)
 {
 	struct function *last, *new = malloc(sizeof(struct function));
 
@@ -48,20 +48,21 @@ void add_function(struct environment *env, char *name, void *func, int nargs)
 	new->name = name;
 	new->nargs = nargs;
 	new->code_ptr = func;
+	new->namespace = ns;
 
 	env->first = new;
 }
 
 void load_std(struct environment *env)
 {
-	add_function(env, "+", l_plus, 2);
-	add_function(env, "-", l_minus, 2);
-	add_function(env, "*", l_times, 2);
-	add_function(env, "/", l_divide, 2);
+	add_function(env, "+", l_plus, 2, NS_FUNCTION);
+	add_function(env, "-", l_minus, 2, NS_FUNCTION);
+	add_function(env, "*", l_times, 2, NS_FUNCTION);
+	add_function(env, "/", l_divide, 2, NS_FUNCTION);
 
-	add_function(env, "car", car, 1);
-	add_function(env, "cdr", cdr, 1);
-	add_function(env, "cons", cons, 2);
+	add_function(env, "car", car, 1, NS_FUNCTION);
+	add_function(env, "cdr", cdr, 1, NS_FUNCTION);
+	add_function(env, "cons", cons, 2, NS_FUNCTION);
 
-	add_function(env, "print", l_printval, 1);
+	add_function(env, "print", l_printval, 1, NS_FUNCTION);
 }

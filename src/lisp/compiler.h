@@ -5,12 +5,20 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+enum namespace
+{
+	NS_FUNCTION,
+	NS_MACRO,
+};
+
 struct function
 {
 	char *name;
 	int nargs; // number of arguments
+	enum namespace namespace;
 
-	union {
+	union
+	{
 		value_t (*def0)();
 		value_t (*def1)(value_t);
 		value_t (*def2)(value_t, value_t);
@@ -82,3 +90,8 @@ struct variable *add_variable(struct local *local, enum var_type type,
 // Might return null
 struct variable *find_variable(struct local *local, char *name);
 void destroy_local(struct local *local);
+
+/**
+ * Like `apply` in lisp, calls func with list args and returns the result.
+ */
+value_t call_list(struct function *func, value_t list);

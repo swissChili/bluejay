@@ -99,7 +99,7 @@ dnl final declarations
 
 define(finish,
 `clean: $(jmk_clean_libs)
-	@rm -f *.o *.a *.so $(jmk_target)
+	@rm -f **/*.o **/*.a *.so $(jmk_target) $(OBJECTS)
 
 Makefile: Jmk
 status_log(JMK, jmk_build_dir)
