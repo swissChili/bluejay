@@ -18,7 +18,7 @@ void *realloc_aligned(void *addr, size_t size)
 	void **aligned_ptr = (void **)((uintptr_t)(mem + 8 + sizeof(void *)) & ~7);
 	aligned_ptr[-1] = mem;
 
-	memcpy(aligned_ptr, addr, (uintptr_t)aligned_ptr[-2]);
+	memcpy(aligned_ptr, addr, ((uintptr_t *)addr)[-2]);
 
 	return aligned_ptr;
 }
