@@ -30,3 +30,6 @@ exclude_patterns = ['_build', '_dox_kernel', '_dox_lisp', 'Thumbs.db', '.DS_Stor
 html_theme = 'sphinx_rtd_theme'
 
 html_static_path = ['_static']
+
+def setup(app):
+	app.add_stylesheet('custom.css')

@@ -8,6 +8,57 @@ change the API in any way.
 In general every user-facing API in the standard library should be documented
 here.
 
+- ``(x ...)`` represents a list ``x``.
+- ``& body`` means that the rest of the list is represented by ``body``.
+- ``[something]`` means that ``something`` is optional.
+
+Top-level primitives
+--------------------
+
+These are "functions" that can only appear at the top-level of the program. This
+means they can't be nested in any other expressions.
+
+.. function:: (defun function-name (args ...) & body)
+
+    Defines a function ``function-name`` that takes ``args`` and evaluates
+    ``body``. ``function-name`` is quoted, not evaluated.
+
+    .. code-block:: lisp
+
+        (defun say-hi (name)
+          (print "Hi, ")
+          (print name))
+
+        (say-hi "Joe")
+        ; "Hi,"
+        ; "Joe"
+
+.. function:: (defmacro macro-name (args ...) & body)
+
+    ``defmacro`` is to macros as ``defun`` is to functions. When ``macro-name``
+    is called, whatever it evaluates to will be compiled.
+
+    Note that internally this compiles a function the same way all other
+    functions are compiled, meaning you can call **any** lisp function from a
+    macro definition and it will work as expected.
+
+    .. code-block:: Lisp
+
+        (defun double (n)
+          (+ n n))
+        
+        (defmacro call-with-4 (whatever)
+          (print "this was run at **compile time**")
+          (print whatever)
+          ;; ``whatever`` expands to the form passed to this macro, in this case
+          ;; ``double``.
+          (list whatever 4))
+
+        (print (call-with-4 double))
+        ; "this was run at **compile time**"
+        ; 'double
+        ; 8
+
 Functions
 ---------
 
@@ -37,9 +88,17 @@ Functions
 
 	Return the first item in ``pair``.
 
+    .. code-block:: lisp
+
+        (car (cons 'a 'b)) ;=> 'a
+
 .. function:: (cdr pair)
 
 	Return the second (last) item in ``pair``.
+
+    .. code-block:: lisp
+
+        (cdr (cons 'a 'b)) ;=> 'b
 
 .. function:: (cons a b)
 
@@ -54,12 +113,17 @@ Functions
 
     Returns a cons-list of items.
 
+    .. code-block:: lisp
+
+        (list 1 2 3)
+        ; is the same as
+        (cons 1 (cons 2 (cons 3 nil)))
+
 .. function:: (quote form)
 
     Returns form without evaluating it.
 
     .. code-block:: lisp
-    '(cons a b)
      
         '(cons a b)
         ; or
