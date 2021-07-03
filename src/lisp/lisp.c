@@ -27,6 +27,25 @@ value_t intval(int i)
 	return i;
 }
 
+void add_this_alloc(struct alloc *a, int tag)
+{
+	a->type_tag = tag;
+	a->pool = current_pool;
+
+	if (last_a)
+	{
+		a->prev = last_a;
+		last_a->next = a;
+		a->next = NULL;
+		last_a = a;
+	}
+	else
+	{
+		a->prev = a->next = NULL;
+		first_a = last_a = a;
+	}
+}
+
 value_t cons(value_t car, value_t cdr)
 {
 	struct cons_alloc *item = malloc_aligned(sizeof(struct cons_alloc));
@@ -37,24 +56,10 @@ value_t cons(value_t car, value_t cdr)
 	c->line = 0;
 	c->name = NULL;
 
-	item->alloc.type_tag = CONS_TAG;
-	item->alloc.pool = current_pool;
-
-	if (last_a)
-	{
-		item->alloc.prev = last_a;
-		last_a->next = item;
-		item->alloc.next = NULL;
-		last_a = item;
-	}
-	else
-	{
-		item->alloc.prev = item->alloc.next = NULL;
-		first_a = last_a = item;
-	}
-
 	value_t v = (value_t)c;
 	v |= CONS_TAG;
+
+	add_this_alloc(&item->alloc, CONS_TAG);
 
 	return v;
 }
@@ -101,7 +106,10 @@ bool readsym(struct istream *is, value_t *val)
 		return false;
 
 	int size = 8;
-	char *s = malloc_aligned(size);
+	struct alloc *a = malloc_aligned(size + sizeof(struct alloc));
+	add_this_alloc(a, SYMBOL_TAG);
+
+	char *s = (char *)(a + 1);
 
 	s[0] = is->get(is);
 
@@ -112,7 +120,8 @@ bool readsym(struct istream *is, value_t *val)
 			if (i >= size)
 			{
 				size *= 2;
-				s = realloc_aligned(s, size);
+				a = realloc_aligned(a, size + sizeof(struct alloc));
+				s = (char *)(a + 1);
 			}
 
 			s[i] = is->get(is);
@@ -137,7 +146,11 @@ bool readstr(struct istream *is, value_t *val)
 
 	bool escape = false;
 	int size = 8;
-	char *s = malloc_aligned(size);
+
+	struct alloc *a = malloc_aligned(size + sizeof(struct alloc));
+	add_this_alloc(a, STRING_TAG);
+
+	char *s = (char *)(a + 1);
 
 	(void)is->get(is);
 
@@ -148,7 +161,8 @@ bool readstr(struct istream *is, value_t *val)
 			if (i >= size)
 			{
 				size *= 2;
-				s = realloc_aligned(s, size);
+				a = realloc_aligned(a, size + sizeof(struct alloc));
+				s = (char *)(a + 1);
 			}
 
 			char c = is->get(is);
@@ -390,28 +404,30 @@ bool startswith(struct istream *s, char *pattern)
 	return res;
 }
 
-value_t strval(char *str)
+static value_t strptrval(char *str, int tag)
 {
 	value_t v;
 
-	char *a = malloc_aligned(strlen(str) + 1);
+	struct alloc *al = malloc_aligned(strlen(str) + 1 + sizeof(struct alloc));
+	add_this_alloc(al, SYMBOL_TAG);
+
+	char *a = (char *)(al + 1);
+
 	strcpy(a, str);
 	v = (value_t)a;
-	v |= STRING_TAG;
+	v |= tag;
 
 	return v;
 }
 
+value_t strval(char *str)
+{
+	return strptrval(str, STRING_TAG);
+}
+
 value_t symval(char *str)
 {
-	value_t v;
-
-	char *a = malloc_aligned(strlen(str) + 1);
-	strcpy(a, str);
-	v = (value_t)a;
-	v |= SYMBOL_TAG;
-
-	return v;
+	return strptrval(str, SYMBOL_TAG);
 }
 
 bool integerp(value_t v)
@@ -538,4 +554,24 @@ void pop_pool(unsigned char pool)
 bool pool_alive(unsigned char pool)
 {
 	return pool != 0;
+}
+
+int cons_line(value_t val)
+{
+	if (!consp(val))
+		return 0;
+
+	struct cons *c = (void *)(val ^ CONS_TAG);
+
+	return c->line;
+}
+
+char *cons_file(value_t val)
+{
+	if (!consp(val))
+		return NULL;
+
+	struct cons *c = (void *)(val ^ CONS_TAG);
+
+	return c->name;
 }

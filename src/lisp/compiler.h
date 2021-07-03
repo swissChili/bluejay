@@ -51,10 +51,14 @@ struct variable
 	struct variable *prev;
 };
 
-// local environment
+/// Local environment
 struct local
 {
+	/// Parent environment, NULL if none (root).
+	struct local *parent;
+
 	int num_vars;
+	/// Most recently defined variable
 	struct variable *first;
 	int npc;
 	int nextpc;
@@ -80,6 +84,9 @@ int nextpc(struct local *local, dasm_State **Dst);
 unsigned int local_alloc(struct local *local);
 void local_free(struct local *local, unsigned int slot);
 
+/**
+ * Walk `body` and reserve space in `local` for any variable declarations.
+ */
 void walk_and_alloc(struct local *local, value_t body);
 // Compile top-level declaration
 void compile_tl(value_t val, struct environment *env);

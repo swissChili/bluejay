@@ -39,6 +39,15 @@ struct cons
 	char *name;
 };
 
+struct closure
+{
+	int num_args;
+	void *function;
+
+	/// This will be passed in edi.
+	value_t data[];
+};
+
 /// Default pool (no pool)
 #define NO_POOL 0
 
@@ -79,6 +88,12 @@ struct cons_alloc
 {
 	struct alloc alloc;
 	struct cons cons;
+};
+
+struct closure_alloc
+{
+	struct alloc alloc;
+	struct closure closure;
 };
 
 /**
@@ -127,6 +142,9 @@ value_t car(value_t v);
 value_t cdr(value_t v);
 value_t *carref(value_t v);
 value_t *cdrref(value_t v);
+
+int cons_line(value_t val);
+char *cons_file(value_t val);
 
 bool integerp(value_t v);
 bool symbolp(value_t v);

@@ -87,6 +87,84 @@ void local_free(struct local *local, unsigned int slot)
 	local->stack_slots[slot] = false;
 }
 
+struct dasm_State *compile_function(value_t args, enum namespace namespace,
+                                    struct environment *env,
+									struct local *local_out, int *nargs)
+{
+	dasm_State *d;
+	dasm_State **Dst = &d;
+
+	|.section code;
+	dasm_init(&d, DASM_MAXSECTION);
+
+	|.globals lbl_;
+	void *labels[lbl__MAX];
+	dasm_setupglobal(&d, labels, lbl__MAX);
+
+	|.actionlist lisp_actions;
+	dasm_setup(&d, lisp_actions);
+
+	struct local local;
+	local.parent = NULL;
+	local.first = NULL;
+	local.num_vars = 0;
+	local.npc = 8;
+	local.nextpc = 0;
+	local.stack_slots = malloc(sizeof(bool) * 4);
+	memset(local.stack_slots, 0, sizeof(bool) * 4);
+	local.num_stack_slots = 4;
+	local.num_stack_entries = 0;
+
+	dasm_growpc(&d, local.npc);
+
+	// Generate code
+	// TODO: first pass, extract bound and free variables
+
+	value_t name = car(args);
+	args = cdr(args);
+	value_t arglist = car(args);
+	value_t body = cdr(args);
+
+	if ((name & HEAP_MASK) != SYMBOL_TAG)
+		err("function name must be a symbol");
+
+	value_t a = arglist;
+	for (int i = 0; !nilp(a); a = cdr(a), i++)
+	{
+		if (!symbolp(car(a)))
+		{
+			err("defun argument must be a symbol");
+		}
+
+		add_variable(&local, V_ARGUMENT, (char *)(car(a) ^ SYMBOL_TAG), i);
+	}
+
+	for (value_t body_ = body; !nilp(body_); body_ = cdr(body_))
+	{
+		walk_and_alloc(&local, car(body_));
+	}
+
+	| setup (local.num_stack_entries);
+
+	memset(local.stack_slots, 0, local.num_stack_slots * sizeof(bool));
+	local.num_stack_entries = 0;
+
+	for (; !nilp(body); body = cdr(body))
+	{
+		compile_expression(env, &local, car(body), Dst);
+	}
+
+	| cleanup;
+
+	if (local_out)
+		*local_out = local;
+
+	if (nargs)
+		*nargs = length(arglist);
+
+	return d;
+}
+
 void compile_tl(value_t val, struct environment *env)
 {
 	if (!listp(val))
@@ -95,6 +173,8 @@ void compile_tl(value_t val, struct environment *env)
 	value_t form = car(val);
 	value_t args = cdr(val);
 
+	printf("Compiling function %s in %s\n", (char *)(car(args) ^ SYMBOL_TAG), (char *)(form ^ SYMBOL_TAG));
+
 	if (symstreq(form, "defun") || symstreq(form, "defmacro"))
 	{
 		enum namespace namespace = NS_FUNCTION;
@@ -102,72 +182,13 @@ void compile_tl(value_t val, struct environment *env)
 		if (symstreq(form, "defmacro"))
 			namespace = NS_MACRO;
 
-		dasm_State *d;
-		dasm_State **Dst = &d;
-
-		|.section code;
-		dasm_init(&d, DASM_MAXSECTION);
-
-		|.globals lbl_;
-		void *labels[lbl__MAX];
-		dasm_setupglobal(&d, labels, lbl__MAX);
-
-		|.actionlist lisp_actions;
-		dasm_setup(&d, lisp_actions);
 
 		struct local local;
-		local.first = NULL;
-		local.num_vars = 0;
-		local.npc = 8;
-		local.nextpc = 0;
-		local.stack_slots = malloc(sizeof(bool) * 4);
-		memset(local.stack_slots, 0, sizeof(bool) * 4);
-		local.num_stack_slots = 4;
-		local.num_stack_entries = 0;
+		int nargs;
+		dasm_State *d = compile_function(args, namespace, env, &local, &nargs);
 
-		dasm_growpc(&d, local.npc);
-
-		// Generate code
-		// TODO: first pass, extract bound and free variables
-
-		value_t name = car(args);
-		args = cdr(args);
-		value_t arglist = car(args);
-		value_t body = cdr(args);
-
-		if ((name & HEAP_MASK) != SYMBOL_TAG)
-			err("function name must be a symbol");
-
-		value_t a = arglist;
-		for (int i = 0; !nilp(a); a = cdr(a), i++)
-		{
-			if (!symbolp(car(a)))
-			{
-				err("defun argument must be a symbol");
-			}
-
-			add_variable(&local, V_ARGUMENT, (char *)(car(a) ^ SYMBOL_TAG), i);
-		}
-
-		for (value_t body_ = body; !nilp(body_); body_ = cdr(body_))
-		{
-			walk_and_alloc(&local, car(body_));
-		}
-
-		| setup (local.num_stack_entries);
-
-		memset(local.stack_slots, 0, local.num_stack_slots * sizeof(bool));
-		local.num_stack_entries = 0;
-
-		for (; !nilp(body); body = cdr(body))
-		{
-			compile_expression(env, &local, car(body), Dst);
-		}
-
-		| cleanup;
-
-		add_function(env, (char *)(name ^ SYMBOL_TAG), link(Dst),
-		             length(arglist), namespace);
+		add_function(env, (char *)(car(args) ^ SYMBOL_TAG), link(&d),
+		             nargs, namespace);
 
 		dasm_free(&d);
 		free(local.stack_slots);
@@ -186,8 +207,18 @@ void walk_and_alloc(struct local *local, value_t body)
 		int slot = local_alloc(local);
 
 		value_t expr = cdr(args);
+		for (; !nilp(expr); expr = cdr(expr))
+		{
+			walk_and_alloc(local, expr);
+		}
 
 		local_free(local, slot);
+	}
+	else if (symstreq(car(body), "lambda"))
+	{
+		// We don't want to walk the lambda because it's another function. When
+		// the lambda is compiled it will be walked.
+		return;
 	}
 	else
 	{
@@ -210,6 +241,7 @@ struct environment compile_all(struct istream *is)
 
 	while (read1(is, &val))
 	{
+		printval(val, 0);
 		compile_tl(val, &env);
 	}
 
@@ -378,7 +410,10 @@ void compile_expression(struct environment *env, struct local *local,
 				err("Function undefined");
 
 			if (nargs != func->nargs)
+			{
+				fprintf(stderr, "Function: %s at %s:%d\n", func->name, cons_file(val), cons_line(val));
 				err("wrong number of args");
+			}
 
 			if (func->namespace == NS_FUNCTION)
 			{
