@@ -4,14 +4,17 @@ init(lisp, lisp)
 
 option(PLAT, "`platform to build for: either linux or bluejay'", linux)
 
-preset(optimize)
+# preset(optimize)
 preset(32)
 preset(debug)
 preset(warn)
+preset(nasm)
 
-archetype(c, asm)
+archetype(c)
+archetype(asm)
 
 CFLAGS += -Ivendor/luajit/dynasm
+ASMFLAGS += -felf -Fdwarf
 
 OBJECTS = main.o \
 			lisp.o \
@@ -19,7 +22,8 @@ OBJECTS = main.o \
 			lib/std.o \
 			plat/linux.o \
 			istream.o \
-			gc.o
+			gc.o \
+			call_list.o
 
 LUA = vendor/luajit/src/host/minilua
 
@@ -33,9 +37,11 @@ compiler.c: compiler.dasc | $(LUA)
 
 type(executable)
 
+F ?= test.lisp
+
 run: lisp
-	status_log(LISP, test.lisp)
-	@./lisp ./test.lisp
+	status_log(LISP, $(F))
+	@./lisp $(F)
 
 format:
 	status_log(FORMAT, *)

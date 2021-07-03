@@ -39,17 +39,27 @@ static void ata_pio_send_init(uint lba, uchar num_sectors)
 
 void ata_pio_read_sectors(void *buffer, uint lba, uchar num_sectors)
 {
-	ata_pio_wait_bsy();
+	ushort *word_buffer = buffer;
 
+	ata_pio_wait_bsy();
 	ata_pio_send_init(lba, num_sectors);
 	outb(ATA_PORT_CMD, ATA_CMD_READ);
 
 	ata_pio_wait_bsy();
+	
+	if (inb(ATA_PORT_CMD) & ATA_ERR)
+	{
+		kprintf(ERROR "ATA_ERR on read\n");
+		kpanic("Failed to read");
+	}
 
-	asm volatile("rep insw" ::"c"(num_sectors * 256), "d"(ATA_PORT_DATA),
-				 "D"(buffer));
+	for (int i = 0; i < num_sectors * 256; i++)
+	{
+		word_buffer[i] = inw(ATA_PORT_DATA);
+	}
 
 	ata_pio_wait_bsy();
+	outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
 }
 
 void ata_pio_write_sectors(uint lba, uchar num_sectors, ushort *buffer)
@@ -65,6 +75,9 @@ void ata_pio_write_sectors(uint lba, uchar num_sectors, ushort *buffer)
 	{
 		outw(ATA_PORT_DATA, buffer[i]);
 	}
+
+	ata_pio_wait_bsy();
+	outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
 }
 
 static void print_buffer()

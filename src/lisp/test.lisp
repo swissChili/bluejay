@@ -5,15 +5,23 @@
   (print whatever)
   (gc))
 
+(defmacro weird-identity (a)
+  a)
+
+(defmacro weird-const (a b)
+  a)
+
 (defun main ()
   (let1 (a (add-two 3))
     (print "a is")
-    (print a))
+    (print (weird-identity a))
+    (print (weird-const a 4)))
 
   ; These allocations should be freed
-  (cons 12 (cons 34 (cons 45 nil)))
+  (list 12 34 56)
+  (list "a" "b" "c" "d")
   
   ; But these should not
   (let1 (unused-but-bound (cons 5 6))
-    (let1 (val (cons 1 (cons 2 (cons 3 nil))))
+    (let1 (val '(a b c d e))
       (calls-gc val))))

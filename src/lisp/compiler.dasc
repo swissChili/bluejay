@@ -95,8 +95,13 @@ void compile_tl(value_t val, struct environment *env)
 	value_t form = car(val);
 	value_t args = cdr(val);
 
-	if (symstreq(form, "defun"))
+	if (symstreq(form, "defun") || symstreq(form, "defmacro"))
 	{
+		enum namespace namespace = NS_FUNCTION;
+
+		if (symstreq(form, "defmacro"))
+			namespace = NS_MACRO;
+
 		dasm_State *d;
 		dasm_State **Dst = &d;
 
@@ -162,7 +167,7 @@ void compile_tl(value_t val, struct environment *env)
 		| cleanup;
 
 		add_function(env, (char *)(name ^ SYMBOL_TAG), link(Dst),
-		             length(arglist));
+		             length(arglist), namespace);
 
 		dasm_free(&d);
 		free(local.stack_slots);
@@ -222,6 +227,23 @@ int nextpc(struct local *local, dasm_State **Dst)
 		dasm_growpc(Dst, local->npc);
 	}
 	return n;
+}
+
+void compile_backquote(struct environment *env, struct local *local,
+                       value_t val, dasm_State **Dst)
+{
+	if (!listp(val))
+	{
+		| mov eax, (val);
+	}
+	else
+	{
+		value_t fsym = car(val),
+			args = cdr(val);
+		int nargs = length(args);
+
+		// TODO
+	}
 }
 
 void compile_expression(struct environment *env, struct local *local,
@@ -311,6 +333,42 @@ void compile_expression(struct environment *env, struct local *local,
 
 			| run_gc;
 		}
+		else if (symstreq(fsym, "quote"))
+		{
+			if (nargs != 1)
+				err("quote should take exactly 1 argument");
+
+			// Simple!
+			| mov eax, (car(args));
+		}
+		else if (symstreq(fsym, "backquote"))
+		{
+			if (nargs != 1)
+				err("backquote should take exactly 1 argument");
+
+			compile_backquote(env, local, car(args), Dst);
+		}
+		else if (symstreq(fsym, "list"))
+		{
+			| push (nil);
+
+			for (int i = nargs - 1; i >= 0; i--)
+			{
+				compile_expression(env, local, elt(args, i), Dst);
+
+				// push the ith item
+				| push eax;
+				// cons the top two stack items
+				| mov ebx, (cons);
+				| call ebx;
+				// remove the stack items from use
+				| add esp, (2 * value_size);
+				// put the new thing on the stack
+				| push eax;
+			}
+
+			| pop eax;
+		}
 		else
 		{
 			struct function *func =
@@ -322,16 +380,28 @@ void compile_expression(struct environment *env, struct local *local,
 			if (nargs != func->nargs)
 				err("wrong number of args");
 
-			for (int i = length(args) - 1; i >= 0; i--)
+			if (func->namespace == NS_FUNCTION)
 			{
-				compile_expression(env, local, elt(args, i), Dst);
-				| push eax;
-			}
+				for (int i = length(args) - 1; i >= 0; i--)
+				{
+					compile_expression(env, local, elt(args, i), Dst);
+					| push eax;
+				}
 
-			| mov ebx, (func->code_addr);
-			| call ebx;
-			| add esp, (nargs * value_size);
-			// result in eax
+				| mov ebx, (func->code_addr);
+				| call ebx;
+				| add esp, (nargs * value_size);
+				// result in eax
+			}
+			else if (func->namespace == NS_MACRO)
+			{
+				value_t expanded_to = call_list(func, args);
+
+				printf("Macro expanded to:\n");
+				printval(expanded_to, 2);
+
+				compile_expression(env, local, expanded_to, Dst);
+			}
 		}
 	}
 	else if (symbolp(val))
@@ -369,7 +439,7 @@ void compile_expr_to_func(struct environment *env, char *name, value_t val,
 
 	| cleanup;
 
-	add_function(env, name, link(Dst), 0);
+	add_function(env, name, link(Dst), 0, NS_FUNCTION);
 }
 
 struct variable *add_variable(struct local *local, enum var_type type,
@@ -404,4 +474,11 @@ struct variable *find_variable(struct local *local, char *name)
 	{}
 
 	return v;
+}
+
+extern value_t _call_list(void *addr, value_t list);
+
+value_t call_list(struct function *func, value_t list)
+{
+	return _call_list(func->code_ptr, list);
 }
