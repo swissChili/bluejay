@@ -138,3 +138,24 @@ Functions
         (quote cons a b)
         ; is the same as
         (list 'cons 'a 'b)
+
+.. function:: (lambda (args ...) & body)
+
+    Creates an anonymous function (closure). This function uses **lexical
+    scope** meaning that any free variables (variables bound outside this lambda
+    definition) are "captured" by the closure. You can call this function with
+    ``funcall`` (to be implemented) or ``apply``.
+
+    .. code-block:: lisp
+
+        (let1 (number 3)
+          (let1 (adds-number-to (lambda (n)
+                                  (+ n number)))
+            (print (apply adds-number-to '(5)))))
+        ; 8
+
+.. function:: (apply function (args ...))
+
+    Call ``function`` with ``args`` and return the result. Note that since this
+    is a Lisp-2 (i.e. functions and variables do not share the same namespace)
+    you need to pass a **function object** (i.e. a lambda or quoted function).

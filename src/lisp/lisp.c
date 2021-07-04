@@ -294,15 +294,19 @@ bool readquote(struct istream *is, value_t *val)
 
 	char c = is->peek(is);
 
-	if (c == '\'' || c == '`' || c == ',')
+	if (c == '\'' || c == '`' || c == ',' || c == '#')
 	{
 		is->get(is);
 
-		if (c == '`' && is->peek(is) == '@')
+		if (c == ',' && is->peek(is) == '@')
 		{
 			// This is actually a splice
 			is->get(is);
 			c = '@';
+		}
+		else if (c == '#' && is->peek(is) == '\'')
+		{
+			is->get(is);
 		}
 
 		// Read the next form and wrap it in the appropriate function
@@ -334,6 +338,12 @@ bool readquote(struct istream *is, value_t *val)
 		case '@':
 			symbol = symval("unquote-splice");
 			break;
+		case '#':
+			symbol = symval("function");
+			break;
+		default:
+			is->showpos(is, stderr);
+			err("Something went wrong parsing a reader macro");
 		}
 
 		*val = cons(symbol, cons(wrapped, nil));

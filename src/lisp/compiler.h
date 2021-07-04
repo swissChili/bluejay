@@ -61,7 +61,11 @@ struct local
 	/// Parent environment, NULL if none (root).
 	struct local *parent;
 
-	int num_vars;
+	/// Name that the current function should be referred to by, e.g. `recurse`
+	/// for a lambda.
+	char *current_function_name;
+
+	int num_vars, num_args;
 	/// Most recently defined variable
 	struct variable *first;
 	int npc;
@@ -95,7 +99,7 @@ void compile_expression(struct environment *env, struct local *local,
  */
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
                                     struct environment *env, struct local *local_out,
-                                    struct local *local_parent, int *nargs);
+                                    struct local *local_parent, int *nargs, char *name);
 
 void compile_variable(struct variable *v, dasm_State *Dst);
 

@@ -1,5 +1,12 @@
+(defun mapcar (func list)
+  (if list
+    (cons (apply func (list (car list)))
+          (mapcar func (cdr list)))
+    nil))
+
+(defun double (n)
+  (+ n n))
+
 (defun main ()
-  (let1 (number 3)
-    (let1 (adds-3 (lambda (n)
-                    (+ n number)))
-      (print (apply adds-3 '(4))))))
+  (print (mapcar #'double
+                 (list 1 2 3 4 5))))
