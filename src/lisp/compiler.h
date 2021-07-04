@@ -7,8 +7,12 @@
 
 enum namespace
 {
+	/// A function
 	NS_FUNCTION,
+	/// A macro
 	NS_MACRO,
+	/// An anonymous function (a lambda/closure)
+	NS_ANONYMOUS,
 };
 
 struct function
@@ -63,11 +67,37 @@ struct local
 	int npc;
 	int nextpc;
 	bool *stack_slots;
-	int num_stack_slots, num_stack_entries;
+	/// Number of slots allocated in `stack_slots`
+	int num_stack_slots;
+	/// Number of entries used in `stack_slots`
+	int num_stack_entries;
+	/// Number of closure slots total (allocated as V_FREE variables)
+	int num_closure_slots;
 };
 
 void compile_expression(struct environment *env, struct local *local,
                         value_t val, dasm_State **Dst);
+
+/**
+ * Compile a function
+ * @param args The function args and body, e.g. `((b c) d)`
+ * @param namespace The function namespace.
+ * @param env The environment.
+ * @param local_out The local environment generated for this function will be
+ * returned here. NULL if you do not care about it being returned (you probably
+ * should since you need to free the stack slot allocation map).
+ * @param local_parent Parent local environment, only needed for closures. NULL
+ * if no parent.
+ * @param nargs The number of arguments for this function will be returned here.
+ * NULL if you don't care about it.
+ * @returns The compiled function state. You should probably give this to
+ * `add_function` or something similar.
+ */
+struct dasm_State *compile_function(value_t args, enum namespace namespace,
+                                    struct environment *env, struct local *local_out,
+                                    struct local *local_parent, int *nargs);
+
+void compile_variable(struct variable *v, dasm_State *Dst);
 
 /**
  * Compile a backquoted expression
@@ -94,11 +124,17 @@ struct environment compile_all(struct istream *is);
 struct function *find_function(struct environment *env, char *name);
 struct variable *add_variable(struct local *local, enum var_type type,
                               char *name, int number);
-// Might return null
+
+/**
+ * Find a variable in `local` with name `name`.
+ * @returns The variable, NULL if not found.
+ */
 struct variable *find_variable(struct local *local, char *name);
+
 void destroy_local(struct local *local);
 
 /**
  * Like `apply` in lisp, calls func with list args and returns the result.
  */
 value_t call_list(struct function *func, value_t list);
+value_t call_list_closure(struct closure *c, value_t list);

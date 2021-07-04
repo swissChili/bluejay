@@ -7,12 +7,16 @@
 	;;; This function should call it's first argument with the arguments from
 	;;; the cons-list passed as its second argument.
 
-	;;; _call_list(function pointer, cons list)
+	;;; _call_list(function pointer, cons list, edi)
 _call_list:
+	;; esi and edi are callee-saved on x86, these are the only registers 
+	;; we clobber.
+	push esi
+	push edi
 	push ebp
 	mov ebp, esp
 
-	mov edi, [ebp + 12]						; Cons list
+	mov edi, [ebp + 20]						; Cons list
 	
 	push edi
 	call length								; Length of cons list in eax
@@ -49,9 +53,12 @@ _call_list:
 	jmp .loop
 
 .done:
-	mov ebx, [ebp + 8]						; Function pointer
+	mov ebx, [ebp + 16]						; Function pointer
+	mov edi, [ebp + 24]						; Closure data pointer
 	call ebx
 
 	mov esp, ebp
 	pop ebp
+	pop edi
+	pop esi
 	ret

@@ -1,0 +1,5 @@
+(defun main ()
+  (let1 (number 3)
+    (let1 (adds-3 (lambda (n)
+                    (+ n number)))
+      (print (apply adds-3 '(4))))))

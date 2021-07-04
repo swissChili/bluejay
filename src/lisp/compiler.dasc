@@ -3,6 +3,7 @@
 #include "compiler.h"
 #include "lib/std.h"
 #include "plat/plat.h"
+#include "gc.h"
 
 #include <dasm_proto.h>
 #include <dasm_x86.h>
@@ -31,8 +32,6 @@
 
 dasm_State *d;
 unsigned int npc = 8;
-
-extern void _do_gc(unsigned int ebp, unsigned int esp);
 
 |.macro run_gc;
 | mov eax, esp;
@@ -88,8 +87,8 @@ void local_free(struct local *local, unsigned int slot)
 }
 
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
-                                    struct environment *env,
-									struct local *local_out, int *nargs)
+                                    struct environment *env, struct local *local_out,
+                                    struct local *local_parent, int *nargs)
 {
 	dasm_State *d;
 	dasm_State **Dst = &d;
@@ -114,19 +113,16 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 	memset(local.stack_slots, 0, sizeof(bool) * 4);
 	local.num_stack_slots = 4;
 	local.num_stack_entries = 0;
+	local.num_closure_slots = 0;
+	local.parent = local_parent;
 
 	dasm_growpc(&d, local.npc);
 
 	// Generate code
 	// TODO: first pass, extract bound and free variables
 
-	value_t name = car(args);
-	args = cdr(args);
 	value_t arglist = car(args);
 	value_t body = cdr(args);
-
-	if ((name & HEAP_MASK) != SYMBOL_TAG)
-		err("function name must be a symbol");
 
 	value_t a = arglist;
 	for (int i = 0; !nilp(a); a = cdr(a), i++)
@@ -163,6 +159,9 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 		*nargs = length(arglist);
 
 	return d;
+
+	// TODO: local leaks memory! free variables too, not just stack slots (in
+	// two places). Add a free_local() function that does this.
 }
 
 void compile_tl(value_t val, struct environment *env)
@@ -173,8 +172,6 @@ void compile_tl(value_t val, struct environment *env)
 	value_t form = car(val);
 	value_t args = cdr(val);
 
-	printf("Compiling function %s in %s\n", (char *)(car(args) ^ SYMBOL_TAG), (char *)(form ^ SYMBOL_TAG));
-
 	if (symstreq(form, "defun") || symstreq(form, "defmacro"))
 	{
 		enum namespace namespace = NS_FUNCTION;
@@ -182,10 +179,9 @@ void compile_tl(value_t val, struct environment *env)
 		if (symstreq(form, "defmacro"))
 			namespace = NS_MACRO;
 
-
 		struct local local;
 		int nargs;
-		dasm_State *d = compile_function(args, namespace, env, &local, &nargs);
+		dasm_State *d = compile_function(cdr(args), namespace, env, &local, NULL, &nargs);
 
 		add_function(env, (char *)(car(args) ^ SYMBOL_TAG), link(&d),
 		             nargs, namespace);
@@ -209,7 +205,7 @@ void walk_and_alloc(struct local *local, value_t body)
 		value_t expr = cdr(args);
 		for (; !nilp(expr); expr = cdr(expr))
 		{
-			walk_and_alloc(local, expr);
+			walk_and_alloc(local, car(expr));
 		}
 
 		local_free(local, slot);
@@ -241,7 +237,6 @@ struct environment compile_all(struct istream *is)
 
 	while (read1(is, &val))
 	{
-		printval(val, 0);
 		compile_tl(val, &env);
 	}
 
@@ -275,6 +270,25 @@ void compile_backquote(struct environment *env, struct local *local,
 		int nargs = length(args);
 
 		// TODO
+	}
+}
+
+void compile_variable(struct variable *v, dasm_State *Dst)
+{
+	switch (v->type)
+	{
+	case V_ARGUMENT:
+		| mov eax, dword [ebp + (value_size * (v->number + 2))];
+		break;
+	case V_BOUND:
+		| mov eax, dword [ebp - ((v->number + 1) * value_size)];
+		break;
+	case V_FREE:
+		// edi is the closure context pointer
+		| mov eax, dword [edi + (v->number * value_size)];
+		break;
+	default:
+		err("Sorry, can only access V_ARGUMENT, V_FREE and V_BOUND variables for now :(");
 	}
 }
 
@@ -401,6 +415,55 @@ void compile_expression(struct environment *env, struct local *local,
 
 			| pop eax;
 		}
+		else if (symstreq(fsym, "lambda"))
+		{
+			// Compile the function with this as the parent scope
+			struct local new_local;
+			int nargs_out;
+			dasm_State *d = compile_function(args, NS_ANONYMOUS, env, &new_local, local, &nargs_out);
+
+			// Link the function
+			void *func_ptr = link(&d);
+
+			// Create a closure object with the correct number of captures at
+			// runtime
+			| mov ebx, (create_closure);
+			| push (new_local.num_closure_slots);
+			| push (nargs_out);
+			| push (func_ptr);
+			| call ebx;
+			| add esp, 12;
+
+			// Walk the generated local scope for V_FREE variables, since each
+			// of these exists in our scope (or higher), evaluate it and set it
+			// as a member of the lambda capture.
+
+			for (struct variable *var = new_local.first; var; var = var->prev)
+			{
+				if (var->type == V_FREE)
+				{
+					// Closure in eax
+					| push eax;
+					// Variable now in eax
+					compile_variable(find_variable(local, var->name), Dst);
+					| push eax;
+
+					| mov ebx, (set_closure_capture_variable);
+					// The capture offset
+					| push (var->number);
+					| call ebx;
+					// Skip the value and index
+					| add esp, 8;
+					// Pop the closure back in to eax
+					| pop eax;
+				}
+			}
+
+			// Closure is still in eax
+
+			dasm_free(&d);
+			free(new_local.stack_slots);
+		}
 		else
 		{
 			struct function *func =
@@ -432,16 +495,12 @@ void compile_expression(struct environment *env, struct local *local,
 			{
 				value_t expanded_to = call_list(func, args);
 
-				printf("Macro expanded to:\n");
-				printval(expanded_to, 2);
-
 				compile_expression(env, local, expanded_to, Dst);
 			}
 		}
 	}
 	else if (symbolp(val))
 	{
-		// For now ignore global variables, only search locally
 		struct variable *v = find_variable(local, (char *)(val ^ SYMBOL_TAG));
 
 		if (!v)
@@ -450,17 +509,7 @@ void compile_expression(struct environment *env, struct local *local,
 			err("Variable unbound");
 		}
 
-		switch (v->type)
-		{
-		case V_ARGUMENT:
-			| mov eax, dword [ebp + (value_size * (v->number + 2))];
-			break;
-		case V_BOUND:
-			| mov eax, dword [ebp - ((v->number + 1) * value_size)];
-			break;
-		default:
-			err("Sorry, can only access V_ARGUMENT and V_BOUND variables for now :(");
-		}
+		compile_variable(v, Dst);
 	}
 }
 
@@ -508,12 +557,30 @@ struct variable *find_variable(struct local *local, char *name)
 	for (; v && strcmp(v->name, name) != 0; v = v->prev)
 	{}
 
+	if (!v)
+	{
+		if (local->parent)
+		{
+			v = find_variable(local->parent, name);
+
+			if (v)
+			{
+				// We found this in a parent scope, add it as a V_FREE variable to skip the search.
+				v = add_variable(local, V_FREE, name, local->num_closure_slots++);
+			}
+		}
+	}
 	return v;
 }
 
-extern value_t _call_list(void *addr, value_t list);
+extern value_t _call_list(void *addr, value_t list, value_t *edi);
 
 value_t call_list(struct function *func, value_t list)
 {
-	return _call_list(func->code_ptr, list);
+	return _call_list(func->code_ptr, list, NULL);
+}
+
+value_t call_list_closure(struct closure *c, value_t list)
+{
+	return _call_list(c->function, list, c->data);
 }

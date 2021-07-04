@@ -39,6 +39,16 @@ void _mark(value_t value, unsigned int *marked)
 				_mark(cons->cons.cdr, marked);
 				break;
 			}
+			case CLOSURE_TAG: {
+				struct closure_alloc *closure = (void *)alloc;
+
+				for (int i = 0; i < closure->closure.num_captured; i++)
+				{
+					_mark(closure->closure.data[i], marked);
+				}
+
+				break;
+			}
 			}
 		}
 	}

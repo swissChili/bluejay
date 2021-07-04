@@ -41,7 +41,11 @@ struct cons
 
 struct closure
 {
+	/// How many arguments does this closure take
 	int num_args;
+	/// How many free variables does it capture (i.e. length of `data`)
+	int num_captured;
+	/// The function pointer itself
 	void *function;
 
 	/// This will be passed in edi.
@@ -153,6 +157,7 @@ bool consp(value_t v);
 bool listp(value_t v);
 bool nilp(value_t v);
 bool heapp(value_t v);
+bool closurep(value_t v);
 int length(value_t v);
 value_t elt(value_t v, int index);
 
@@ -161,6 +166,14 @@ void printval(value_t v, int depth);
 void err(const char *msg);
 
 bool symstreq(value_t sym, char *str);
+
+value_t create_closure(void *code, int nargs, int ncaptures);
+
+/**
+ * Set the `index`th capture variable of `closure`. This should really only be
+ * called when creating a new closure.
+ */
+void set_closure_capture_variable(int index, value_t value, value_t closure);
 
 extern value_t nil;
 extern value_t t;

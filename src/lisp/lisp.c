@@ -73,7 +73,8 @@ start:
 	if (is->peek(is) == ';')
 	{
 		while (is->get(is) != '\n')
-		{}
+		{
+		}
 
 		// Only time I ever use labels is for stuff like this. Compiler would
 		// probably optimize this if I used recursion but I don't want to
@@ -233,6 +234,12 @@ void printval(value_t v, int depth)
 	else if (nilp(v))
 	{
 		printf("nil\n");
+	}
+	else if (closurep(v))
+	{
+		struct closure *c = (void *)(v ^ CLOSURE_TAG);
+		printf("closure %p taking %d argument(s) and capturing %d value(s)\n",
+		       c->function, c->num_args, c->num_captured);
 	}
 	else
 	{
@@ -452,7 +459,12 @@ bool consp(value_t v)
 
 bool heapp(value_t v)
 {
-	return consp(v) || stringp(v) || symbolp(v);
+	return consp(v) || stringp(v) || symbolp(v) || closurep(v);
+}
+
+bool closurep(value_t v)
+{
+	return (v & HEAP_MASK) == CLOSURE_TAG;
 }
 
 bool listp(value_t v)
@@ -574,4 +586,28 @@ char *cons_file(value_t val)
 	struct cons *c = (void *)(val ^ CONS_TAG);
 
 	return c->name;
+}
+
+value_t create_closure(void *code, int nargs, int ncaptures)
+{
+	struct closure_alloc *ca = malloc_aligned(sizeof(struct closure_alloc) +
+	                                          ncaptures * sizeof(value_t));
+
+	ca->closure.function = code;
+	ca->closure.num_args = nargs;
+	ca->closure.num_captured = ncaptures;
+
+	add_this_alloc(&ca->alloc, CLOSURE_TAG);
+
+	return (value_t)(&ca->closure) | CLOSURE_TAG;
+}
+
+void set_closure_capture_variable(int index, value_t value, value_t closure)
+{
+	if (!closurep(closure))
+		return;
+
+	struct closure *c = (void *)(closure ^ CLOSURE_TAG);
+
+	c->data[index] = value;
 }
