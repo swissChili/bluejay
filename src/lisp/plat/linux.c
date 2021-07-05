@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 void *malloc_aligned(size_t size)
 {
@@ -20,7 +21,7 @@ void free_aligned(void *addr)
 	free(addr);
 }
 
-void *link(dasm_State **Dst)
+void *link_program(dasm_State **Dst)
 {
 	size_t size;
 	void *buf;
@@ -32,4 +33,9 @@ void *link(dasm_State **Dst)
 
 	mprotect(buf, size, PROT_READ | PROT_EXEC);
 	return buf;
+}
+
+bool file_exists(const char *path)
+{
+	return access(path, F_OK) == 0;
 }

@@ -12,7 +12,12 @@
             "args": ["test-closures.lisp"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/src/lisp",
-            "environment": [],
+            "environment": [
+                {
+                    "name": "LISP_LIBRARY_PATH",
+                    "value": "${workspaceFolder}/lib/lisp"
+                }
+            ],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [

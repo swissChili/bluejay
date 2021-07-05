@@ -5,6 +5,11 @@
         "Jmk.options": "makefile",
         "Jmk": "makefile",
         "*.dasc": "c",
-        "typeinfo": "c"
+        "*.sass": "plaintext",
+        "typeinfo": "c",
+        "atomic": "cpp",
+        "memory_resource": "cpp",
+        "functional": "cpp",
+        "iostream": "cpp"
     }
 }

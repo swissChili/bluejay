@@ -38,14 +38,15 @@ compiler.c: compiler.dasc | $(LUA)
 type(executable)
 
 F ?= test.lisp
+lisp_libpath = $(ROOT)/lib/lisp
 
 run: lisp
 	status_log(LISP, $(F))
-	@./lisp $(F)
+	@LISP_LIBRARY_PATH="$(lisp_libpath)" ./lisp $(F)
 
 leak-check: lisp
 	status_log(VALGRIND, lisp $(F))
-	@valgrind --leak-check=full ./lisp $(F)
+	@LISP_LIBRARY_PATH="$(lisp_libpath)" valgrind --leak-check=full ./lisp $(F)
 
 format:
 	status_log(FORMAT, *)

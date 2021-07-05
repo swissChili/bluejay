@@ -34,9 +34,16 @@ struct function
 	struct function *prev;
 };
 
+struct loaded_file
+{
+	char *resolved_path;
+	struct loaded_file *previous;
+};
+
 struct environment
 {
 	struct function *first;
+	struct loaded_file *first_loaded;
 };
 
 enum var_type
@@ -136,7 +143,17 @@ void del_env(struct environment *env);
 void walk_and_alloc(struct local *local, value_t body);
 // Compile top-level declaration
 void compile_tl(value_t val, struct environment *env);
-struct environment compile_all(struct istream *is);
+
+/**
+ * Compile a file in a new environment.
+ * @param filename The path to the file.
+ * @param ok Set to `true` if loading succeeds, `false` otherwise. If `ok` is
+ * NULL it is ignored.
+ * @returns The environment for the compiled file, or an empty environment if
+ * `ok` was set to `false` (i.e. the file could not be compiled).
+ */
+struct environment compile_file(char *filename, bool *ok);
+
 struct function *find_function(struct environment *env, char *name);
 struct variable *add_variable(struct local *local, enum var_type type,
                               char *name, int number);
@@ -154,3 +171,16 @@ void destroy_local(struct local *local);
  */
 value_t call_list(struct function *func, value_t list);
 value_t call_list_closure(struct closure *c, value_t list);
+
+/**
+ * Load a lisp file into the current environment.
+ * @returns `true` if succesful, `false` otherwise.
+ */
+bool load(struct environment *env, char *path);
+
+/**
+ * Mark a file `path` as loaded in the environment. `path` will be expanded with
+ * `readlink`. You can pass a temporary string here, memory will be allocated by
+ * this function as needed.
+ */
+void add_load(struct environment *env, char *path);

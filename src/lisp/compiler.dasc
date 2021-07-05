@@ -44,14 +44,10 @@ unsigned int npc = 8;
 
 struct function *find_function(struct environment *env, char *name)
 {
-	struct function *f = env->first;
+	struct function *f;
 
-	while (strcmp(f->name, name) != 0)
+	for (f = env->first; f && strcmp(f->name, name); f = f->prev)
 	{
-		if (f->prev)
-			f = f->prev;
-		else
-			return NULL;
 	}
 
 	return f;
@@ -106,6 +102,26 @@ void del_env(struct environment *env)
 		// We're not gonna bother munmap()ing the function
 		free(f);
 	}
+
+	for (struct loaded_file *next, *l = env->first_loaded; l; l = next)
+	{
+		next = l->previous;
+		free(l->resolved_path);
+		free(l);
+	}
+}
+
+void add_load(struct environment *env, char *path)
+{
+	static char buffer[512];
+	long size = readlink(path, buffer, 512);
+	buffer[size] = '\0';
+	char *resolved = strdup(buffer);
+
+	struct loaded_file *f = malloc(sizeof(struct loaded_file));
+	f->resolved_path = resolved;
+	f->previous = env->first_loaded;
+	env->first_loaded = f;
 }
 
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
@@ -201,13 +217,21 @@ void compile_tl(value_t val, struct environment *env)
 		struct local local;
 		int nargs;
 		char *name = (char *)(car(args) ^ SYMBOL_TAG);
+
 		dasm_State *d = compile_function(cdr(args), namespace, env, &local, NULL, &nargs, name);
 
-		add_function(env, name, link(&d),
+		add_function(env, name, link_program(&d),
 		             nargs, namespace);
 
 		dasm_free(&d);
 		del_local(&local);
+	}
+	else if (symstreq(form, "progn"))
+	{
+		for (value_t val = args; !nilp(val); val = cdr(val))
+		{
+			compile_tl(car(val), env);
+		}
 	}
 }
 
@@ -245,22 +269,47 @@ void walk_and_alloc(struct local *local, value_t body)
 	}
 }
 
-struct environment compile_all(struct istream *is)
+bool load(struct environment *env, char *path)
 {
+	if (!file_exists(path))
+		return false;
+
+	add_load(env, path);
+
 	unsigned char pool = make_pool();
 	unsigned char pop = push_pool(pool);
 
+	struct istream *is = new_fistream(path, false);
+	if (!is)
+		return false;
+
 	value_t val;
-	struct environment env;
-	env.first = NULL;
-	load_std(&env);
 
 	while (read1(is, &val))
 	{
-		compile_tl(val, &env);
+		compile_tl(val, env);
 	}
 
+	del_fistream(is);
 	pop_pool(pop);
+
+	return true;
+}
+
+struct environment compile_file(char *filename, bool *ok)
+{
+	value_t val;
+	struct environment env;
+	env.first = NULL;
+	env.first_loaded = NULL;
+
+	add_load(&env, filename);
+	load_std(&env);
+
+	bool ok_ = load(&env, filename);
+
+	if (ok)
+		*ok = ok_;
 
 	return env;
 }
@@ -357,6 +406,13 @@ void compile_expression(struct environment *env, struct local *local,
 			if (nargs == 3)
 			    compile_expression(env, local, elt(args, 2), Dst);
 			|=>after_label:
+		}
+		else if (symstreq(fsym, "progn"))
+		{
+			for (value_t val = args; !nilp(val); val = cdr(val))
+			{
+				compile_expression(env, local, car(val), Dst);
+			}
 		}
 		else if (symstreq(fsym, "let1"))
 		{
@@ -460,7 +516,7 @@ void compile_expression(struct environment *env, struct local *local,
 			dasm_State *d = compile_function(args, NS_ANONYMOUS, env, &new_local, local, &nargs_out, "recurse");
 
 			// Link the function
-			void *func_ptr = link(&d);
+			void *func_ptr = link_program(&d);
 
 			// Create a closure object with the correct number of captures at
 			// runtime
@@ -554,7 +610,12 @@ void compile_expression(struct environment *env, struct local *local,
 			}
 			else if (func->namespace == NS_MACRO)
 			{
+				// Make sure that the stuff allocated by the macro isn't in a pool
+				unsigned char pool = push_pool(0);
+
 				value_t expanded_to = call_list(func, args);
+
+				pop_pool(pool);
 
 				compile_expression(env, local, expanded_to, Dst);
 			}
@@ -584,7 +645,7 @@ void compile_expr_to_func(struct environment *env, char *name, value_t val,
 
 	| cleanup;
 
-	add_function(env, name, link(Dst), 0, NS_FUNCTION);
+	add_function(env, name, link_program(Dst), 0, NS_FUNCTION);
 }
 
 struct variable *add_variable(struct local *local, enum var_type type,

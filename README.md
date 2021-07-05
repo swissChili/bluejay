@@ -43,11 +43,12 @@ thing and doing it well is certainly a consideration.
   - [ ] Memory management API (`sbrk`, `mmap`, etc)
   - [ ] Process/thread API (`spawn_process`, `spawn_thread`, etc)
 - [ ] Lisp compiler
-  - [ ] JIT compiler using dynasm
+  - [x] JIT compiler using dynasm
     - [x] Basic compilation
     - [x] GC
-    - [ ] Lexical closures
+    - [x] Lexical closures
   - [ ] Standard library (in progress)
+    - [ ] CLOS-style OO library
 - [ ] Lisp integrated into kernel
 - [ ] User-space driver API
   - [ ] Lisp API
