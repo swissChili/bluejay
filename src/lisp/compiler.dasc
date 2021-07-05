@@ -87,6 +87,27 @@ void local_free(struct local *local, unsigned int slot)
 	local->stack_slots[slot] = false;
 }
 
+void del_local(struct local *local)
+{
+	free(local->stack_slots);
+
+	for (struct variable *next, *f = local->first; f; f = next)
+	{
+		next = f->prev;
+		free(f);
+	}
+}
+
+void del_env(struct environment *env)
+{
+	for (struct function *next, *f = env->first; f; f = next)
+	{
+		next = f->prev;
+		// We're not gonna bother munmap()ing the function
+		free(f);
+	}
+}
+
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
                                     struct environment *env, struct local *local_out,
                                     struct local *local_parent, int *nargs, char *name)
@@ -160,9 +181,6 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 		*nargs = length(arglist);
 
 	return d;
-
-	// TODO: local leaks memory! free variables too, not just stack slots (in
-	// two places). Add a free_local() function that does this.
 }
 
 void compile_tl(value_t val, struct environment *env)
@@ -189,7 +207,7 @@ void compile_tl(value_t val, struct environment *env)
 		             nargs, namespace);
 
 		dasm_free(&d);
-		free(local.stack_slots);
+		del_local(&local);
 	}
 }
 
@@ -481,7 +499,7 @@ void compile_expression(struct environment *env, struct local *local,
 			// Closure is still in eax
 
 			dasm_free(&d);
-			free(new_local.stack_slots);
+			del_local(&new_local);
 		}
 		else
 		{

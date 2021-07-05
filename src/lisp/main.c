@@ -25,4 +25,6 @@ int main(int argc, char **argv)
 	lisp_main();
 
 	free_all();
+	del_env(&env);
+	del_fistream(is);
 }

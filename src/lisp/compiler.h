@@ -119,6 +119,18 @@ unsigned int local_alloc(struct local *local);
 void local_free(struct local *local, unsigned int slot);
 
 /**
+ * Deletes the memory allocated in `local`. Does not actually call `free()` on
+ * `local` itself, but frees the variables and stack slots associated with it.
+ */
+void del_local(struct local *local);
+
+/**
+ * Deletes the memory allocated in `env`. Does not actually call `free()` on
+ * `env` itself.
+ */
+void del_env(struct environment *env);
+
+/**
  * Walk `body` and reserve space in `local` for any variable declarations.
  */
 void walk_and_alloc(struct local *local, value_t body);

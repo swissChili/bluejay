@@ -5,28 +5,19 @@
 
 void *malloc_aligned(size_t size)
 {
-	void *mem = malloc(size + 8 + sizeof(void *) * 2);
-	void **aligned_ptr = (void **)((uintptr_t)(mem + 8 + sizeof(void *)) & ~7);
-	aligned_ptr[-1] = mem;
-	aligned_ptr[-2] = (void *)size;
-	return aligned_ptr;
+	// https://www.gnu.org/software/libc/manual/html_node/Aligned-Memory-Blocks.html
+	// On glibc malloc() and realloc() return 8-byte aligned addresses.
+	return malloc(size);
 }
 
 void *realloc_aligned(void *addr, size_t size)
 {
-	void *mem = malloc(size + 8 + sizeof(void *) * 2);
-	void **aligned_ptr = (void **)((uintptr_t)(mem + 8 + sizeof(void *)) & ~7);
-	aligned_ptr[-1] = mem;
-
-	memcpy(aligned_ptr, addr, ((uintptr_t *)addr)[-2]);
-
-	return aligned_ptr;
+	return realloc(addr, size);
 }
 
 void free_aligned(void *addr)
 {
-	void **ptr = (void **)addr;
-	free(ptr[-1]);
+	free(addr);
 }
 
 void *link(dasm_State **Dst)
