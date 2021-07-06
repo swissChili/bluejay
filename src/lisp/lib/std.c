@@ -52,34 +52,57 @@ value_t l_apply(value_t func, value_t args)
 	return call_list_closure((struct closure *)(func ^ CLOSURE_TAG), args);
 }
 
-void add_function(struct environment *env, char *name, void *func, int nargs, enum namespace ns)
+value_t l_nilp(value_t val)
+{
+	return nilp(val) ? t : nil;
+}
+
+void add_function(struct environment *env, char *name, void *func, struct args *args, enum namespace ns)
 {
 	struct function *last, *new = malloc(sizeof(struct function));
 
 	last = env->first;
 	new->prev = last;
 	new->name = name;
-	new->nargs = nargs;
+	new->args = args;
 	new->code_ptr = func;
 	new->namespace = ns;
 
 	env->first = new;
 }
 
+void add_c_function(struct environment *env, char *name, void *func, int nargs)
+{
+	struct args *args = new_args();
+	args->num_required = nargs;
+
+	add_function(env, name, func, args, NS_FUNCTION);
+}
+
+value_t l_elt(value_t seq, value_t i)
+{
+	if (!listp(seq) || !integerp(i))
+		return nil;
+	
+	return elt(seq, i >> 2);
+}
+
 void load_std(struct environment *env)
 {
-	add_function(env, "+", l_plus, 2, NS_FUNCTION);
-	add_function(env, "-", l_minus, 2, NS_FUNCTION);
-	add_function(env, "*", l_times, 2, NS_FUNCTION);
-	add_function(env, "/", l_divide, 2, NS_FUNCTION);
+	add_c_function(env, "+", l_plus, 2);
+	add_c_function(env, "-", l_minus, 2);
+	add_c_function(env, "*", l_times, 2);
+	add_c_function(env, "/", l_divide, 2);
 
-	add_function(env, "car", car, 1, NS_FUNCTION);
-	add_function(env, "cdr", cdr, 1, NS_FUNCTION);
-	add_function(env, "cons", cons, 2, NS_FUNCTION);
+	add_c_function(env, "car", car, 1);
+	add_c_function(env, "cdr", cdr, 1);
+	add_c_function(env, "cons", cons, 2);
 
-	add_function(env, "print", l_printval, 1, NS_FUNCTION);
+	add_c_function(env, "print", l_printval, 1);
+	add_c_function(env, "apply", l_apply, 2);
 
-	add_function(env, "apply", l_apply, 2, NS_FUNCTION);
+	add_c_function(env, "nilp", l_nilp, 1);
+	add_c_function(env, "elt", l_elt, 2);
 
 	if (!load_library(env, "std"))
 	{

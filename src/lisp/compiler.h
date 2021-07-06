@@ -15,10 +15,20 @@ enum namespace
 	NS_ANONYMOUS,
 };
 
+
+struct args *new_args();
+struct args *add_optional_arg(struct args *args, value_t name,
+                              value_t expression);
+
+/**
+ * @returns if `number` is an acceptable number of arguments for `args`.
+ */
+bool are_args_acceptable(struct args *args, int number);
+
 struct function
 {
 	char *name;
-	int nargs; // number of arguments
+	struct args *args;
 	enum namespace namespace;
 
 	union
@@ -72,7 +82,8 @@ struct local
 	/// for a lambda.
 	char *current_function_name;
 
-	int num_vars, num_args;
+	int num_vars;
+	struct args *args;
 	/// Most recently defined variable
 	struct variable *first;
 	int npc;
@@ -85,6 +96,19 @@ struct local
 	/// Number of closure slots total (allocated as V_FREE variables)
 	int num_closure_slots;
 };
+
+/**
+ * Parse a list of arguments to an args object and add them as V_ARGUMENT
+ * variables to `local`. The list should be in the same format as is accepted by
+ * `defun`, `defmacro`, `lambda`, etc.
+ * @returns NULL if the list is malformed.
+ */
+struct args *list_to_args(struct environment *env, value_t list, struct local *local);
+
+/**
+ * Print out `args` to stdout. Useful for debugging.
+ */
+void display_args(struct args *args);
 
 void compile_expression(struct environment *env, struct local *local,
                         value_t val, dasm_State **Dst);
@@ -99,14 +123,14 @@ void compile_expression(struct environment *env, struct local *local,
  * should since you need to free the stack slot allocation map).
  * @param local_parent Parent local environment, only needed for closures. NULL
  * if no parent.
- * @param nargs The number of arguments for this function will be returned here.
- * NULL if you don't care about it.
+ * @param args An object representing the arguments this function accepts will
+ * be returned here. Set this to NULL if you don't care.
  * @returns The compiled function state. You should probably give this to
  * `add_function` or something similar.
  */
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
                                     struct environment *env, struct local *local_out,
-                                    struct local *local_parent, int *nargs, char *name);
+                                    struct local *local_parent, struct args **ar, char *name);
 
 void compile_variable(struct variable *v, dasm_State *Dst);
 

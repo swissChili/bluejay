@@ -126,7 +126,8 @@ void add_load(struct environment *env, char *path)
 
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
                                     struct environment *env, struct local *local_out,
-                                    struct local *local_parent, int *nargs, char *name)
+                                    struct local *local_parent, struct args **args_out,
+									char *name)
 {
 	dasm_State *d;
 	dasm_State **Dst = &d;
@@ -160,17 +161,13 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 	value_t arglist = car(args);
 	value_t body = cdr(args);
 
-	local.num_args = length(arglist);
+	// This will add the arguments to local too.
+	struct args *ar = list_to_args(env, arglist, &local);
+	local.args = ar;
 
-	value_t a = arglist;
-	for (int i = 0; !nilp(a); a = cdr(a), i++)
+	if (!ar)
 	{
-		if (!symbolp(car(a)))
-		{
-			err("defun argument must be a symbol");
-		}
-
-		add_variable(&local, V_ARGUMENT, (char *)(car(a) ^ SYMBOL_TAG), i);
+		err("Malformed args list");
 	}
 
 	for (value_t body_ = body; !nilp(body_); body_ = cdr(body_))
@@ -193,8 +190,8 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 	if (local_out)
 		*local_out = local;
 
-	if (nargs)
-		*nargs = length(arglist);
+	if (args_out)
+		*args_out = ar;
 
 	return d;
 }
@@ -215,13 +212,13 @@ void compile_tl(value_t val, struct environment *env)
 			namespace = NS_MACRO;
 
 		struct local local;
-		int nargs;
+		struct args *a;
 		char *name = (char *)(car(args) ^ SYMBOL_TAG);
 
-		dasm_State *d = compile_function(cdr(args), namespace, env, &local, NULL, &nargs, name);
+		dasm_State *d = compile_function(cdr(args), namespace, env, &local, NULL, &a, name);
 
 		add_function(env, name, link_program(&d),
-		             nargs, namespace);
+		             a, namespace);
 
 		dasm_free(&d);
 		del_local(&local);
@@ -483,7 +480,7 @@ void compile_expression(struct environment *env, struct local *local,
 			}
 
 			struct function *f = find_function(env, (char *)(car(args) ^ SYMBOL_TAG));
-			value_t closure = create_closure(f->code_ptr, f->nargs, 0);
+			value_t closure = create_closure(f->code_ptr, f->args, 0);
 
 			| mov eax, (closure);
 		}
@@ -563,12 +560,12 @@ void compile_expression(struct environment *env, struct local *local,
 			struct function *func = find_function(env, name);
 			
 			bool is_recursive = false;
-			int nargs_needed = 0;
+			struct args *nargs_needed = NULL;
 
 			if (symstreq(fsym, local->current_function_name))
 			{
 				is_recursive = true;
-				nargs_needed = local->num_args;
+				nargs_needed = local->args;
 			}
 			else
 			{
@@ -578,24 +575,38 @@ void compile_expression(struct environment *env, struct local *local,
 					err("Function undefined");
 				}
 
-				nargs_needed = func->nargs;
+				nargs_needed = func->args;
 			}
 
-			if (nargs != nargs_needed)
+			if (!are_args_acceptable(nargs_needed, nargs))
 			{
 				fprintf(stderr, "Function call: %s at %s:%d, want %d args but given %d\n",
-					name, cons_file(val), cons_line(val), nargs_needed, nargs);
+					name, cons_file(val), cons_line(val), nargs_needed->num_required, nargs);
 				err("wrong number of args");
 			}
 
 			if (is_recursive || func->namespace == NS_FUNCTION)
 			{
-				for (int i = length(args) - 1; i >= 0; i--)
+				int nargs = length(args);
+
+				if (nargs <= nargs_needed->num_required)
+				{
+					// Push the variadic list (nil)
+					| push (nil);
+				}
+
+				for (int i = nargs_needed->num_optional - 1; i >= nargs - nargs_needed->num_required; i--)
+				{
+					// Push the default optional values
+					| push (nargs_needed->optional_arguments[i].value);
+				}
+
+				for (int i = nargs - 1; i >= 0; i--)
 				{
 					compile_expression(env, local, elt(args, i), Dst);
 					| push eax;
 				}
-				
+
 				if (is_recursive)
 				{
 					| call ->function_start;
@@ -687,7 +698,8 @@ struct variable *find_variable(struct local *local, char *name)
 
 			if (v)
 			{
-				// We found this in a parent scope, add it as a V_FREE variable to skip the search.
+				// We found this in a parent scope, add it as a V_FREE variable
+				// to skip the search.
 				v = add_variable(local, V_FREE, name, local->num_closure_slots++);
 			}
 		}
@@ -697,12 +709,188 @@ struct variable *find_variable(struct local *local, char *name)
 
 extern value_t _call_list(void *addr, value_t list, value_t *edi);
 
-value_t call_list(struct function *func, value_t list)
+value_t call_list_args(void *code_ptr, struct args *args, value_t list, void *data)
 {
-	return _call_list(func->code_ptr, list, NULL);
+	list = deep_copy(list);
+	int nargs = length(list);
+
+	value_t *val = NULL;
+
+	for (value_t i = list; !nilp(i); i = cdr(i))
+	{
+		val = cdrref(i);
+	}
+
+	int total_required = args->num_required + args->num_optional;
+
+	if (nargs > total_required)
+	{
+		// Take the remainder of the list and put it as the last item in the
+		// list.
+		value_t trailing = cxdr(list, total_required);
+		value_t last_item = cons(trailing, nil);
+
+		*cxdrref(&list, total_required) = last_item;
+	}
+	else if (nargs < total_required)
+	{
+		for (int i = nargs - args->num_required; i < args->num_optional; i++)
+		{
+			// Append the i-th defualt argument
+			value_t appended = cons(args->optional_arguments[i].value, nil);
+			*val = appended;
+			val = cdrref(appended);
+		}
+	}
+
+	// We want to call this if we pass the correct # of arguments or less, just
+	// not if we have already passed varargs. Appends a nil argument.
+	if (nargs <= total_required)
+	{
+		// Enough real arguments but no variadic arguments. Pass a nil list.
+		*val = cons(nil, nil);
+	}
+
+	return _call_list(code_ptr, list, data);
+}
+
+value_t call_list(struct function *fun, value_t list)
+{
+	return call_list_args(fun->code_ptr, fun->args, list, NULL);
 }
 
 value_t call_list_closure(struct closure *c, value_t list)
 {
-	return _call_list(c->function, list, c->data);
+	return call_list_args(c->function, c->args, list, c->data);
+}
+
+struct args *new_args()
+{
+	struct args *a = malloc(sizeof(struct args));
+	a->num_optional = 0;
+	a->num_required = 0;
+	a->variadic = false;
+
+	return a;
+}
+
+struct args *add_optional_arg(struct args *args, value_t name,
+                              value_t value)
+{
+	int i = args->num_optional++;
+	args = realloc(args, sizeof(struct args) +
+		sizeof(struct optional_argument) * args->num_optional);
+
+	args->optional_arguments[i] = (struct optional_argument)
+	{
+		.value = value ,
+		.name = name,
+	};
+
+	return args;
+}
+
+bool are_args_acceptable(struct args *args, int number)
+{
+	if (args->variadic)
+	{
+		return number >= args->num_required;
+	}
+	else
+	{
+		return number >= args->num_required &&
+			number <= args->num_required + args->num_optional;
+	}
+}
+
+struct args *list_to_args(struct environment *env, value_t list, struct local *local)
+{
+	struct args *args = new_args();
+
+	bool in_optional = false;
+
+	for (value_t i = list; !nilp(i); i = cdr(i))
+	{
+		value_t val = car(i);
+		if (symbolp(val))
+		{
+			if (!args->variadic && symstreq(val, "&"))
+			{
+				i = cdr(i);
+				value_t name = car(i);
+
+				if (!symbolp(name))
+				{
+					err("You must provide a symbol after & in an argument list to bind the\n"
+						"variadic arguments to.");
+				}
+
+				args->variadic = true;
+
+				add_variable(local, V_ARGUMENT, (char *)(name ^ SYMBOL_TAG),
+					args->num_optional + args->num_required);
+
+				continue;
+			}
+
+			if (!in_optional)
+			{
+				add_variable(local, V_ARGUMENT, (char *)(val ^ SYMBOL_TAG), args->num_required++);
+			}
+			else
+			{
+				char *name = (char *)(val ^ SYMBOL_TAG);
+				if (name[0] == '&')
+				{
+					err("Non-optional argument following optional arguments starts with a &\n"
+						"did you mean to declare a variadic argument? If so leave a space\n"
+						"between the & and name.");
+				}
+				else
+				{
+					err("Cannot define a non-optional argument after an optional one.");
+				}
+			}
+		}
+		else if (listp(val))
+		{
+			in_optional = true;
+			int len = length(val);
+
+			if (len != 2)
+			{
+				err("A list defining an optional value must be structured like (name expr)\n"
+					"with exactly two arguments.");
+			}
+
+			value_t name = car(val);
+			value_t expr = car(cdr(val));
+
+			value_t function = cons(nil, cons(expr, nil));
+
+			dasm_State *d = compile_function(function, NS_ANONYMOUS, env, NULL, NULL, NULL, NULL);
+
+			// TODO: GC stack top!
+			value_t (*compiled)() = link_program(&d);
+
+			value_t value = compiled();
+			args = add_optional_arg(args, name, value);
+
+			add_variable(local, V_ARGUMENT, (char *)(name ^ SYMBOL_TAG), args->num_required + args->num_optional - 1);
+		}
+	}
+
+	return args;
+}
+
+void display_args(struct args *args)
+{
+	printf("Args object taking %d require arguments and %d optionals:\n",
+		args->num_required, args->num_optional);
+
+	for (int i = 0; i < args->num_optional; i++)
+	{
+		printf("   %d\t%s\n", i, (char *)(args->optional_arguments[i].name ^ SYMBOL_TAG));
+		printval(args->optional_arguments[i].value, 2);
+	}
 }

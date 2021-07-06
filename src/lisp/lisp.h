@@ -39,10 +39,39 @@ struct cons
 	char *name;
 };
 
+/**
+ * Represents how many arguments a function takes.
+ */
+struct args
+{
+	/// The minimum valid number of arguments
+	int num_required;
+
+	/// The number of optional values
+	int num_optional;
+
+	/// Does this function accept variadic arguments? If `true`, any arguments
+	/// after the required and optional arguments will be `cons`-ed to a list
+	/// and passed as a final argument.
+	bool variadic;
+
+	/// The default values for the optional arguments, as expressions. These
+	/// should be evaluated at the call site. They are known not to reference
+	/// anything that could clash with scope at the call site.
+	struct optional_argument
+	{
+		/// The default value of this argument
+		value_t value;
+
+		/// The name of this argument as a symbol
+		value_t name;
+	} optional_arguments[];
+};
+
 struct closure
 {
 	/// How many arguments does this closure take
-	int num_args;
+	struct args *args;
 	/// How many free variables does it capture (i.e. length of `data`)
 	int num_captured;
 	/// The function pointer itself
@@ -146,6 +175,12 @@ value_t car(value_t v);
 value_t cdr(value_t v);
 value_t *carref(value_t v);
 value_t *cdrref(value_t v);
+/// @returns the `index`-th `cdr`
+value_t cxdr(value_t v, int index);
+/// @returns a reference to the `index`-th `cdr`
+value_t *cxdrref(value_t *v, int index);
+
+value_t deep_copy(value_t val);
 
 int cons_line(value_t val);
 char *cons_file(value_t val);
@@ -167,7 +202,7 @@ void err(const char *msg);
 
 bool symstreq(value_t sym, char *str);
 
-value_t create_closure(void *code, int nargs, int ncaptures);
+value_t create_closure(void *code, struct args *args, int ncaptures);
 
 /**
  * Set the `index`th capture variable of `closure`. This should really only be

@@ -130,6 +130,7 @@ struct fistream_private
 	int next;
 	bool has_next;
 	int line;
+	char *path;
 };
 
 int fistream_peek(struct istream *is)
@@ -192,7 +193,7 @@ void fistream_getpos(struct istream *is, int *line, char **name)
 	struct fistream_private *p = is->data;
 
 	*line = p->line;
-	*name = "<FILE *>";
+	*name = p->path;
 }
 
 struct istream *new_fistream(char *path, bool binary)
@@ -213,6 +214,7 @@ struct istream *new_fistream(char *path, bool binary)
 	p->has_next = false;
 	p->file = fp;
 	p->line = 1;
+	p->path = path;
 
 	is->data = p;
 	is->get = fistream_get;

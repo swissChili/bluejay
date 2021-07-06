@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/src/lisp/lisp",
-            "args": ["test-closures.lisp"],
+            "args": ["test-args.lisp"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/src/lisp",
             "environment": [

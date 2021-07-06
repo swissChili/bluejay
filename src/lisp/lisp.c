@@ -14,7 +14,7 @@ value_t t = 1 << 3;
 
 unsigned char max_pool = 0, current_pool = 0;
 
-void err(const char *msg)
+__attribute__((noreturn)) void err(const char *msg)
 {
 	fprintf(stderr, "ERROR: %s\n", msg);
 	exit(1);
@@ -239,7 +239,7 @@ void printval(value_t v, int depth)
 	{
 		struct closure *c = (void *)(v ^ CLOSURE_TAG);
 		printf("closure %p taking %d argument(s) and capturing %d value(s)\n",
-		       c->function, c->num_args, c->num_captured);
+		       c->function, c->args->num_required, c->num_captured);
 	}
 	else
 	{
@@ -598,13 +598,13 @@ char *cons_file(value_t val)
 	return c->name;
 }
 
-value_t create_closure(void *code, int nargs, int ncaptures)
+value_t create_closure(void *code, struct args *args, int ncaptures)
 {
 	struct closure_alloc *ca = malloc_aligned(sizeof(struct closure_alloc) +
 	                                          ncaptures * sizeof(value_t));
 
 	ca->closure.function = code;
-	ca->closure.num_args = nargs;
+	ca->closure.args = args;
 	ca->closure.num_captured = ncaptures;
 
 	add_this_alloc(&ca->alloc, CLOSURE_TAG);
@@ -620,4 +620,69 @@ void set_closure_capture_variable(int index, value_t value, value_t closure)
 	struct closure *c = (void *)(closure ^ CLOSURE_TAG);
 
 	c->data[index] = value;
+}
+
+value_t cxdr(value_t v, int index)
+{
+	if (!listp(v) || index >= length(v))
+		return nil;
+
+	for (int i = 0; i < index; i++)
+	{
+		v = cdr(v);
+	}
+
+	return v;
+}
+
+value_t *cxdrref(value_t *v, int index)
+{
+	if (!listp(*v) || index >= length(*v))
+		return NULL;
+
+	value_t *p = v;
+
+	for (int i = 0; i < index; i++)
+	{
+		p = cdrref(*p);
+	}
+
+	return p;
+}
+
+value_t deep_copy(value_t val)
+{
+	if (integerp(val) || val == nil || val == t)
+	{
+		return val;
+	}
+	else if (symbolp(val))
+	{
+		return symval((char *)(val ^ SYMBOL_TAG));
+	}
+	else if (stringp(val))
+	{
+		return strval((char *)(val ^ STRING_TAG));
+	}
+	else if (consp(val))
+	{
+		return cons(deep_copy(car(val)), deep_copy(cdr(val)));
+	}
+	else if (closurep(val))
+	{
+		struct closure *c = (void *)(val ^ CLOSURE_TAG);
+		value_t new = create_closure(c->function, c->args, c->num_captured);
+		struct closure *new_c = (void *)(new ^ CLOSURE_TAG);
+
+		for (int i = 0; i < c->num_captured; i++)
+		{
+			new_c->data[i] = deep_copy(c->data[i]);
+		}
+
+		return new;
+	}
+	else
+	{
+		err("Don't know how to deep copy this, sorry... please report this bug :)");
+	}
 }
