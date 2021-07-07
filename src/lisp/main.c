@@ -12,7 +12,7 @@ int main(int argc, char **argv)
 	}
 
 	bool ok;
-	struct environment env = compile_file(argv[1], &ok);
+	struct environment *env = compile_file(argv[1], &ok);
 
 	if (!ok)
 	{
@@ -20,11 +20,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	value_t (*lisp_main)() = find_function(&env, "main")->def0;
+	value_t (*lisp_main)() = find_function(env, "main")->def0;
 
 	gc_set_base_here();
 	lisp_main();
 
 	free_all();
-	del_env(&env);
+	del_env(env);
 }

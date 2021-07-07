@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 void *malloc_aligned(size_t size)
 {
@@ -38,4 +40,14 @@ void *link_program(dasm_State **Dst)
 bool file_exists(const char *path)
 {
 	return access(path, F_OK) == 0;
+}
+
+char *read_input_line(char *prompt)
+{
+	return readline(prompt);
+}
+
+void add_line_to_history(char *line)
+{
+	add_history(line);
 }

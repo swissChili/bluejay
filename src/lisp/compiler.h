@@ -15,7 +15,6 @@ enum namespace
 	NS_ANONYMOUS,
 };
 
-
 struct args *new_args();
 struct args *add_optional_arg(struct args *args, value_t name,
                               value_t expression);
@@ -31,8 +30,7 @@ struct function
 	struct args *args;
 	enum namespace namespace;
 
-	union
-	{
+	union {
 		value_t (*def0)();
 		value_t (*def1)(value_t);
 		value_t (*def2)(value_t, value_t);
@@ -82,6 +80,9 @@ struct local
 	/// for a lambda.
 	char *current_function_name;
 
+	/// Path to the current file
+	char *current_file_path;
+
 	int num_vars;
 	struct args *args;
 	/// Most recently defined variable
@@ -103,7 +104,8 @@ struct local
  * `defun`, `defmacro`, `lambda`, etc.
  * @returns NULL if the list is malformed.
  */
-struct args *list_to_args(struct environment *env, value_t list, struct local *local);
+struct args *list_to_args(struct environment *env, value_t list,
+                          struct local *local);
 
 /**
  * Print out `args` to stdout. Useful for debugging.
@@ -129,8 +131,10 @@ void compile_expression(struct environment *env, struct local *local,
  * `add_function` or something similar.
  */
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
-                                    struct environment *env, struct local *local_out,
-                                    struct local *local_parent, struct args **ar, char *name);
+                                    struct environment *env,
+                                    struct local *local_out,
+                                    struct local *local_parent,
+                                    struct args **ar, char *name, char *path);
 
 void compile_variable(struct variable *v, dasm_State *Dst);
 
@@ -139,9 +143,6 @@ void compile_variable(struct variable *v, dasm_State *Dst);
  */
 void compile_backquote(struct environment *env, struct local *local,
                        value_t val, dasm_State **Dst);
-
-void compile_expr_to_func(struct environment *env, char *name, value_t val,
-                          dasm_State **Dst);
 
 int nextpc(struct local *local, dasm_State **Dst);
 
@@ -165,8 +166,13 @@ void del_env(struct environment *env);
  * Walk `body` and reserve space in `local` for any variable declarations.
  */
 void walk_and_alloc(struct local *local, value_t body);
-// Compile top-level declaration
-void compile_tl(value_t val, struct environment *env);
+
+/**
+ * Compile a top level definition
+ * @param fname The path to the current file.
+ * @param val The expression to compile.
+ */
+void compile_tl(value_t val, struct environment *env, char *fname);
 
 /**
  * Compile a file in a new environment.
@@ -176,7 +182,7 @@ void compile_tl(value_t val, struct environment *env);
  * @returns The environment for the compiled file, or an empty environment if
  * `ok` was set to `false` (i.e. the file could not be compiled).
  */
-struct environment compile_file(char *filename, bool *ok);
+struct environment *compile_file(char *filename, bool *ok);
 
 struct function *find_function(struct environment *env, char *name);
 struct variable *add_variable(struct local *local, enum var_type type,

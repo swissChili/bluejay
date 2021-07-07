@@ -19,3 +19,4 @@ doc/_build
 !doc/Makefile
 mnt/*
 doc/_dox*
+.ccls*

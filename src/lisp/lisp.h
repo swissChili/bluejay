@@ -3,6 +3,7 @@
 #include "istream.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #define INT_MASK 0b11
 #define INT_TAG 0b00
@@ -16,7 +17,7 @@
 #define HEAP_MASK 0b111
 
 #define CONS_TAG 0b001
-#define VECTOR_TAG 0b010
+#define CLASS_TAG 0b010
 #define STRING_TAG 0b011
 #define SYMBOL_TAG 0b101
 #define CLOSURE_TAG 0b110
@@ -199,6 +200,7 @@ value_t elt(value_t v, int index);
 void printval(value_t v, int depth);
 
 void err(const char *msg);
+void err_at(value_t form, const char *msg, ...);
 
 bool symstreq(value_t sym, char *str);
 

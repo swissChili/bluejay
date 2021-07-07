@@ -87,6 +87,23 @@ value_t l_elt(value_t seq, value_t i)
 	return elt(seq, i >> 2);
 }
 
+value_t l_read_stdin()
+{
+	char *string = read_input_line("lisp> ");
+	if (!string)
+		return nil;
+
+	struct istream *is = new_stristream_nt(string);
+
+	value_t val = nil;
+	read1(is, &val);
+
+	del_stristream(is);
+	free(string);
+
+	return val;
+}
+
 void load_std(struct environment *env)
 {
 	add_c_function(env, "+", l_plus, 2);
@@ -99,6 +116,7 @@ void load_std(struct environment *env)
 	add_c_function(env, "cons", cons, 2);
 
 	add_c_function(env, "print", l_printval, 1);
+	add_c_function(env, "read-stdin", l_read_stdin, 0);
 	add_c_function(env, "apply", l_apply, 2);
 
 	add_c_function(env, "nilp", l_nilp, 1);

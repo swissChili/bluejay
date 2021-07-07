@@ -23,7 +23,7 @@
 
 ;; Instead of a function this is a macro for a slight performance increase
 (defmacro not (val)
-  (nilp val))
+  (list 'nilp val))
 
 ;; TODO: make tail recursive (for this `flet` would be nice)
 (defun length (list)
@@ -46,3 +46,10 @@ final item."
   (list 'if cond
     nil
     (cons 'progn body)))
+
+(defun read ((stream nil))
+  (if (not stream)
+    (read-stdin)))
+
+(print "Loading list functions")
+(print (load "list-functions.lisp"))

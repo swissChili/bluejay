@@ -18,4 +18,7 @@ void *link_program(dasm_State **Dst);
 extern ssize_t readlink(const char *pathname, char *buf, size_t buf_size);
 bool file_exists(const char *path);
 
+char *read_input_line(char *prompt);
+void add_line_to_history(char *line);
+
 #define THREAD_LOCAL

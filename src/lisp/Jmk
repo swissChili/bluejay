@@ -13,7 +13,8 @@ preset(nasm)
 archetype(c)
 archetype(asm)
 
-CFLAGS += -Ivendor/luajit/dynasm -Werror
+CFLAGS += -Ivendor/luajit/dynasm -Werror -lreadline
+LDFLAGS += -lreadline
 ASMFLAGS += -felf -Fdwarf
 
 OBJECTS = main.o \

@@ -38,6 +38,32 @@
             "remote": true,
             "cwd": "${workspaceRoot}",
             "valuesFormatting": "parseText",
-        }
+        },
+        {
+            "name": "Debug lisp repl",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/lisp/lisp",
+            "args": ["${workspaceFolder}/lib/lisp/repl/repl.lisp"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/src/lisp",
+            "environment": [
+                {
+                    "name": "LISP_LIBRARY_PATH",
+                    "value": "${workspaceFolder}/lib/lisp"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "buildLisp"
+        },
+
     ]
 }

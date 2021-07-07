@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 struct alloc *first_a = NULL, *last_a = NULL;
 
@@ -17,6 +18,22 @@ unsigned char max_pool = 0, current_pool = 0;
 __attribute__((noreturn)) void err(const char *msg)
 {
 	fprintf(stderr, "ERROR: %s\n", msg);
+	exit(1);
+}
+
+__attribute__((noreturn)) void err_at(value_t form, const char *msg, ...)
+{
+	int line = cons_line(form);
+	char *file = cons_file(form);
+
+	fprintf(stderr, "\033[31merror at\033[0m %s:%d\n", file, line);
+
+	va_list list;
+	va_start(list, msg);
+	vfprintf(stderr, msg, list);
+	va_end(list);
+	fprintf(stderr, "\n");
+
 	exit(1);
 }
 
@@ -186,6 +203,7 @@ bool readstr(struct istream *is, value_t *val)
 		}
 		else
 		{
+			s[i] = '\0';
 			is->get(is);
 
 			*val = (value_t)s;

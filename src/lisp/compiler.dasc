@@ -1,13 +1,16 @@
 /* -*- mode:c -*- */
 
 #include "compiler.h"
-#include "lib/std.h"
-#include "plat/plat.h"
 #include "gc.h"
+#include "lib/std.h"
+#include "lisp.h"
+#include "plat/plat.h"
 
 #include <dasm_proto.h>
 #include <dasm_x86.h>
 
+#include <libgen.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,8 +19,7 @@
 |.arch x86;
 
 |.macro setup, nvars;
-|->function_start:
-| push ebp;
+|->function_start : | push ebp;
 | mov ebp, esp;
 | sub esp, (value_size * nvars);
 |.endmacro;
@@ -70,7 +72,8 @@ unsigned int local_alloc(struct local *local)
 
 	int old_size = local->num_stack_slots;
 	local->num_stack_slots += 4;
-	local->stack_slots = realloc(local->stack_slots, local->num_stack_slots * sizeof(bool));
+	local->stack_slots =
+	    realloc(local->stack_slots, local->num_stack_slots * sizeof(bool));
 	// unreadable: set the remaining slots to unused
 	memset(local->stack_slots + old_size, 0, local->num_stack_slots - old_size);
 	local->stack_slots[old_size] = true;
@@ -109,6 +112,8 @@ void del_env(struct environment *env)
 		free(l->resolved_path);
 		free(l);
 	}
+
+	free(env);
 }
 
 void add_load(struct environment *env, char *path)
@@ -125,9 +130,11 @@ void add_load(struct environment *env, char *path)
 }
 
 struct dasm_State *compile_function(value_t args, enum namespace namespace,
-                                    struct environment *env, struct local *local_out,
-                                    struct local *local_parent, struct args **args_out,
-									char *name)
+                                    struct environment *env,
+                                    struct local *local_out,
+                                    struct local *local_parent,
+                                    struct args **args_out, char *name,
+                                    char *path)
 {
 	dasm_State *d;
 	dasm_State **Dst = &d;
@@ -155,6 +162,7 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 	local.num_closure_slots = 0;
 	local.parent = local_parent;
 	local.current_function_name = name;
+	local.current_file_path = path;
 
 	dasm_growpc(&d, local.npc);
 
@@ -175,7 +183,7 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 		walk_and_alloc(&local, car(body_));
 	}
 
-	| setup (local.num_stack_entries);
+	| setup(local.num_stack_entries);
 
 	memset(local.stack_slots, 0, local.num_stack_slots * sizeof(bool));
 	local.num_stack_entries = 0;
@@ -196,7 +204,7 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 	return d;
 }
 
-void compile_tl(value_t val, struct environment *env)
+void compile_tl(value_t val, struct environment *env, char *fname)
 {
 	if (!listp(val))
 		err("Top level must be a list");
@@ -209,16 +217,16 @@ void compile_tl(value_t val, struct environment *env)
 		enum namespace namespace = NS_FUNCTION;
 
 		if (symstreq(form, "defmacro"))
-			namespace = NS_MACRO;
+		namespace = NS_MACRO;
 
 		struct local local;
 		struct args *a;
 		char *name = (char *)(car(args) ^ SYMBOL_TAG);
 
-		dasm_State *d = compile_function(cdr(args), namespace, env, &local, NULL, &a, name);
+		dasm_State *d = compile_function(cdr(args), namespace, env, &local,
+		                                 NULL, &a, name, fname);
 
-		add_function(env, name, link_program(&d),
-		             a, namespace);
+		add_function(env, name, link_program(&d), a, namespace);
 
 		dasm_free(&d);
 		del_local(&local);
@@ -227,7 +235,7 @@ void compile_tl(value_t val, struct environment *env)
 	{
 		for (value_t val = args; !nilp(val); val = cdr(val))
 		{
-			compile_tl(car(val), env);
+			compile_tl(car(val), env, fname);
 		}
 	}
 }
@@ -284,7 +292,7 @@ bool load(struct environment *env, char *path)
 
 	while (read1(is, &val))
 	{
-		compile_tl(val, env);
+		compile_tl(val, env, path);
 	}
 
 	del_fistream(is);
@@ -293,17 +301,34 @@ bool load(struct environment *env, char *path)
 	return true;
 }
 
-struct environment compile_file(char *filename, bool *ok)
+value_t load_relative(struct environment *env, char *to, value_t name)
+{
+	if (!stringp(name))
+		return nil;
+
+	char *new_path = (char *)(name ^ STRING_TAG);
+	char *relative_to = strdup(to);
+	char full_path[512];
+
+	snprintf(full_path, 512, "%s/%s", dirname(relative_to), new_path);
+
+	if (load(env, full_path))
+		return t;
+	else
+		return nil;
+}
+
+struct environment *compile_file(char *filename, bool *ok)
 {
 	value_t val;
-	struct environment env;
-	env.first = NULL;
-	env.first_loaded = NULL;
+	struct environment *env = malloc(sizeof(struct environment));
+	env->first = NULL;
+	env->first_loaded = NULL;
 
-	add_load(&env, filename);
-	load_std(&env);
+	add_load(env, filename);
+	load_std(env);
 
-	bool ok_ = load(&env, filename);
+	bool ok_ = load(env, filename);
 
 	if (ok)
 		*ok = ok_;
@@ -331,12 +356,28 @@ void compile_backquote(struct environment *env, struct local *local,
 	}
 	else
 	{
-		value_t fsym = car(val),
-			args = cdr(val);
+		value_t fsym = car(val), args = cdr(val);
 		int nargs = length(args);
 
 		// TODO
 	}
+}
+
+value_t eval(struct environment *env, value_t form)
+{
+	// Eval!
+	value_t function = cons(nil, cons(form, nil));
+
+	struct local local;
+	struct args *args;
+
+	dasm_State *d = compile_function(function, NS_ANONYMOUS, env, &local, NULL,
+	                                 &args, NULL, "/");
+
+	del_local(&local);
+
+	value_t (*f)() = link_program(&d);
+	return f();
 }
 
 void compile_variable(struct variable *v, dasm_State *Dst)
@@ -344,24 +385,25 @@ void compile_variable(struct variable *v, dasm_State *Dst)
 	switch (v->type)
 	{
 	case V_ARGUMENT:
-		| mov eax, dword [ebp + (value_size * (v->number + 2))];
+		| mov eax, dword[ebp + (value_size * (v->number + 2))];
 		break;
 	case V_BOUND:
-		| mov eax, dword [ebp - ((v->number + 1) * value_size)];
+		| mov eax, dword[ebp - ((v->number + 1) * value_size)];
 		break;
 	case V_FREE:
 		// edi is the closure context pointer
-		| mov eax, dword [edi + (v->number * value_size)];
+		| mov eax, dword[edi + (v->number * value_size)];
 		break;
 	default:
-		err("Sorry, can only access V_ARGUMENT, V_FREE and V_BOUND variables for now :(");
+		err("Sorry, can only access V_ARGUMENT, V_FREE and V_BOUND variables "
+		    "for now :(");
 	}
 }
 
 void compile_expression(struct environment *env, struct local *local,
                         value_t val, dasm_State **Dst)
 {
-	if (symstreq(val, "nil"))
+	if (symstreq(val, "nil") || nilp(val))
 	{
 		| mov eax, (nil);
 	}
@@ -381,7 +423,8 @@ void compile_expression(struct environment *env, struct local *local,
 
 		if (!symbolp(fsym))
 		{
-			err("function name must be a symbol");
+			printval(val, 2);
+			err_at(val, "function name must be a symbol");
 		}
 
 		if (symstreq(fsym, "if"))
@@ -395,14 +438,14 @@ void compile_expression(struct environment *env, struct local *local,
 
 			// result is in eax
 			| cmp eax, (nil);
-			| je =>false_label;
+			| je = > false_label;
 
 			compile_expression(env, local, elt(args, 1), Dst);
-			| jmp =>after_label;
-			|=>false_label:;
+			| jmp = > after_label;
+			|= > false_label:;
 			if (nargs == 3)
-			    compile_expression(env, local, elt(args, 2), Dst);
-			|=>after_label:
+				compile_expression(env, local, elt(args, 2), Dst);
+			|= > after_label:
 		}
 		else if (symstreq(fsym, "progn"))
 		{
@@ -434,7 +477,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 			add_variable(local, V_BOUND, (char *)(name ^ SYMBOL_TAG), i);
 
-			| mov dword [ebp - ((i + 1) * value_size)], eax;
+			| mov dword[ebp - ((i + 1) * value_size)], eax;
 
 			for (; !nilp(rest); rest = cdr(rest))
 			{
@@ -447,7 +490,7 @@ void compile_expression(struct environment *env, struct local *local,
 		{
 			if (nargs)
 			{
-				err("gc takes no arguments");
+				err_at(val, "gc takes no arguments");
 			}
 
 			| run_gc;
@@ -476,17 +519,19 @@ void compile_expression(struct environment *env, struct local *local,
 
 			if (!symbolp(car(args)))
 			{
-				err("argument to function should be a symbol resolvable at compile time");
+				err("argument to function should be a symbol resolvable at "
+				    "compile time");
 			}
 
-			struct function *f = find_function(env, (char *)(car(args) ^ SYMBOL_TAG));
+			struct function *f =
+			    find_function(env, (char *)(car(args) ^ SYMBOL_TAG));
 			value_t closure = create_closure(f->code_ptr, f->args, 0);
 
 			| mov eax, (closure);
 		}
 		else if (symstreq(fsym, "list"))
 		{
-			| push (nil);
+			| push(nil);
 
 			for (int i = nargs - 1; i >= 0; i--)
 			{
@@ -510,16 +555,18 @@ void compile_expression(struct environment *env, struct local *local,
 			// Compile the function with this as the parent scope
 			struct local new_local;
 			int nargs_out;
-			dasm_State *d = compile_function(args, NS_ANONYMOUS, env, &new_local, local, &nargs_out, "recurse");
+			dasm_State *d = compile_function(
+			    args, NS_ANONYMOUS, env, &new_local, local, &nargs_out,
+			    "recurse", local->current_file_path);
 
 			// Link the function
 			void *func_ptr = link_program(&d);
 
 			// Create a closure object with the correct number of captures at
 			// runtime
-			| push (new_local.num_closure_slots);
-			| push (nargs_out);
-			| push (func_ptr);
+			| push(new_local.num_closure_slots);
+			| push(nargs_out);
+			| push(func_ptr);
 			| mov ebx, (create_closure);
 			| call ebx;
 			| add esp, 12;
@@ -539,7 +586,7 @@ void compile_expression(struct environment *env, struct local *local,
 					| push eax;
 
 					// The capture offset
-					| push (var->number);
+					| push(var->number);
 					| mov ebx, (set_closure_capture_variable);
 					| call ebx;
 					// Skip the value and index
@@ -554,15 +601,43 @@ void compile_expression(struct environment *env, struct local *local,
 			dasm_free(&d);
 			del_local(&new_local);
 		}
+		else if (symstreq(fsym, "eval"))
+		{
+			if (nargs != 1)
+			{
+				err("eval takes exactly 1 argument");
+			}
+
+			compile_expression(env, local, car(args), Dst);
+			| push eax;
+			| push(env);
+			| mov ebx, (eval);
+			| call ebx;
+		}
+		else if (symstreq(fsym, "load"))
+		{
+			if (nargs != 1)
+			{
+				err_at(val, "load takes exactly 1 argument, %d given", nargs);
+			}
+
+			compile_expression(env, local, car(args), Dst);
+			| push eax;
+			| push(local->current_file_path);
+			| push(env);
+			| mov ebx, (load_relative);
+			| call ebx;
+		}
 		else
 		{
 			char *name = (char *)(fsym ^ SYMBOL_TAG);
 			struct function *func = find_function(env, name);
-			
+
 			bool is_recursive = false;
 			struct args *nargs_needed = NULL;
 
-			if (symstreq(fsym, local->current_function_name))
+			if (local->current_function_name &&
+			    symstreq(fsym, local->current_function_name))
 			{
 				is_recursive = true;
 				nargs_needed = local->args;
@@ -571,8 +646,7 @@ void compile_expression(struct environment *env, struct local *local,
 			{
 				if (func == NULL)
 				{
-					fprintf(stderr, "Function call: %s at %s:%d\n", name, cons_file(val), cons_line(val));
-					err("Function undefined");
+					err_at(val, "Function %s undefined", name);
 				}
 
 				nargs_needed = func->args;
@@ -580,9 +654,11 @@ void compile_expression(struct environment *env, struct local *local,
 
 			if (!are_args_acceptable(nargs_needed, nargs))
 			{
-				fprintf(stderr, "Function call: %s at %s:%d, want %d args but given %d\n",
-					name, cons_file(val), cons_line(val), nargs_needed->num_required, nargs);
-				err("wrong number of args");
+				err_at(val,
+				       "wrong number of args in function call: %s at %s:%d, "
+				       "want %d args but given %d\n",
+				       name, cons_file(val), cons_line(val),
+				       nargs_needed->num_required, nargs);
 			}
 
 			if (is_recursive || func->namespace == NS_FUNCTION)
@@ -592,13 +668,14 @@ void compile_expression(struct environment *env, struct local *local,
 				if (nargs <= nargs_needed->num_required)
 				{
 					// Push the variadic list (nil)
-					| push (nil);
+					| push(nil);
 				}
 
-				for (int i = nargs_needed->num_optional - 1; i >= nargs - nargs_needed->num_required; i--)
+				for (int i = nargs_needed->num_optional - 1;
+				     i >= nargs - nargs_needed->num_required; i--)
 				{
 					// Push the default optional values
-					| push (nargs_needed->optional_arguments[i].value);
+					| push(nargs_needed->optional_arguments[i].value);
 				}
 
 				for (int i = nargs - 1; i >= 0; i--)
@@ -609,7 +686,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 				if (is_recursive)
 				{
-					| call ->function_start;
+					| call->function_start;
 				}
 				else
 				{
@@ -621,7 +698,8 @@ void compile_expression(struct environment *env, struct local *local,
 			}
 			else if (func->namespace == NS_MACRO)
 			{
-				// Make sure that the stuff allocated by the macro isn't in a pool
+				// Make sure that the stuff allocated by the macro isn't in a
+				// pool
 				unsigned char pool = push_pool(0);
 
 				value_t expanded_to = call_list(func, args);
@@ -634,29 +712,26 @@ void compile_expression(struct environment *env, struct local *local,
 	}
 	else if (symbolp(val))
 	{
-		struct variable *v = find_variable(local, (char *)(val ^ SYMBOL_TAG));
-
-		if (!v)
+		if (symstreq(val, "+current-file+"))
 		{
-			fprintf(stderr, "var: %s\n", (char *)(val ^ SYMBOL_TAG));
-			err("Variable unbound");
+			value_t file_name_val = strval(local->current_file_path);
+
+			| mov eax, (file_name_val);
 		}
+		else
+		{
+			struct variable *v =
+			    find_variable(local, (char *)(val ^ SYMBOL_TAG));
 
-		compile_variable(v, Dst);
+			if (!v)
+			{
+				fprintf(stderr, "var: %s\n", (char *)(val ^ SYMBOL_TAG));
+				err("Variable unbound");
+			}
+
+			compile_variable(v, Dst);
+		}
 	}
-}
-
-void compile_expr_to_func(struct environment *env, char *name, value_t val,
-                          dasm_State **Dst)
-{
-	| setup 0;
-
-	struct local local;
-	compile_expression(env, &local, val, Dst);
-
-	| cleanup;
-
-	add_function(env, name, link_program(Dst), 0, NS_FUNCTION);
 }
 
 struct variable *add_variable(struct local *local, enum var_type type,
@@ -688,7 +763,8 @@ struct variable *find_variable(struct local *local, char *name)
 	struct variable *v = local->first;
 
 	for (; v && strcmp(v->name, name) != 0; v = v->prev)
-	{}
+	{
+	}
 
 	if (!v)
 	{
@@ -700,7 +776,8 @@ struct variable *find_variable(struct local *local, char *name)
 			{
 				// We found this in a parent scope, add it as a V_FREE variable
 				// to skip the search.
-				v = add_variable(local, V_FREE, name, local->num_closure_slots++);
+				v = add_variable(local, V_FREE, name,
+				                 local->num_closure_slots++);
 			}
 		}
 	}
@@ -709,7 +786,8 @@ struct variable *find_variable(struct local *local, char *name)
 
 extern value_t _call_list(void *addr, value_t list, value_t *edi);
 
-value_t call_list_args(void *code_ptr, struct args *args, value_t list, void *data)
+value_t call_list_args(void *code_ptr, struct args *args, value_t list,
+                       void *data)
 {
 	list = deep_copy(list);
 	int nargs = length(list);
@@ -774,17 +852,16 @@ struct args *new_args()
 	return a;
 }
 
-struct args *add_optional_arg(struct args *args, value_t name,
-                              value_t value)
+struct args *add_optional_arg(struct args *args, value_t name, value_t value)
 {
 	int i = args->num_optional++;
-	args = realloc(args, sizeof(struct args) +
-		sizeof(struct optional_argument) * args->num_optional);
+	args =
+	    realloc(args, sizeof(struct args) + sizeof(struct optional_argument) *
+	                                            args->num_optional);
 
-	args->optional_arguments[i] = (struct optional_argument)
-	{
-		.value = value ,
-		.name = name,
+	args->optional_arguments[i] = (struct optional_argument){
+	    .value = value,
+	    .name = name,
 	};
 
 	return args;
@@ -799,11 +876,12 @@ bool are_args_acceptable(struct args *args, int number)
 	else
 	{
 		return number >= args->num_required &&
-			number <= args->num_required + args->num_optional;
+		       number <= args->num_required + args->num_optional;
 	}
 }
 
-struct args *list_to_args(struct environment *env, value_t list, struct local *local)
+struct args *list_to_args(struct environment *env, value_t list,
+                          struct local *local)
 {
 	struct args *args = new_args();
 
@@ -821,34 +899,39 @@ struct args *list_to_args(struct environment *env, value_t list, struct local *l
 
 				if (!symbolp(name))
 				{
-					err("You must provide a symbol after & in an argument list to bind the\n"
-						"variadic arguments to.");
+					err("You must provide a symbol after & in an argument list "
+					    "to bind the\n"
+					    "variadic arguments to.");
 				}
 
 				args->variadic = true;
 
 				add_variable(local, V_ARGUMENT, (char *)(name ^ SYMBOL_TAG),
-					args->num_optional + args->num_required);
+				             args->num_optional + args->num_required);
 
 				continue;
 			}
 
 			if (!in_optional)
 			{
-				add_variable(local, V_ARGUMENT, (char *)(val ^ SYMBOL_TAG), args->num_required++);
+				add_variable(local, V_ARGUMENT, (char *)(val ^ SYMBOL_TAG),
+				             args->num_required++);
 			}
 			else
 			{
 				char *name = (char *)(val ^ SYMBOL_TAG);
 				if (name[0] == '&')
 				{
-					err("Non-optional argument following optional arguments starts with a &\n"
-						"did you mean to declare a variadic argument? If so leave a space\n"
-						"between the & and name.");
+					err("Non-optional argument following optional arguments "
+					    "starts with a &\n"
+					    "did you mean to declare a variadic argument? If so "
+					    "leave a space\n"
+					    "between the & and name.");
 				}
 				else
 				{
-					err("Cannot define a non-optional argument after an optional one.");
+					err("Cannot define a non-optional argument after an "
+					    "optional one.");
 				}
 			}
 		}
@@ -859,8 +942,9 @@ struct args *list_to_args(struct environment *env, value_t list, struct local *l
 
 			if (len != 2)
 			{
-				err("A list defining an optional value must be structured like (name expr)\n"
-					"with exactly two arguments.");
+				err("A list defining an optional value must be structured like "
+				    "(name expr)\n"
+				    "with exactly two arguments.");
 			}
 
 			value_t name = car(val);
@@ -868,7 +952,9 @@ struct args *list_to_args(struct environment *env, value_t list, struct local *l
 
 			value_t function = cons(nil, cons(expr, nil));
 
-			dasm_State *d = compile_function(function, NS_ANONYMOUS, env, NULL, NULL, NULL, NULL);
+			dasm_State *d =
+			    compile_function(function, NS_ANONYMOUS, env, NULL, NULL, NULL,
+			                     NULL, local->current_file_path);
 
 			// TODO: GC stack top!
 			value_t (*compiled)() = link_program(&d);
@@ -876,7 +962,8 @@ struct args *list_to_args(struct environment *env, value_t list, struct local *l
 			value_t value = compiled();
 			args = add_optional_arg(args, name, value);
 
-			add_variable(local, V_ARGUMENT, (char *)(name ^ SYMBOL_TAG), args->num_required + args->num_optional - 1);
+			add_variable(local, V_ARGUMENT, (char *)(name ^ SYMBOL_TAG),
+			             args->num_required + args->num_optional - 1);
 		}
 	}
 
@@ -886,11 +973,12 @@ struct args *list_to_args(struct environment *env, value_t list, struct local *l
 void display_args(struct args *args)
 {
 	printf("Args object taking %d require arguments and %d optionals:\n",
-		args->num_required, args->num_optional);
+	       args->num_required, args->num_optional);
 
 	for (int i = 0; i < args->num_optional; i++)
 	{
-		printf("   %d\t%s\n", i, (char *)(args->optional_arguments[i].name ^ SYMBOL_TAG));
+		printf("   %d\t%s\n", i,
+		       (char *)(args->optional_arguments[i].name ^ SYMBOL_TAG));
 		printval(args->optional_arguments[i].value, 2);
 	}
 }
