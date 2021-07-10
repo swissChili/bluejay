@@ -19,7 +19,8 @@
 |.arch x86;
 
 |.macro setup, nvars;
-|->function_start : | push ebp;
+|->function_start:;
+| push ebp;
 | mov ebp, esp;
 | sub esp, (value_size * nvars);
 |.endmacro;
@@ -30,7 +31,9 @@
 | ret;
 |.endmacro;
 
-|.macro local_var, index;
+|.macro call_extern, address;
+| mov ebx, address;
+| call ebx;
 |.endmacro;
 
 dasm_State *d;
@@ -139,7 +142,7 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 	dasm_State *d;
 	dasm_State **Dst = &d;
 
-	|.section code;
+	|.section code, imports;
 	dasm_init(&d, DASM_MAXSECTION);
 
 	|.globals lbl_;
@@ -183,7 +186,7 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 		walk_and_alloc(&local, car(body_));
 	}
 
-	| setup(local.num_stack_entries);
+	| setup (local.num_stack_entries);
 
 	memset(local.stack_slots, 0, local.num_stack_slots * sizeof(bool));
 	local.num_stack_entries = 0;
@@ -237,6 +240,15 @@ void compile_tl(value_t val, struct environment *env, char *fname)
 		{
 			compile_tl(car(val), env, fname);
 		}
+	}
+	else if (symstreq(form, "load"))
+	{
+		if (length(args) != 1)
+		{
+			err_at(val, "load expects exactly 1 argument, %d given",
+				   length(args));
+		}
+		load_relative(env, fname, car(args));
 	}
 }
 
@@ -305,6 +317,8 @@ value_t load_relative(struct environment *env, char *to, value_t name)
 {
 	if (!stringp(name))
 		return nil;
+
+	fprintf(stderr, "Called load_relative\n");
 
 	char *new_path = (char *)(name ^ STRING_TAG);
 	char *relative_to = strdup(to);
@@ -438,14 +452,14 @@ void compile_expression(struct environment *env, struct local *local,
 
 			// result is in eax
 			| cmp eax, (nil);
-			| je = > false_label;
+			| je =>false_label;
 
 			compile_expression(env, local, elt(args, 1), Dst);
-			| jmp = > after_label;
-			|= > false_label:;
+			| jmp =>after_label;
+			|=>false_label:;
 			if (nargs == 3)
 				compile_expression(env, local, elt(args, 2), Dst);
-			|= > after_label:
+			|=>after_label:;
 		}
 		else if (symstreq(fsym, "progn"))
 		{
@@ -531,7 +545,7 @@ void compile_expression(struct environment *env, struct local *local,
 		}
 		else if (symstreq(fsym, "list"))
 		{
-			| push(nil);
+			| push (nil);
 
 			for (int i = nargs - 1; i >= 0; i--)
 			{
@@ -564,9 +578,9 @@ void compile_expression(struct environment *env, struct local *local,
 
 			// Create a closure object with the correct number of captures at
 			// runtime
-			| push(new_local.num_closure_slots);
-			| push(nargs_out);
-			| push(func_ptr);
+			| push (new_local.num_closure_slots);
+			| push (nargs_out);
+			| push (func_ptr);
 			| mov ebx, (create_closure);
 			| call ebx;
 			| add esp, 12;
@@ -586,7 +600,7 @@ void compile_expression(struct environment *env, struct local *local,
 					| push eax;
 
 					// The capture offset
-					| push(var->number);
+					| push (var->number);
 					| mov ebx, (set_closure_capture_variable);
 					| call ebx;
 					// Skip the value and index
@@ -610,7 +624,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 			compile_expression(env, local, car(args), Dst);
 			| push eax;
-			| push(env);
+			| push (env);
 			| mov ebx, (eval);
 			| call ebx;
 		}
@@ -623,8 +637,8 @@ void compile_expression(struct environment *env, struct local *local,
 
 			compile_expression(env, local, car(args), Dst);
 			| push eax;
-			| push(local->current_file_path);
-			| push(env);
+			| push (local->current_file_path);
+			| push (env);
 			| mov ebx, (load_relative);
 			| call ebx;
 		}
@@ -664,21 +678,42 @@ void compile_expression(struct environment *env, struct local *local,
 			if (is_recursive || func->namespace == NS_FUNCTION)
 			{
 				int nargs = length(args);
+				int total_taken = nargs_needed->num_optional +
+					nargs_needed->num_required;
 
-				if (nargs <= nargs_needed->num_required)
+				int line = cons_line(val);
+				char *file = cons_file(val);
+
+				if (nargs_needed->variadic)
 				{
-					// Push the variadic list (nil)
-					| push(nil);
+					| push (nil);
+				}
+
+				if (nargs > total_taken && nargs_needed->variadic)
+				{
+					// We are passing varargs, which means we need to make a list
+
+					for (int i = nargs - 1; i >= total_taken; i--)
+					{
+						compile_expression(env, local, elt(args, i), Dst);
+						| push eax;
+						| mov ebx, (cons);
+						| call ebx;
+						| add esp, 8;
+						| push eax;
+					}
 				}
 
 				for (int i = nargs_needed->num_optional - 1;
 				     i >= nargs - nargs_needed->num_required; i--)
 				{
 					// Push the default optional values
-					| push(nargs_needed->optional_arguments[i].value);
+					| push (nargs_needed->optional_arguments[i].value);
 				}
 
-				for (int i = nargs - 1; i >= 0; i--)
+				int min = MIN(nargs, total_taken);
+
+				for (int i = min - 1; i >= 0; i--)
 				{
 					compile_expression(env, local, elt(args, i), Dst);
 					| push eax;
@@ -686,12 +721,12 @@ void compile_expression(struct environment *env, struct local *local,
 
 				if (is_recursive)
 				{
-					| call->function_start;
+					| call ->function_start;
 				}
 				else
 				{
-					| mov ebx, (func->code_addr);
-					| call ebx;
+					// | mov ebx, (func->code_addr);
+					| call_extern func->code_addr;
 				}
 				| add esp, (nargs * value_size);
 				// result in eax
@@ -790,9 +825,13 @@ value_t call_list_args(void *code_ptr, struct args *args, value_t list,
                        void *data)
 {
 	list = deep_copy(list);
+
 	int nargs = length(list);
 
-	value_t *val = NULL;
+	printf("IN call_list_args\n");
+	printval(list, 2);
+
+	value_t *val = &list;
 
 	for (value_t i = list; !nilp(i); i = cdr(i))
 	{

@@ -35,7 +35,7 @@ struct function
 		value_t (*def1)(value_t);
 		value_t (*def2)(value_t, value_t);
 		value_t (*def3)(value_t, value_t, value_t);
-		void *code_ptr;
+	void *code_ptr;
 		uintptr_t code_addr;
 	};
 
@@ -207,6 +207,14 @@ value_t call_list_closure(struct closure *c, value_t list);
  * @returns `true` if succesful, `false` otherwise.
  */
 bool load(struct environment *env, char *path);
+
+/**
+ * Load a file relative to another file.
+ * @param to The file to load relative to.
+ * @param name The name or relative path of the file to load.
+ * @param env The environment to load in.
+ */
+value_t load_relative(struct environment *env, char *to, value_t name);
 
 /**
  * Mark a file `path` as loaded in the environment. `path` will be expanded with
