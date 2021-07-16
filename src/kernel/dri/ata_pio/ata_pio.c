@@ -30,7 +30,8 @@ uint ata_pio_get_error()
 
 static void ata_pio_send_init(uint lba, uchar num_sectors)
 {
-	outb(ATA_PORT_DRIVE_SEL, 0xe0 | (lba >> 24));
+	outb(ATA_PORT_DRIVE_SEL, 0xe0 | (lba >> 24) & 0x0f);
+	outb(0x1f1, 0x0); // waste some time
 	outb(ATA_PORT_SECTOR_COUNT, num_sectors);
 	outb(ATA_PORT_LBA_LOW, lba & 0xff);
 	outb(ATA_PORT_LBA_MID, (lba >> 8) & 0xff);
@@ -41,69 +42,95 @@ void ata_pio_read_sectors(void *buffer, uint lba, uchar num_sectors)
 {
 	ushort *word_buffer = buffer;
 
-	ata_pio_wait_bsy();
-	ata_pio_send_init(lba, num_sectors);
-	outb(ATA_PORT_CMD, ATA_CMD_READ);
-
-	ata_pio_wait_bsy();
-	
-	if (inb(ATA_PORT_CMD) & ATA_ERR)
+	for (int sector = 0; sector < num_sectors; sector++)
 	{
-		kprintf(ERROR "ATA_ERR on read\n");
-		kpanic("Failed to read");
-	}
+		ata_pio_wait_bsy();
+		ata_pio_send_init(lba, num_sectors);
+		outb(ATA_PORT_CMD, ATA_CMD_READ);
 
-	for (int i = 0; i < num_sectors * 256; i++)
-	{
-		word_buffer[i] = inw(ATA_PORT_DATA);
-	}
+		ata_pio_wait_bsy();
+		
+		if (inb(ATA_PORT_STATUS) & ATA_ERR)
+		{
+			kprintf(ERROR "ATA_ERR on read\n");
+			kpanic("Failed to read");
+		}
 
-	ata_pio_wait_bsy();
-	outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
+		for (int i = 0; i < 256; i++)
+		{
+			word_buffer[i + sector * 256] = inw(ATA_PORT_DATA);
+		}
+
+		ata_pio_wait_bsy();
+		outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
+	}
 }
 
 void ata_pio_write_sectors(uint lba, uchar num_sectors, ushort *buffer)
 {
-	ata_pio_wait_bsy();
-
-	ata_pio_send_init(lba, num_sectors);
-	outb(ATA_PORT_CMD, ATA_CMD_WRITE);
-
-	ata_pio_wait_bsy();
-
-	for (int i = 0; i < (num_sectors * 256); i++)
+	for (int sector = 0; sector < num_sectors; sector++)
 	{
-		outw(ATA_PORT_DATA, buffer[i]);
-	}
+		ata_pio_wait_bsy();
+		ata_pio_send_init(lba, num_sectors);
+		outb(ATA_PORT_CMD, ATA_CMD_WRITE);
 
-	ata_pio_wait_bsy();
-	outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
+		ata_pio_wait_bsy();
+
+		if (inb(ATA_PORT_STATUS) & ATA_ERR)
+		{
+			kprintf(ERROR "ATA_ERR on write\n");
+			kpanic("Failed to write");
+		}
+
+		for (int i = 0; i < 256; i++)
+		{
+			outw(ATA_PORT_DATA, buffer[i + sector * 256]);
+		}
+
+		ata_pio_wait_bsy();
+		outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
+	}
 }
 
 static void print_buffer()
 {
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < 32; i++)
 	{
 		kprintf("%d ", test_buffer[i]);
-		if (i % 16 == 0)
+		if ((i + 1) % 16 == 0)
 			kprintf("\n");
 	}
 }
 
 void test_ata_pio()
 {
-	kprintf(INFO "Going to ata_pio_read_sectors\n");
+//	for (int i = 0; i < 2; i++)
+	{
+		kprintf(DEBUG "Writing 0s and reading back\n");
 
-	ata_pio_read_sectors(test_buffer, 0, 1);
-	print_buffer();
+		// for (int i = 0; i < 256; i++)
+		// 	test_buffer[i] = 0;
+		// ata_pio_write_sectors(0, 1, test_buffer);
 
-	for (int i = 0; i < 256; i++)
-		test_buffer[i] = i;
+		ata_pio_read_sectors(test_buffer, 2, 1);
+		print_buffer();
+		kprintf(DEBUG "again...\n");
+		ata_pio_read_sectors(test_buffer, 2, 1);
+		print_buffer();
 
-	// ata_pio_write_sectors(0, 1, test_buffer);
+		for (int i = 0; i < 256; i++)
+			test_buffer[i] = i;
 
-	// ata_pio_read_sectors(test_buffer, 0, 1);
-	// print_buffer();
+		kprintf(DEBUG "Writing 0..256 and reading back\n");
+
+		ata_pio_write_sectors(0, 1, test_buffer);
+
+		ata_pio_read_sectors(test_buffer, 2, 1);
+		print_buffer();
+		kprintf(DEBUG "again...\n");
+		ata_pio_read_sectors(test_buffer, 2, 1);
+		print_buffer();
+	}
 }
 
 void ata_pio_handle_irq(struct registers *regs)
@@ -112,11 +139,11 @@ void ata_pio_handle_irq(struct registers *regs)
 	
 	// TODO: use a lock and inform the scheduler that the thread waiting for
 	// this can stop sleeping
-	
+
 	// Acknowledge the IRQ
 	uchar status = inw(ATA_PORT_STATUS);
 
-	kprintf(DEBUG "ATA PIO IRQ received %d (0x%x)\n", status, status);
+	// kprintf(DEBUG "ATA PIO IRQ received %d (0x%x)\n", status, status);
 }
 
 void init_ata_pio()

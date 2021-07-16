@@ -68,5 +68,7 @@ bool ext2_valid_filesystem()
 {
 	struct ext2_superblock sb = ext2_read_superblock();
 
+	kprintf(DEBUG "superblock signature is %d (0x%x)\n", sb.signature, sb.signature);
+
 	return sb.signature == EXT2_SIGNATURE;
 }

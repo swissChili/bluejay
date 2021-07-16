@@ -27,7 +27,7 @@ CFLAGS += -I $(ROOT)/include/kernel $(test_defines)
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf
-QEMUFLAGS = -hda hd0_$(FS).img
+QEMUFLAGS = -hda hd0_ext2.img
 
 OBJECTS = 	boot.o \
 			main.o \
