@@ -3,6 +3,7 @@
 #include <kint.h>
 #include <log.h>
 #include <io.h>
+#include <alloc.h>
 
 inline uint ext2_block_size(struct ext2_superblock *sb)
 {
@@ -77,9 +78,25 @@ struct ext2_block_group_descriptor ext2_load_block_group_descriptor(
 	return descriptors[bgd_offset];
 }
 
-static void print_entry(uint inode, const char *name, void *data)
+static void print_entry(uint inode, const char *name, void *sb)
 {
 	kprintf("%d\t %s\n", inode, name);
+
+	struct ext2_inode in;
+
+	if (ext2_find_inode(sb, inode, &in))
+	{
+		if ((in.mode & EXT2_F_TYPE) == EXT2_S_IFREG)
+		{
+			char buffer[65];
+			uint read = ext2_read_inode(sb, &in, buffer, 64);
+			buffer[read] = 0;
+
+			kprintf("contents: %d\n'%s'\n", read, buffer);
+		}
+	}
+
+	return;
 }
 
 void ext2_mount(struct fs_node *where)
@@ -100,7 +117,7 @@ void ext2_mount(struct fs_node *where)
 		kprintf("ls /\n");
 		kprintf("inode\t name\n");
 		kprintf("--------------------\n");
-		ext2_dir_ls(&sb, &root, print_entry, NULL);
+		ext2_dir_ls(&sb, &root, print_entry, &sb);
 	}
 	else
 	{
@@ -143,7 +160,7 @@ bool ext2_find_inode(struct ext2_superblock *sb, uint number, struct ext2_inode 
 	struct ext2_block_group_descriptor descriptor =
 		ext2_load_block_group_descriptor(sb, block_group);
 
-	kprintf(DEBUG "Descriptor inode_table = 0x%x\n", descriptor.inode_table_start_block);
+	// kprintf(DEBUG "Descriptor inode_table = 0x%x\n", descriptor.inode_table_start_block);
 
 	// We need to figure out what FS block the inode is on, we know how many
 	// inodes there are total in this BGD and the number per page, so this is
@@ -184,7 +201,7 @@ bool ext2_dir_ls(struct ext2_superblock *sb,
 		struct ext2_dirent *ent = (void *)buffer;
 
 		// While there are files in this block
-		while (ent < buffer + ext2_block_size(sb))
+		while ((uint)ent < (uint)(buffer + ext2_block_size(sb)))
 		{
 			if (ent->inode == 0)
 				return true;
@@ -195,7 +212,7 @@ bool ext2_dir_ls(struct ext2_superblock *sb,
 
 				memcpy(name, ent->name, ent->name_len);
 				name[ent->name_len] = '\0';
-				
+
 				cb(ent->inode, name, data);
 			}
 
@@ -206,6 +223,32 @@ bool ext2_dir_ls(struct ext2_superblock *sb,
 	}
 
 	return true;
+}
+
+ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, void *buffer, ssize_t size)
+{
+	const uint block_size = ext2_block_size(sb);
+	char transfer[block_size];
+
+	uint fsize = MIN(inode->size, size);
+	uint i;
+
+	// Transfer full blocks straight to the output buffer
+	for (i = 0; i < fsize / block_size; i++)
+	{
+		ext2_read_inode_block(sb, inode, buffer + i * block_size, i);
+	}
+
+	// If we have part of a block left over read it here first, then transfer what we need
+	if (i * block_size < fsize)
+	{
+		uint remainder = fsize % block_size;
+
+		ext2_read_inode_block(sb, inode, transfer, i);
+		memcpy(buffer + i * block_size, transfer, remainder);
+	}
+
+	return fsize;
 }
 
 bool ext2_read_inode_block(struct ext2_superblock *sb,
@@ -223,4 +266,6 @@ bool ext2_read_inode_block(struct ext2_superblock *sb,
 	uint block_address = inode->blocks[block];
 
 	ext2_read_block(sb, buffer, block_address);
+
+	return true;
 }

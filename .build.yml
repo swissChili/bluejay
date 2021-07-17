@@ -8,6 +8,7 @@ packages:
   - python3
   - gawk
   - nasm
+  - libreadline-dev:i386
 tasks:
   - build-kernel: |
       cd bluejay

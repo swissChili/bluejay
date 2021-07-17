@@ -30,7 +30,7 @@ uint ata_pio_get_error()
 
 static void ata_pio_send_init(uint lba, uchar num_sectors)
 {
-	outb(ATA_PORT_DRIVE_SEL, 0xe0 | (lba >> 24) & 0x0f);
+	outb(ATA_PORT_DRIVE_SEL, 0xe0 | ((lba >> 24) & 0x0f));
 	outb(0x1f1, 0x0); // waste some time
 	outb(ATA_PORT_SECTOR_COUNT, num_sectors);
 	outb(ATA_PORT_LBA_LOW, lba & 0xff);

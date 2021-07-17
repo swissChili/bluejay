@@ -234,6 +234,9 @@ enum
 	EXT2_S_IXOTH = 0x0001,
 };
 
+/// File type flag (used on inode->mode)
+#define EXT2_F_TYPE 0xf000
+
 struct ext2_dirent
 {
 	uint inode;
@@ -278,3 +281,5 @@ bool ext2_read_inode_block(struct ext2_superblock *sb,
 						   struct ext2_inode *inode,
 						   void *buffer,
 						   uint block);
+
+ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, void *buffer, ssize_t size);
