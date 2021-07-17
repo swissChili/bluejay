@@ -1,7 +1,8 @@
 init(kernel, kernel.elf)
 
 preset(freestanding)
-preset(optimize)
+# This makes debugging hard :(
+# preset(optimize)
 preset(debug)
 preset(32)
 preset(warn)
@@ -60,7 +61,7 @@ OBJECTS = 	boot.o \
 type(custom_link)
 
 debug-wait: kernel.elf
-	qemu-system-i386 -s -S -kernel kernel.elf
+	qemu-system-i386 -s -S $(QEMUFLAGS) -kernel kernel.elf
 
 debug: kernel.elf
 	qemu-system-i386 -s -S $(QEMUFLAGS) -kernel kernel.elf &

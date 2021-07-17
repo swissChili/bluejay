@@ -37,6 +37,9 @@ thing and doing it well is certainly a consideration.
   - [x] Initial ramdisk
   - [ ] Filesystem drivers
     - [ ] EXT2 (in progress)
+      - [x] Read
+      - [ ] Write
+      - [ ] Consistency check (`fsck`)
     - [ ] FAT32
 - [ ] System call API
   - [ ] Filesystem API

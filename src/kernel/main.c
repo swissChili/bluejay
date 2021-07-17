@@ -101,19 +101,15 @@ int kmain(struct multiboot_info *mboot)
 	test_ata_pio();
 #endif
 
-#if 1 // ifdef TEST_EXT2
 	if (ext2_valid_filesystem())
 	{
-		kprintf(OKAY "EXT2 filesystem is valid, again = %b\n", ext2_valid_filesystem());
-
-		//kprintf(INFO "Mounting EXT2 to /\n");
-		//ext2_mount(&root);
+		kprintf(OKAY "EXT2 filesystem is valid\n");
+		ext2_mount(&root);
 	}
-
-	// Try reading the regions that the ext2 needs
-	// uchar buffer[1024];
-	// ata_pio_read_sectors(buffer, 2, 2);
-#endif
+	else
+	{
+		kprintf(WARN "Filesystem is not a valid EXT2 format, only EXT2 is supported\n");
+	}
 
 	while (true)
 		asm("hlt");

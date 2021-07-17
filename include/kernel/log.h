@@ -5,6 +5,7 @@
 #define RESET "\033[0m"
 #define INFO "[\033[96m INFO  " RESET "] "
 #define OKAY "[\033[92m  OK   " RESET "] "
+#define WARN "[\033[93m WARN  " RESET "] "
 #define ERROR "[\033[91m ERROR " RESET "] "
 #define DEBUG "[\033[93m DEBUG " RESET "] "
 
