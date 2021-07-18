@@ -149,36 +149,4 @@ void ata_pio_handle_irq(struct registers *regs)
 void init_ata_pio()
 {
 	add_interrupt_handler(46, ata_pio_handle_irq);
-
-/*
-	// TODO: Consider adding this back.
-
-	// 0xA0 for master, 0xB0 for slave
-	outb(ATA_PORT_DRIVE_SEL, 0xA0);
-
-	outb(ATA_PORT_LBA_LOW, 0);
-	outb(ATA_PORT_LBA_MID, 0);
-	outb(ATA_PORT_LBA_HIGH, 0);
-
-	outb(ATA_PORT_CMD, ATA_CMD_IDENTIFY);
-
-	if (inb(ATA_PORT_STATUS))
-	{
-		kprintf(OKAY "ATA drive exists\n");
-
-		// Wait until either DRQ or ERR is set
-		uchar status;
-		while ((status = inb(ATA_PORT_STATUS)) & (ATA_DRQ | ATA_ERR))
-		{
-			if (status & ATA_ERR)
-			{
-
-			}
-		}
-	}
-	else
-	{
-		kprintf(ERROR "ATA drive does not exist\n");
-	}
-*/
 }

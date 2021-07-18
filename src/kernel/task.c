@@ -53,6 +53,7 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 		.ebp = kernel_ebp,
 		.eip = kernel_eip,
 		.id = next_task_id++,
+		.waiting = false,
 	};
 
 	tasks_initialized = true;
@@ -105,6 +106,7 @@ void spawn_thread(void (*function)(void *), void *data)
 	task->id = next_task_id++;
 	task->ebp = task->esp = new_stack_base_v;
 	task->eip = (uint)function;
+	task->waiting = false;
 
 	last_task->next = ll_task;
 	ll_task->prev = last_task;
@@ -172,15 +174,42 @@ void _do_switch_task(uint eip, uint ebp, uint esp)
 	current_task->task.esp = esp;
 	current_task->task.eip = eip;
 
-	if (current_task->next == NULL)
+	struct ll_task_i *original = current_task;
+
+	do
 	{
-		current_task = first_task;
+		if (current_task->next == NULL)
+		{
+			current_task = first_task;
+		}
+		else
+		{
+			// Continue the next task
+			current_task = current_task->next;
+		}
 	}
-	else
+	while (current_task->task.waiting);
+
+	if (current_task == original && original->task.waiting)
 	{
-		// Continue the next task
-		current_task = current_task->next;
+		kpanic("All tasks are waiting for I/O. There must be at least 1 task using CPU at all times.");
 	}
 
 	switch_to_task(&current_task->task);
+}
+
+void set_waiting(int tid, bool waiting)
+{
+	asm("cli");
+
+	for (struct ll_task_i *t = first_task; t != NULL; t = t->next)
+	{
+		if (t->task.id == tid)
+		{
+			t->task.waiting = waiting;
+			break;
+		}
+	}
+
+	asm("sti");
 }

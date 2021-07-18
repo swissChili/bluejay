@@ -1,0 +1,21 @@
+init(libsys, libsys.a)
+
+preset(optimize)
+preset(warn)
+preset(freestanding)
+preset(32)
+preset(debug)
+preset(nasm)
+
+archetype(asm)
+
+OBJECTS = sys.o
+
+sys.s: sys.inc
+
+sys.inc: $(ROOT)/include/sys.h
+	@cat $< | grep '#define' | sed 's/^#/%/' > $@
+
+type(static_lib)
+
+finish

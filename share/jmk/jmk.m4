@@ -20,6 +20,7 @@ ASM ?= nasm
 CC ?= gcc
 LD ?= ld
 CFLAGS += -I$(ROOT)/include
+ASMFLAGS += -felf
 jmk_clean_libs =
 
 MAKEFILE_DEPTH ?= 1
@@ -35,7 +36,8 @@ define(preset,
     `ifelse($1, `freestanding',
         `CFLAGS += -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding',
         $1, `optimize', `CFLAGS += -O2',
-        $1, `debug', `CFLAGS += -g',
+        $1, `debug', `CFLAGS += -g
+ASMFLAGS += -Fdwarf',
         $1, `32', `CFLAGS += -m32',
         $1, `warn', `CFLAGS += -Wall -Wno-unused-function -Wno-unused-variable -Wno-incompatible-pointer-types',
         $1, `nasm', `ASM = nasm')')

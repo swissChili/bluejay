@@ -11,6 +11,7 @@ preset(nasm)
 archetype(c)
 archetype(asm)
 
+depends(sys, $(ROOT)/src/libsys, libsys.a)
 depends(initrd, $(ROOT)/boot/initrd, initrd.img)
 depends(ata_pio, dri/ata_pio, ata_pio.a)
 depends(pci, dri/pci, pci.a)
@@ -53,10 +54,12 @@ OBJECTS = 	boot.o \
 			task.o \
 			task_api.o \
 			faults.o \
+			sync.o \
 			lib(ext2) \
 			lib(ide) \
 			lib(ata_pio) \
-			lib(pci)
+			lib(pci) \
+			lib(sys)
 
 type(custom_link)
 

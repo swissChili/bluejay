@@ -11,9 +11,7 @@ switch_task:
 	;; add esp, 12 				; Clear the arguments
 	popa						; Reset everything
 	xor eax, eax				; Return 0
-
-	pop ebx						; This is just to make debugging easy
-	jmp ebx
+	ret
 
 	[global _switch_to_task]
 	;; _switch_to_task(uint page_directory, uint eip, uint ebp, uint esp)

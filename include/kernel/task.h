@@ -29,6 +29,8 @@ struct process
 struct task
 {
 	int id;
+	/// Is this task waiting for I/O?
+	bool waiting;
 	struct process *proc;
 	/// Physical address of the top of the stack.
 	uint stack_top_p;
@@ -59,6 +61,8 @@ typedef void (*task_function_t)(void *data);
 #define TASK_FUNCTION(f) ((task_function_t)(f))
 
 void spawn_thread(task_function_t function, void *data);
+
+void set_waiting(int tid, bool waiting);
 
 /**
  * Halt the current thread.
