@@ -288,10 +288,10 @@ static const uint ext2_bitmap_block(struct ext2_superblock *sb,
 {
 	const uint block_size = ext2_block_size(sb);
 
-	while (index > block_size)
+	while (*index > block_size)
 	{
-		index -= block_size;
-		bitmap_block += 1;
+		*index -= block_size;
+		*bitmap_block += 1;
 	}
 
 	return block_size;
@@ -357,7 +357,7 @@ uint ext2_first_zero_bit(struct ext2_superblock *sb, uint bitmap_block,
 				kprintf(DEBUG "buffer[i] = 0x%x, i = %d, index = %d\n",
 						buffer[i], i, index);
 
-				// __builtin_ffs gives us the index of the least-significant 1
+				// __builtin_ffs gives us 1+the index of the least-significant 1
 				// bit. Since we take the bitwise inverse this is actuall the
 				// least significant 0 bit. This is a GCC intrinsic. This works
 				// particularly well on little-endian systems where the least
@@ -369,7 +369,7 @@ uint ext2_first_zero_bit(struct ext2_superblock *sb, uint bitmap_block,
 				//                            | this is the MSB
 				//
 				// This means that the LSB is also the first bit in the bitset.
-				uint trailing = __builtin_ffs(~buffer[i]);
+				uint trailing = __builtin_ffs(~buffer[i]) - 1;
 
 				kprintf(DEBUG "Trailing = %d, 0x%x\n", trailing, trailing);
 

@@ -31,7 +31,8 @@ struct fs_node
 
 struct fs_dirent
 {
-	char name[128];
+	// EXT2 supports up to 256 byte file names, so we will do the same
+	char name[256];
 	uint inode;
 };
 

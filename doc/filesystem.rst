@@ -21,3 +21,30 @@ file nodes. The source can be found in ``src/kernel/vfs.c``. This also exports a
 very low-level API for dealing with files -- including the usual read(),
 write(), readdir(), etc -- but this should not be used for much longer. A high
 level API utilizing file descriptors will be implemented to make this simpler.
+
+Filesystem Drivers
+------------------
+
+The current filesystem driver(s) available in Bluejay are:
+
+- ``ext2``
+    - Read-only support, write support is in progress
+
+Creating a Virtual Drive in QEMU
+--------------------------------
+
+By default ``make qemu`` will load ``hd0_$(FS).img`` as the virtual hard drive
+for Bluejay. ``FS`` defaults to ``ext2`` but can be set in your ``Jmk.options``
+to any value. If this file does not exist it will be created using
+``mkfs.$(FS)``, ie ``mkfs.ext2`` by default. The default size of the file system
+is 35 megabytes, although you can create one of any size manually if you want.
+35 megabytes is plenty for testing though.
+
+The ``make mount`` command will mount the current virtual hard drive in
+``$(ROOT)/mnt`` (where ``$(ROOT)`` is the root directory of the Bluejay sources,
+not ``/``). This command requires superuser privileges. If you want to give your
+(host) user account write permissions use ``chown -R user:group /path/to/mnt``
+where ``user`` and ``group`` are the user and group you want to own the files.
+
+Currently Bluejay ignores file permissions so it doesn't matter who you set the
+owner to.

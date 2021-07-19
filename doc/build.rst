@@ -37,3 +37,18 @@ In order to build Bluejay you will need the following dependencies::
 
 There are some additional dependencies for building a GRUB ISO but I don't
 remember them at the time of writing.
+
+Common Issues
+-------------
+
+If when launching Bluejay in QEMU with ``make qemu`` you see the message ::
+
+    [ DEBUG ] mb.mods_addr = <whatever>, 0x<whatever>
+
+Followed by a page fault (``#PF``), your QEMU is out of date. You can either run
+the GRUB ISO (with ``make qemu-iso``), which is slower, or upgrade your QEMU to
+at least version 6.0.
+
+This is because prior to 6.0 QEMU's integrated bootloader did not support
+multiboot modules. This message is caused by the kernel attempting to read a
+module that was loaded incorrectly.

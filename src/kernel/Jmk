@@ -77,6 +77,9 @@ hd0_%.img:
 	@dd bs=4M count=8 if=/dev/zero of=$@
 	@$(patsubst hd0_%.img,mkfs.%,$@) $@
 
+fs-info: hd0_$(FS).img
+	tune2fs -l $< | grep -i inode
+
 qemu: kernel.elf hd0_$(FS).img
 	qemu-system-i386 $(QEMUFLAGS) -d cpu_reset -monitor stdio -kernel kernel.elf -no-reboot
 

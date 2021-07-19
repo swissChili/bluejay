@@ -16,11 +16,6 @@ extensions = [
 	'breathe'
 ]
 
-breathe_projects = {
-	'Kernel': '_dox_kernel/xml',
-	'Lisp': '_dox_lisp/xml'
-}
-
 breathe_default_project = 'Kernel'
 
 templates_path = ['_templates']
@@ -30,6 +25,3 @@ exclude_patterns = ['_build', '_dox_kernel', '_dox_lisp', 'Thumbs.db', '.DS_Stor
 html_theme = 'sphinx_rtd_theme'
 
 html_static_path = ['_static']
-
-def setup(app):
-	app.add_stylesheet('custom.css')
