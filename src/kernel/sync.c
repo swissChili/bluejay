@@ -2,10 +2,9 @@
 #include <alloc.h>
 #include <task.h>
 #include <sys.h>
-#include "syscall.h"
+#include <log.h>
 
 #define SM_PER_LIST 1024
-#define SM_MAX_WAITING 64
 
 struct sm_task
 {
@@ -50,7 +49,20 @@ spinlock_t sl_new()
 	return 0;
 }
 
-void sm_unsafe_wait(struct semaphore *sm)
+static struct semaphore *sm_from_id(semaphore_t sm)
+{
+	struct sm_list *first = sm_first;
+
+	while (sm >= SM_PER_LIST)
+	{
+		first = first->next;
+		sm -= SM_PER_LIST;
+	}
+
+	return &first->semaphores[sm];
+}
+
+static void sm_unsafe_wait(struct semaphore *sm)
 {
 	sm->sm--;
 
@@ -59,6 +71,8 @@ void sm_unsafe_wait(struct semaphore *sm)
 		// Add this task to the waiting list
 		// This will be quick, so just use a spinlock
 		sl_acquire(sm->task_lock);
+
+		kprintf(INFO "Semaphore waiting\n");
 
 		struct sm_task *task = malloc(sizeof(struct sm_task));
 
@@ -84,7 +98,7 @@ void sm_unsafe_wait(struct semaphore *sm)
 	// Otherwise there's nobody else waiting, just go ahead
 }
 
-void sm_unsafe_signal(struct semaphore *sm)
+static void sm_unsafe_signal(struct semaphore *sm)
 {
 	sm->sm++;
 
@@ -136,6 +150,18 @@ semaphore_t sm_new()
 
 	return num;
 }
+
+void sm_wait(semaphore_t sm)
+{
+	sm_unsafe_wait(sm_from_id(sm));
+}
+
+void sm_signal(semaphore_t sm)
+{
+	sm_unsafe_signal(sm_from_id(sm));
+}
+
+
 
 void init_sync()
 {

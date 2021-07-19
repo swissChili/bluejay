@@ -1,9 +1,9 @@
+#include <alloc.h>
 #include <dri/ata_pio/ata_pio.h>
 #include <dri/fs/ext2/ext2.h>
+#include <io.h>
 #include <kint.h>
 #include <log.h>
-#include <io.h>
-#include <alloc.h>
 
 inline uint ext2_block_size(struct ext2_superblock *sb)
 {
@@ -16,6 +16,14 @@ void ext2_read_block(struct ext2_superblock *sb, void *buffer, uint block)
 	uint block_start = block_size * block;
 
 	ata_pio_read_sectors(buffer, block_start, block_size);
+}
+
+void ext2_write_block(struct ext2_superblock *sb, void *buffer, uint block)
+{
+	uint block_size = ext2_block_size(sb) / 512;
+	uint block_start = block_size * block;
+
+	ata_pio_write_sectors(block_start, block_size, buffer);
 }
 
 struct ext2_superblock ext2_read_superblock()
@@ -104,15 +112,17 @@ void ext2_mount(struct fs_node *where)
 	struct ext2_superblock sb = ext2_read_superblock();
 
 	kprintf(DEBUG "EXT2 magic = 0x%x\n", sb.signature);
-	
+
 	// Read the root inode 2
 	struct ext2_inode root;
 
 	if (ext2_find_inode(&sb, 2, &root))
 	{
-		kprintf(OKAY "Found root inode 2 (size=0x%x, num_blocks=0x%x)\n", root.size, root.num_blocks);
+		kprintf(OKAY "Found root inode 2 (size=0x%x, num_blocks=0x%x)\n",
+				root.size, root.num_blocks);
 		// kprintf(DEBUG "Root.mode = 0x%x\n", root.mode & 0xf000);
-		kassert((root.mode & 0xf000) == EXT2_S_IFDIR, "Root (inode 2) is not a directory.");
+		kassert((root.mode & 0xf000) == EXT2_S_IFDIR,
+				"Root (inode 2) is not a directory.");
 
 		kprintf("ls /\n");
 		kprintf("inode\t name\n");
@@ -123,13 +133,16 @@ void ext2_mount(struct fs_node *where)
 	{
 		kprintf(WARN "Failed to find root inode 2\n");
 	}
+
+	kprintf(INFO "First free inode is %d\n", ext2_first_free_inode(&sb));
 }
 
 bool ext2_valid_filesystem()
 {
 	struct ext2_superblock sb = ext2_read_superblock();
 
-	kprintf(DEBUG "superblock signature is %d (0x%x)\n", sb.signature, sb.signature);
+	kprintf(DEBUG "superblock signature is %d (0x%x)\n", sb.signature,
+			sb.signature);
 
 	return sb.signature == EXT2_SIGNATURE;
 }
@@ -148,7 +161,8 @@ void ext2_corrupt_superblock_for_fun()
 	ext2_write_superblock(&sb);
 }
 
-bool ext2_find_inode(struct ext2_superblock *sb, uint number, struct ext2_inode *inode)
+bool ext2_find_inode(struct ext2_superblock *sb, uint number,
+					 struct ext2_inode *inode)
 {
 	if (number == 0)
 		return false;
@@ -160,7 +174,8 @@ bool ext2_find_inode(struct ext2_superblock *sb, uint number, struct ext2_inode 
 	struct ext2_block_group_descriptor descriptor =
 		ext2_load_block_group_descriptor(sb, block_group);
 
-	// kprintf(DEBUG "Descriptor inode_table = 0x%x\n", descriptor.inode_table_start_block);
+	// kprintf(DEBUG "Descriptor inode_table = 0x%x\n",
+	// descriptor.inode_table_start_block);
 
 	// We need to figure out what FS block the inode is on, we know how many
 	// inodes there are total in this BGD and the number per page, so this is
@@ -175,19 +190,16 @@ bool ext2_find_inode(struct ext2_superblock *sb, uint number, struct ext2_inode 
 
 	struct ext2_inode inodes[block_size / sizeof(struct ext2_inode)];
 
-	ext2_read_block(sb, inodes, descriptor.inode_table_start_block +
-								inode_block);
+	ext2_read_block(sb, inodes,
+					descriptor.inode_table_start_block + inode_block);
 
 	*inode = inodes[inode_index];
 
 	return true;
 }
 
-bool ext2_dir_ls(struct ext2_superblock *sb,
-				 struct ext2_inode *dir,
-				 void (*cb)(uint inode,
-							const char *name,
-							void *data),
+bool ext2_dir_ls(struct ext2_superblock *sb, struct ext2_inode *dir,
+				 void (*cb)(uint inode, const char *name, void *data),
 				 void *data)
 {
 	if ((dir->mode & 0xf000) != EXT2_S_IFDIR)
@@ -225,7 +237,8 @@ bool ext2_dir_ls(struct ext2_superblock *sb,
 	return true;
 }
 
-ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, void *buffer, ssize_t size)
+ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode,
+						void *buffer, ssize_t size)
 {
 	const uint block_size = ext2_block_size(sb);
 	char transfer[block_size];
@@ -239,7 +252,8 @@ ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, vo
 		ext2_read_inode_block(sb, inode, buffer + i * block_size, i);
 	}
 
-	// If we have part of a block left over read it here first, then transfer what we need
+	// If we have part of a block left over read it here first, then transfer
+	// what we need
 	if (i * block_size < fsize)
 	{
 		uint remainder = fsize % block_size;
@@ -251,15 +265,14 @@ ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, vo
 	return fsize;
 }
 
-bool ext2_read_inode_block(struct ext2_superblock *sb,
-						   struct ext2_inode *inode,
-						   void *buffer,
-						   uint block)
+bool ext2_read_inode_block(struct ext2_superblock *sb, struct ext2_inode *inode,
+						   void *buffer, uint block)
 {
 	if (block >= 12)
 	{
-		kprintf(ERROR "Sorry, EXT2 can only access the first 12 (direct) blocks "
-					  "of an inode for now. Indirect look-up will be added later\n");
+		kprintf(ERROR
+				"Sorry, EXT2 can only access the first 12 (direct) blocks "
+				"of an inode for now. Indirect look-up will be added later\n");
 		kpanic("Invalid inode block");
 	}
 
@@ -268,4 +281,125 @@ bool ext2_read_inode_block(struct ext2_superblock *sb,
 	ext2_read_block(sb, buffer, block_address);
 
 	return true;
+}
+
+static const uint ext2_bitmap_block(struct ext2_superblock *sb,
+									uint *bitmap_block, uint *index)
+{
+	const uint block_size = ext2_block_size(sb);
+
+	while (index > block_size)
+	{
+		index -= block_size;
+		bitmap_block += 1;
+	}
+
+	return block_size;
+}
+
+bool ext2_check_in_bitmap(struct ext2_superblock *sb, uint bitmap_block,
+						  uint index)
+{
+	const uint block_size = ext2_bitmap_block(sb, &bitmap_block, &index);
+
+	uint byte = index / 8;
+	uint bit = index % 8;
+
+	uchar buffer[block_size];
+
+	ext2_read_block(sb, buffer, bitmap_block);
+
+	return !!(buffer[byte] & (1 << bit));
+}
+
+void ext2_set_in_bitmap(struct ext2_superblock *sb, uint bitmap_block,
+						uint index, bool value)
+{
+	const uint block_size = ext2_bitmap_block(sb, &bitmap_block, &index);
+
+	uint byte = index / 8;
+	uint bit = index % 8;
+
+	uchar buffer[block_size];
+
+	ext2_read_block(sb, buffer, bitmap_block);
+
+	uchar target_bit = 1 << bit;
+	buffer[byte] =
+		value ? (buffer[byte] | target_bit) : (buffer[byte] | ~target_bit);
+
+	ext2_write_block(sb, buffer, bitmap_block);
+}
+
+uint ext2_first_zero_bit(struct ext2_superblock *sb, uint bitmap_block,
+						 uint num_blocks, uint start_at)
+{
+	uint block_size = ext2_block_size(sb);
+
+	for (uint block = bitmap_block; block < bitmap_block + num_blocks; block++)
+	{
+		// dword-array for performance
+		uint buffer[block_size / 4];
+
+		ext2_read_block(sb, buffer, block);
+
+		// If this is the first block start at start_at, otherwise 0
+		for (int i = 0; i < block_size / 4; i++)
+		{
+			// The bitwise negative will be non-zero if there are zero bits in
+			// the original.
+			if (~buffer[i])
+			{
+				// 4 bytes * 8 bits * i dwords
+				uint index =
+					(4 * 8 * i) + (block - bitmap_block) * 8 * block_size;
+
+				kprintf(DEBUG "buffer[i] = 0x%x, i = %d, index = %d\n",
+						buffer[i], i, index);
+
+				// __builtin_ffs gives us the index of the least-significant 1
+				// bit. Since we take the bitwise inverse this is actuall the
+				// least significant 0 bit. This is a GCC intrinsic. This works
+				// particularly well on little-endian systems where the least
+				// significant bit happens to also correspond to the first bit
+				// in the dword bitset.
+				//
+				// ________ ________ ________ ________
+				//        ^ this is the LSB   ^
+				//                            | this is the MSB
+				//
+				// This means that the LSB is also the first bit in the bitset.
+				uint trailing = __builtin_ffs(~buffer[i]);
+
+				kprintf(DEBUG "Trailing = %d, 0x%x\n", trailing, trailing);
+
+				return trailing + index;
+			}
+		}
+	}
+
+	return -1;
+}
+
+uint ext2_first_free_inode(struct ext2_superblock *sb)
+{
+	// For now just check the first block group
+	struct ext2_block_group_descriptor bgd =
+		ext2_load_block_group_descriptor(sb, 0);
+
+	const uint block_size = ext2_block_size(sb);
+	// + 1 because we need to round up (ie 1025 for 1024 size blocks will yield
+	// 1, should 2)
+	uint bitset_blocks = (sb->inodes_per_block_group / 8) / block_size + 1;
+
+	// inodes start at 1
+	uint inode = ext2_first_zero_bit(sb, bgd.inode_bitmap, bitset_blocks, 12) + 1;
+	// This will overflow back to zero if no inode was found
+
+	if (!inode)
+	{
+		kpanic("No inodes left in first block group, FIXME");
+	}
+
+	return inode;
 }

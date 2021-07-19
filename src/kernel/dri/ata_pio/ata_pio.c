@@ -3,11 +3,14 @@
 #include <io.h>
 #include <log.h>
 #include <pic.h>
+#include <sync.h>
 
 /* TODO: Rewrite all of this to work with dri_ide in the case of multiple
  * devices */
 
 static ushort test_buffer[256];
+
+static semaphore_t lock;
 
 void ata_pio_wait_bsy()
 {
@@ -40,6 +43,8 @@ static void ata_pio_send_init(uint lba, uchar num_sectors)
 
 void ata_pio_read_sectors(void *buffer, uint lba, uchar num_sectors)
 {
+	sm_wait(lock);
+
 	ushort *word_buffer = buffer;
 
 	for (int sector = 0; sector < num_sectors; sector++)
@@ -64,10 +69,14 @@ void ata_pio_read_sectors(void *buffer, uint lba, uchar num_sectors)
 		ata_pio_wait_bsy();
 		outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
 	}
+
+	sm_signal(lock);
 }
 
 void ata_pio_write_sectors(uint lba, uchar num_sectors, ushort *buffer)
 {
+	sm_wait(lock);
+
 	for (int sector = 0; sector < num_sectors; sector++)
 	{
 		ata_pio_wait_bsy();
@@ -90,6 +99,8 @@ void ata_pio_write_sectors(uint lba, uchar num_sectors, ushort *buffer)
 		ata_pio_wait_bsy();
 		outw(ATA_PORT_CMD, ATA_CMD_FLUSH_CACHE);
 	}
+
+	sm_signal(lock);
 }
 
 static void print_buffer()
@@ -104,33 +115,9 @@ static void print_buffer()
 
 void test_ata_pio()
 {
-//	for (int i = 0; i < 2; i++)
-	{
-		kprintf(DEBUG "Writing 0s and reading back\n");
-
-		// for (int i = 0; i < 256; i++)
-		// 	test_buffer[i] = 0;
-		// ata_pio_write_sectors(0, 1, test_buffer);
-
-		ata_pio_read_sectors(test_buffer, 2, 1);
-		print_buffer();
-		kprintf(DEBUG "again...\n");
-		ata_pio_read_sectors(test_buffer, 2, 1);
-		print_buffer();
-
-		for (int i = 0; i < 256; i++)
-			test_buffer[i] = i;
-
-		kprintf(DEBUG "Writing 0..256 and reading back\n");
-
-		ata_pio_write_sectors(0, 1, test_buffer);
-
-		ata_pio_read_sectors(test_buffer, 2, 1);
-		print_buffer();
-		kprintf(DEBUG "again...\n");
-		ata_pio_read_sectors(test_buffer, 2, 1);
-		print_buffer();
-	}
+	kprintf(DEBUG "Testing ATA PIO\n");
+	ata_pio_read_sectors(test_buffer, 2, 1);
+	print_buffer();
 }
 
 void ata_pio_handle_irq(struct registers *regs)
@@ -149,4 +136,5 @@ void ata_pio_handle_irq(struct registers *regs)
 void init_ata_pio()
 {
 	add_interrupt_handler(46, ata_pio_handle_irq);
+	lock = sm_new();
 }

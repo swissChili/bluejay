@@ -4,6 +4,7 @@
 #include "log.h"
 #include "multiboot.h"
 #include "paging.h"
+#include "sync.h"
 #include "syscall.h"
 #include "task.h"
 #include "timer.h"
@@ -11,9 +12,9 @@
 #include "vfs_initrd.h"
 #include "vga.h"
 #include <dri/ata_pio/ata_pio.h>
-#include <dri/pci/pci.h>
-#include <dri/ide/ide.h>
 #include <dri/fs/ext2/ext2.h>
+#include <dri/ide/ide.h>
+#include <dri/pci/pci.h>
 
 void greet()
 {
@@ -77,6 +78,8 @@ int kmain(struct multiboot_info *mboot)
 	asm("sti");
 
 	init_tasks();
+	init_sync();
+
 	pci_init();
 
 	// Register PCI drivers
@@ -108,7 +111,9 @@ int kmain(struct multiboot_info *mboot)
 	}
 	else
 	{
-		kprintf(WARN "Filesystem is not a valid EXT2 format, only EXT2 is supported\n");
+		kprintf(
+			WARN
+			"Filesystem is not a valid EXT2 format, only EXT2 is supported\n");
 	}
 
 	while (true)

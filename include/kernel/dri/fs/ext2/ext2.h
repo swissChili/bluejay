@@ -107,33 +107,33 @@ enum ext2_os_id
 struct ext2_block_group_descriptor
 {
 	/// Address of block usage bitmap
-	uint block_bitmap;                           // 4
+	uint block_bitmap; // 4
 
 	/// Address of inode usage bitmap
-	uint inode_bitmap;                           // 8
+	uint inode_bitmap; // 8
 
 	/// Starting block address of inode table
-	uint inode_table_start_block;                // 12
+	uint inode_table_start_block; // 12
 
 	/// Number of unallocated blocks in this group
-	ushort unallocated_blocks;                   // 14
+	ushort unallocated_blocks; // 14
 
 	/// Number of unallocated inodes in this group
-	ushort unallocated_inodes;                   // 16
+	ushort unallocated_inodes; // 16
 
 	/// Number of directories in this group
-	ushort num_dirs;                             // 18
+	ushort num_dirs; // 18
 
-	ushort padding;
+	ushort padding; // 20
 
-	uchar reserved[12];                          // 32
+	uchar reserved[12]; // 32
 };
 
 struct ext2_inode
 {
 	/// The format and permissions of the file, see EXT2_S_*
 	ushort mode;
-	
+
 	/// The user id of the owner
 	ushort uid;
 
@@ -249,6 +249,7 @@ struct ext2_dirent
 /// Read a file system block (0-indexed), if necessary multiple disk blocks
 /// will be read automatically
 void ext2_read_block(struct ext2_superblock *sb, void *buffer, uint block);
+void ext2_write_block(struct ext2_superblock *sb, void *buffer, uint block);
 
 struct ext2_superblock ext2_read_superblock();
 
@@ -283,3 +284,37 @@ bool ext2_read_inode_block(struct ext2_superblock *sb,
 						   uint block);
 
 ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, void *buffer, ssize_t size);
+
+/**
+ * @brief Set a block in a bitmap
+ * @param bitmap_block The first block of the bitmap, not necessarily the block
+ * that this specific bit is in.
+ * @param index The bit to check, starting at 0
+ * @returns The value of the bit
+ */
+bool ext2_check_in_bitmap(struct ext2_superblock *sb, uint bitmap_block,
+						  uint index);
+
+/**
+ * @brief Set a block in a bitmap
+ * @param bitmap_block The first block of the bitmap, not necessarily the block
+ * that this specific bit is in.
+ * @param index The bit to set, starting at 0
+ * @param value The value of the bit, 0 for 0, non-0 for 1
+ */
+void ext2_set_in_bitmap(struct ext2_superblock *sb, uint bitmap_block,
+						uint index, bool value);
+
+/**
+ * @brief Find the first zero bit in a bitset
+ * @param bitmap_block The first block of the bitmap
+ * @param num_blocks The number of blocks in the bitmap, or ~0 for no limit
+ * (UNSAFE).
+ * @param start_at The first bit to search from, useful if you want to ignore
+ * the first reserved inodes.
+ * @returns The index of the first zero bit, or -1 if there is none
+ */
+uint ext2_first_zero_bit(struct ext2_superblock *sb, uint bitmap_block,
+						 uint num_blocks, uint start_at);
+
+uint ext2_first_free_inode(struct ext2_superblock *sb);

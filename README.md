@@ -24,14 +24,17 @@ thing and doing it well is certainly a consideration.
   - [x] Efficient kernel virtual allocator
 - [ ] Preemptive multitasking
   - [x] Multi-threading
-  - [ ] Multi-process support (waiting on FS)
+  - [ ] Multi-process support (in progress)
 - [ ] Device drivers
   - [x] PCI
   - [ ] USB
     - [ ] Mouse + keyboard drivers
   - [ ] Storage device drivers
-    - [x] ATA PIO (broken)
+    - [x] ATA PIO
     - [ ] SATA
+- [x] Synchronization primitives
+  - [x] Process-local spin lock
+  - [x] Kernel-level semaphore
 - [ ] Filesystem
   - [x] Virtual file system
   - [x] Initial ramdisk
@@ -52,12 +55,11 @@ thing and doing it well is certainly a consideration.
     - [x] Lexical closures
   - [ ] Standard library (in progress)
     - [ ] CLOS-style OO library
-- [ ] Lisp integrated into kernel
-- [ ] User-space driver API
+- [ ] Kernel module API
   - [ ] Lisp API
 - [ ] Graphical subsystem
-  - [ ] Graphical environment in Lisp
-- [ ] Network stack in Lisp
+  - [ ] Graphical environment
+- [ ] Network stack
   - [ ] Ethernet driver
   - [ ] IP
   - [ ] TCP
@@ -66,5 +68,6 @@ thing and doing it well is certainly a consideration.
 
 ## Documentation
 
-The [Bluejay manual](https://bluejay.readthedocs.io) contains up to date
-documentation.
+The [Bluejay manual](https://bluejay.readthedocs.io) contains out dated
+documentation. A complete manual will be available before the 1.0 release. For
+now there isn't a ton to document as the user-space API is non-existent.
