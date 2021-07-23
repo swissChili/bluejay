@@ -185,10 +185,9 @@ void vga_putd(uint d)
 
 static bool vga_put_nibble(uchar n, bool first)
 {
-	//	if (first && n == 0)
-	//		return true;
-
-	if (n <= 9)
+	if (first && n == 0)
+		return true;
+	else if (n <= 9)
 		vga_put('0' + n);
 	else
 		vga_put('A' + n - 10);
@@ -198,7 +197,7 @@ static bool vga_put_nibble(uchar n, bool first)
 
 void vga_putx(uint x)
 {
-	bool first = false;
+	bool first = true;
 
 	for (int shift = 24; shift >= 0; shift -= 8)
 	{

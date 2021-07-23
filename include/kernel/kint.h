@@ -21,5 +21,11 @@ enum
 #define MIN(a, b) ((a)>(b)?(b):(a))
 #define MAX(a, b) ((a)>(b)?(a):(b))
 
+/// Pads num to an integer size boundary
+#define PAD(num) ((num + 3) & (~0b11))
+
+/// Perform integer division and round up
+#define IDIV_CEIL(num, den) (((num) + ((den) - 1)) / (den))
+
 // Coerce into 1 or 0
 #define BOOL(a) (!(!(a)))

@@ -70,14 +70,14 @@ static void sm_unsafe_wait(struct semaphore *sm)
 	{
 		// Add this task to the waiting list
 		// This will be quick, so just use a spinlock
-		sl_acquire(sm->task_lock);
+		sl_acquire(&sm->task_lock);
 
 		kprintf(INFO "Semaphore waiting\n");
 
 		struct sm_task *task = malloc(sizeof(struct sm_task));
 
 		task->next = NULL;
-		task->tid = task_id();
+		task->tid = get_task_id();
 
 		if (sm->last)
 		{
@@ -89,9 +89,9 @@ static void sm_unsafe_wait(struct semaphore *sm)
 			sm->last = sm->first = task;
 		}
 
-		sl_release(sm->task_lock);
+		sl_release(&sm->task_lock);
 
-		set_waiting(task_id(), true);
+		set_waiting(get_task_id(), true);
 		sys_giveup();
 	}
 
@@ -104,7 +104,7 @@ static void sm_unsafe_signal(struct semaphore *sm)
 
 	if (sm->sm <= 0)
 	{
-		sl_acquire(sm->task_lock);
+		sl_acquire(&sm->task_lock);
 
 		if (sm->first)
 		{
@@ -116,7 +116,7 @@ static void sm_unsafe_signal(struct semaphore *sm)
 			free(f);
 		}
 
-		sl_release(sm->task_lock);
+		sl_release(&sm->task_lock);
 	}
 }
 

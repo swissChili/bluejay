@@ -29,7 +29,7 @@ CFLAGS += -I $(ROOT)/include/kernel $(test_defines) -O0
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf
-QEMUFLAGS = -hda hd0_ext2.img
+QEMUFLAGS = -drive file=hd0_ext2.img,format=raw
 
 OBJECTS = 	boot.o \
 			main.o \
@@ -80,6 +80,14 @@ hd0_%.img:
 fs-info: hd0_$(FS).img
 	tune2fs -l $< | grep -i inode
 
+reset-fs:
+	@rm hd0_ext2.img
+	@$(MAKE) hd0_ext2.img
+	@sudo $(MAKE) mount
+	@echo 'hi' | sudo tee $(ROOT)/mnt/hello.txt
+	@sudo $(MAKE) umount
+	@$(MAKE) qemu
+
 qemu: kernel.elf hd0_$(FS).img
 	qemu-system-i386 $(QEMUFLAGS) -d cpu_reset -monitor stdio -kernel kernel.elf -no-reboot
 
@@ -91,7 +99,6 @@ scan_codes.c: gen_scan_codes.py scan_codes.tsv
 
 mount: hd0_$(FS).img
 	status_log(MOUNT, $^ $(ROOT)/mnt)
-	@if [ "$(whoami)" = root ]; then echo "DON'T RUN THIS AS ROOT" && exit 1; fi
 	@mkdir -p $(ROOT)/mnt
 	@mount $^ $(ROOT)/mnt
 

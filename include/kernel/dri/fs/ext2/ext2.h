@@ -246,6 +246,18 @@ struct ext2_dirent
 	char name[];
 };
 
+enum
+{
+	EXT2_FT_UNKNOWN = 0,
+	EXT2_FT_REGULAR_FILE,
+	EXT2_FT_DIR,
+	EXT2_FT_CHRDEV,
+	EXT2_FT_BLKDEV,
+	EXT2_FT_FIFO,
+	EXT2_FT_SOCK,
+	EXT2_FT_SYMLINK,
+};
+
 /// Read a file system block (0-indexed), if necessary multiple disk blocks
 /// will be read automatically
 void ext2_read_block(struct ext2_superblock *sb, void *buffer, uint block);
@@ -255,7 +267,7 @@ struct ext2_superblock ext2_read_superblock();
 
 void ext2_write_superblock(struct ext2_superblock *sb);
 
-// Just for fun, corrupt the superblock (obviously don't actually do this)
+/// Just for fun, corrupt the superblock (obviously don't actually do this)
 void ext2_corrupt_superblock_for_fun();
 
 void ext2_mount(struct fs_node *where);
@@ -282,6 +294,10 @@ bool ext2_read_inode_block(struct ext2_superblock *sb,
 						   struct ext2_inode *inode,
 						   void *buffer,
 						   uint block);
+
+/// Write a data block for the inode, 0 being the first block of the file.
+bool ext2_write_inode_block(struct ext2_superblock *sb, struct ext2_inode *dir,
+							void *buffer, uint block);
 
 ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, void *buffer, ssize_t size);
 
@@ -317,4 +333,11 @@ void ext2_set_in_bitmap(struct ext2_superblock *sb, uint bitmap_block,
 uint ext2_first_zero_bit(struct ext2_superblock *sb, uint bitmap_block,
 						 uint num_blocks, uint start_at);
 
+/**
+ * Find the first free inode number.
+ * @returns The inode if it was found, 0 if there are no free inodes.
+ */
 uint ext2_first_free_inode(struct ext2_superblock *sb);
+
+void ext2_insert_into_dir(struct ext2_superblock *sb, struct ext2_inode *dir,
+						  char *name, uint name_len, uint inode, uchar type);

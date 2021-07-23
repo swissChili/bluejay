@@ -22,10 +22,17 @@ void kprintf(const char *format, ...)
 				break;
 			}
 
+			case 'p':
+				vga_put('0');
+				vga_put('x');
+
 			case 'x': {
 				// consider hex always unsigned
 				uint x = (uint)va_arg(args, uint);
-				vga_putx(x);
+				if (x)
+					vga_putx(x);
+				else
+					vga_put('0');
 				break;
 			}
 
