@@ -1,3 +1,5 @@
+# -*- mode:makefile -*-
+
 init(kernel, kernel.elf)
 
 preset(freestanding)
@@ -25,7 +27,7 @@ test_defines = $(TEST:%=-DTEST_%)
 
 FS ?= ext2
 
-CFLAGS += -I $(ROOT)/include/kernel $(test_defines) -O0
+CFLAGS += -I$(ROOT)/include/kernel $(test_defines) -O0
 
 LDFLAGS += -Tlink.ld -melf_i386
 ASMFLAGS += -felf -Fdwarf

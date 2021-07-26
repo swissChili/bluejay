@@ -30,6 +30,13 @@ ushort inw(ushort port)
 	return ret;
 }
 
+struct ext2_dir_contains_data
+{
+	char *name;
+	uint len;
+	bool found;
+};
+
 void outl(ushort port, uint val)
 {
 	asm("outl %1, %0" : : "dN"(port), "a"(val));
@@ -83,6 +90,32 @@ uint strlen(char *a)
 	}
 
 	return i;
+}
+
+uint strnlen(char *s, size_t len)
+{
+	int i;
+
+	for (i = 0; s[i] && i < len; i++)
+	{
+	}
+
+	return i;
+}
+
+int strncmp(char *a, char *b, size_t len)
+{
+	int al = strnlen(a, len), bl = strnlen(b, len);
+
+	if (al != bl)
+		return bl - al;
+
+	for (int i = 0; i < al; i++)
+	{
+		if (a[i] != b[i])
+			return -1;
+	}
+	return 0;
 }
 
 int strcmp(char *a, char *b)

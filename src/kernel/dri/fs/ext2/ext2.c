@@ -5,6 +5,20 @@
 #include <kint.h>
 #include <log.h>
 
+#define F(f,t) [EXT2_S_##f >> 12] = EXT2_FT_##t,
+const uchar ext2_s_to_ft[] =
+{
+	0,
+	F(IFSOCK, SOCK)
+	F(IFLINK, SYMLINK)
+	F(IFREG, REGULAR_FILE)
+	F(IFBLK, BLKDEV)
+	F(IFDIR, DIR)
+	F(IFCHR, CHRDEV)
+	F(IFIFO, FIFO)
+};
+#undef F
+
 inline uint ext2_block_size(struct ext2_superblock *sb)
 {
 	return 1024 << sb->block_size_shift;
@@ -86,11 +100,11 @@ struct ext2_block_group_descriptor ext2_load_block_group_descriptor(
 	return descriptors[bgd_offset];
 }
 
-static void print_entry(uint inode, const char *name, void *sb)
+static bool print_entry(uint inode, const char *name, uint l, void *sb)
 {
 	kprintf("%d\t %s\n", inode, name);
 
-	return;
+	return true;
 
 	struct ext2_inode in;
 
@@ -106,11 +120,13 @@ static void print_entry(uint inode, const char *name, void *sb)
 		}
 	}
 
-	return;
+	return true;
 }
 
 void ext2_mount(struct fs_node *where)
 {
+	UNUSED(where)
+
 	struct ext2_superblock sb = ext2_read_superblock();
 
 	kprintf(DEBUG "EXT2 magic = 0x%x\n", sb.signature);
@@ -128,8 +144,7 @@ void ext2_mount(struct fs_node *where)
 
 		char *name = "hello-hl.txt";
 		kprintf(INFO "Creating hard link %s -> hello.txt\n", name);
-		ext2_insert_into_dir(&sb, &root, name, strlen(name), 12,
-							 EXT2_FT_REGULAR_FILE);
+		ext2_hard_link(&sb, &root, name, strlen(name), 12);
 
 		kprintf("ls /\n");
 		kprintf("inode\t name\n");
@@ -168,8 +183,8 @@ void ext2_corrupt_superblock_for_fun()
 	ext2_write_superblock(&sb);
 }
 
-bool ext2_find_inode(struct ext2_superblock *sb, uint number,
-					 struct ext2_inode *inode)
+bool ext2_get_or_set_inode(struct ext2_superblock *sb, uint number,
+						   struct ext2_inode *inode, bool set)
 {
 	if (number == 0)
 		return false;
@@ -181,38 +196,60 @@ bool ext2_find_inode(struct ext2_superblock *sb, uint number,
 	struct ext2_block_group_descriptor descriptor =
 		ext2_load_block_group_descriptor(sb, block_group);
 
-	// kprintf(DEBUG "Descriptor inode_table = 0x%x\n",
-	// descriptor.inode_table_start_block);
-
 	// We need to figure out what FS block the inode is on, we know how many
 	// inodes there are total in this BGD and the number per page, so this is
 	// simple.
 
 	const uint block_size = ext2_block_size(sb);
 
-	const uint inodes_per_block = block_size / sizeof(struct ext2_inode);
+	const uint inodes_per_block =
+		block_size / sizeof(struct ext2_inode);
 
 	uint inode_block = local_index / inodes_per_block;
 	uint inode_index = local_index % inodes_per_block;
 
 	struct ext2_inode inodes[block_size / sizeof(struct ext2_inode)];
 
-	ext2_read_block(sb, inodes,
-					descriptor.inode_table_start_block + inode_block);
+	const uint fs_block = descriptor.inode_table_start_block +
+		inode_block;
 
-	*inode = inodes[inode_index];
+	ext2_read_block(sb, inodes, fs_block);
+
+	if (set)
+	{
+		inodes[inode_index] = *inode;
+
+		ext2_write_block(sb, inodes, fs_block);
+	}
+	else
+	{
+		*inode = inodes[inode_index];
+	}
 
 	return true;
 }
 
+bool ext2_find_inode(struct ext2_superblock *sb, uint number,
+					 struct ext2_inode *inode)
+{
+	return ext2_get_or_set_inode(sb, number, inode, false);
+}
+
+bool ext2_set_inode(struct ext2_superblock *sb, uint number,
+					struct ext2_inode *inode)
+{
+	return ext2_get_or_set_inode(sb, number, inode, true);
+}
+
 bool ext2_dir_ls(struct ext2_superblock *sb, struct ext2_inode *dir,
-				 void (*cb)(uint inode, const char *name, void *data),
+				 bool (*cb)(uint inode, const char *name, uint name_len,
+							void *data),
 				 void *data)
 {
 	if ((dir->mode & 0xf000) != EXT2_S_IFDIR)
 		return false;
 
-	for (int i = 0; i < dir->num_blocks; i++)
+	for (uint i = 0; i < dir->num_blocks; i++)
 	{
 		uchar buffer[ext2_block_size(sb)];
 		ext2_read_inode_block(sb, dir, buffer, i);
@@ -233,8 +270,8 @@ bool ext2_dir_ls(struct ext2_superblock *sb, struct ext2_inode *dir,
 				memcpy(name, ent->name, name_len);
 				name[name_len] = '\0';
 
-				// kprintf("@ b=%d,ent=%p\n", i, (uint)ent - (uint)buffer);
-				cb(ent->inode, name, data);
+				if (!cb(ent->inode, name, name_len, data))
+					return true;
 			}
 
 			ent = (void *)(((uint)(void *)ent) + ent->rec_len);
@@ -254,6 +291,35 @@ static void ext2_show_dirent(struct ext2_dirent *ent)
 
 	kprintf(DEBUG "<ent ft=%p, i=%d, s=%s, l=%d>\n", ent->file_type, ent->inode,
 			ent->name, ent->rec_len);
+}
+
+bool ext2_hard_link(struct ext2_superblock *sb, struct ext2_inode *dir,
+                    char *name, uint name_len, uint inode)
+{
+	struct ext2_inode in;
+
+	if (!ext2_dir_contains(sb, dir, name, name_len) &&
+		ext2_find_inode(sb, inode, &in))
+	{
+		if ((dir->mode & 0xf000) != EXT2_S_IFDIR)
+		{
+			return false;
+		}
+
+		// Increment the reference count to this inode
+		in.links_count++;
+		ext2_set_inode(sb, inode, &in);
+
+		// Insert it into the directory
+		uchar type = EXT2_S_TO_FT(in.mode);
+		ext2_insert_into_dir(sb, dir, name, name_len, inode, type);
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}	
 }
 
 void ext2_insert_into_dir(struct ext2_superblock *sb, struct ext2_inode *dir,
@@ -303,7 +369,8 @@ void ext2_insert_into_dir(struct ext2_superblock *sb, struct ext2_inode *dir,
 				PAD(ent->name_len + sizeof(struct ext2_dirent));
 			uint available_size = ent->rec_len - this_min_size;
 
-			// kprintf(",%d=%d/%d", ent->name_len, this_min_size, available_size);
+			// kprintf(",%d=%d/%d", ent->name_len, this_min_size,
+			// available_size);
 
 			if (available_size >= min_size)
 			{
@@ -559,4 +626,83 @@ uint ext2_first_free_block(struct ext2_superblock *sb)
 	}
 
 	return 0;
+}
+
+struct ext2_dir_contains_data
+{
+	char *name;
+	uint len;
+	bool found;
+};
+
+static bool ext2_dir_contains_cb(uint inode, const char *name,
+								uint name_len,
+								struct ext2_dir_contains_data *d)
+{
+	if (strncmp((char *)name, d->name, MIN(name_len, d->len)) == 0)
+	{
+		d->found = true;
+		return false;
+	}
+
+	return true;
+}
+
+bool ext2_dir_contains(struct ext2_superblock *sb, struct ext2_inode *dir,
+					   char *name, uint len)
+{
+	if ((dir->mode & EXT2_F_TYPE) != EXT2_S_IFDIR)
+	{
+		return false;
+	}
+
+	struct ext2_dir_contains_data d =
+		{
+			.name = name,
+			.len = len,
+			.found = false,
+		};
+
+	ext2_dir_ls(sb, dir, ext2_dir_contains_cb, &d);
+
+	return d.found;
+}
+
+struct ext2_dir_find_data
+{
+	char *name;
+	uint len;
+	uint inode;
+};
+
+bool ext2_dir_find_cb(uint inode, const char *name, uint len,
+					  struct ext2_dir_find_data *d)
+{
+	if (strncmp((char *)name, d->name, MIN(len, d->len)) == 0)
+	{
+		d->inode = inode;
+		return false;
+	}
+
+	return true;
+}
+
+uint ext2_dir_find(struct ext2_superblock *sb, struct ext2_inode *dir,
+				   char *name, uint name_len)
+{
+	if ((dir->mode & EXT2_F_TYPE) != EXT2_S_IFDIR)
+	{
+		return false;
+	}
+
+	struct ext2_dir_find_data d =
+		{
+			.name = name,
+			.len = name_len,
+			.inode = 0,
+		};
+
+	ext2_dir_ls(sb, dir, ext2_dir_find_cb, &d);
+
+	return d.inode;
 }

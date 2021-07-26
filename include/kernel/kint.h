@@ -21,6 +21,8 @@ enum
 #define MIN(a, b) ((a)>(b)?(b):(a))
 #define MAX(a, b) ((a)>(b)?(a):(b))
 
+#define UNUSED(val) ((void)(val));
+
 /// Pads num to an integer size boundary
 #define PAD(num) ((num + 3) & (~0b11))
 

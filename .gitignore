@@ -20,3 +20,8 @@ doc/_build
 mnt/*
 doc/_dox*
 .ccls*
+GTAGS
+GPATh
+GRTAGS
+GPATH
+.projectile

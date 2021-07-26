@@ -73,6 +73,8 @@ int strcmp(char *a, char *b);
  * @returns the length of null-terminated string a.
  */
 uint strlen(char *a);
+uint strnlen(char *s, size_t len);
+int strncmp(char *a, char *b, size_t len);
 
 bool isdigit(char c);
 /**

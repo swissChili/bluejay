@@ -237,6 +237,12 @@ enum
 /// File type flag (used on inode->mode)
 #define EXT2_F_TYPE 0xf000
 
+const extern uchar ext2_s_to_ft[];
+
+/// Converts the file "mode" (inode->mode, EXT2_S_*) to a file type
+/// (EXT2_FT_*).
+#define EXT2_S_TO_FT(s) (ext2_s_to_ft[s >> 12])
+
 struct ext2_dirent
 {
 	uint inode;
@@ -258,34 +264,53 @@ enum
 	EXT2_FT_SYMLINK,
 };
 
-/// Read a file system block (0-indexed), if necessary multiple disk blocks
-/// will be read automatically
-void ext2_read_block(struct ext2_superblock *sb, void *buffer, uint block);
-void ext2_write_block(struct ext2_superblock *sb, void *buffer, uint block);
+/// Read a file system block (0-indexed), if necessary multiple disk
+/// blocks will be read automatically
+void ext2_read_block(struct ext2_superblock *sb, void *buffer,
+					 uint block);
+void ext2_write_block(struct ext2_superblock *sb, void *buffer,
+					  uint block);
 
 struct ext2_superblock ext2_read_superblock();
 
 void ext2_write_superblock(struct ext2_superblock *sb);
 
-/// Just for fun, corrupt the superblock (obviously don't actually do this)
+/// Just for fun, corrupt the superblock (obviously don't actually do
+/// this)
 void ext2_corrupt_superblock_for_fun();
 
 void ext2_mount(struct fs_node *where);
 
 bool ext2_valid_filesystem();
 
-bool ext2_find_inode(struct ext2_superblock *sb, uint number, struct ext2_inode *inode);
+/**
+ * @brief Get or set an inode
+ * @param inode Either a pointer to the value to be read (set=false),
+ * or the value to be written (set=true).
+ * @param set True if the inode should be set (written), false
+ * otherwise.
+ */
+bool ext2_get_or_set_inode(struct ext2_superblock *sb, uint number,
+						   struct ext2_inode *inode, bool set);
+
+bool ext2_find_inode(struct ext2_superblock *sb, uint number,
+					 struct ext2_inode *inode);
+
+bool ext2_set_inode(struct ext2_superblock *sb, uint number,
+					struct ext2_inode *inode);
 
 /// Load a block group descriptor for a certain block group
 struct ext2_block_group_descriptor ext2_load_block_group_descriptor(
 	struct ext2_superblock *sb, uint block_group);
 
-/// List the contents of a directory dir. Calls `cb` for each item. If `dir` is
-/// not a directory, returns false. Otherwise returns true.
+/// List the contents of a directory dir. Calls `cb` for each item. If
+/// `dir` is not a directory, returns false. Otherwise returns true.
+/// if cb returns true, ls will continue. Otherwise it will stop.
 bool ext2_dir_ls(struct ext2_superblock *sb,
 				 struct ext2_inode *dir,
-				 void (*cb)(uint inode,
+				 bool (*cb)(uint inode,
 							const char *name,
+							uint name_len,
 							void *data),
 				 void *data);
 
@@ -341,3 +366,36 @@ uint ext2_first_free_inode(struct ext2_superblock *sb);
 
 void ext2_insert_into_dir(struct ext2_superblock *sb, struct ext2_inode *dir,
 						  char *name, uint name_len, uint inode, uchar type);
+
+/**
+ * Creates a hard link
+ * @param dir Directory to create the hard link in
+ * @param name Name of the link  to create
+ * @param name_len length of name, not including (optional) NULL byte
+ * @param inode Inode number of link target
+ */
+bool ext2_hard_link(struct ext2_superblock *sb, struct ext2_inode *dir,
+                    char *name, uint name_len, uint inode);
+
+/**
+ * @brief Does a directory contain a certain entry?
+ * @param sb Superblock
+ * @param dir The directory to search in
+ * @param name The name of the entry to look for
+ * @param len The length of the name, not including the optional NULL byte
+ * @returns True if the entry is found, false if not, or if something
+ * goes wrong (ie: dir is not a directory)
+ */
+bool ext2_dir_contains(struct ext2_superblock *sb, struct ext2_inode *dir,
+					   char *name, uint len);
+
+/**
+ * @brief Find an entry in a directory
+ * @param dir Directory to search in
+ * @param name Name of file
+ * @param name_len Length of name, not including (optional) NULL byte.
+ * @returns 0 if no entry could be found, otherwise inode number for
+ * that entry
+ */
+uint ext2_dir_find(struct ext2_superblock *sb, struct ext2_inode *dir,
+				   char *name, uint name_len);

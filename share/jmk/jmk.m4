@@ -9,8 +9,11 @@ define(`_arg1', `$1')
 define(`_foreach', `ifelse(`$2', `()', `',
   `define(`$1', _arg1$2)$3`'$0(`$1', (shift$2), `$3')')')
 
-define(status_log, `	@printf " \e[1;34m%8s\e[m  %s\n" "$1" "$2"')
+define(status_log, `	@printf " \e[1;34m%8s\e[m  %s\n" "$1" "$2" > /dev/stderr')
 define(DO_MAKE, `$(MAKE) --no-print-directory MAKEFILE_DEPTH="$$(( $(MAKEFILE_DEPTH) + 1))"')
+
+define(gtags_path, $(ROOT)/GTAGS)
+define(gen_gtags, ifelse(disable_gtags,true,,cd $(ROOT) && gtags))
 
 define(init,
 `jmk_project := $1
@@ -49,10 +52,10 @@ define(dollar_at, `ident($)ident(@)')
 
 dnl archetype enables a language archetype
 define(archetype,
-    `ifelse($1, c, `.c.o:
+    `ifelse($1, c, `.c.o: gtags_path
 status_log(CC, $<)
 	@$(CC) -c $< -o dollar_at $(CFLAGS)',
-        $1, asm, `.s.o:
+        $1, asm, `.s.o: gtags_path
 status_log(AS, $<)
 	@$(ASM) $(ASMFLAGS) $< -o dollar_at')')
 
@@ -81,14 +84,17 @@ define(type,
     `ifelse($1, executable,
 `$(jmk_target): $(OBJECTS)
 status_log(LD, dollar_at)
+	@gen_gtags
 	@$(CC) -o dollar_at $^ $(CFLAGS)',
     $1, static_lib,
 `$(jmk_target): $(OBJECTS)
 status_log(AR, dollar_at)
+	@gen_gtags
 	@ar rcs dollar_at $^',
     $1, custom_link,
 `$(jmk_target): $(OBJECTS)
 status_log(LD, dollar_at)
+	@gen_gtags
 	@$(LD) $(LDFLAGS) -o dollar_at $^')')
 
 define(option,
@@ -107,6 +113,13 @@ Makefile: Jmk
 status_log(JMK, jmk_build_dir)
 	@cd "jmk_build_dir" && jmk_build_cmd
 
-.PHONY: $(jmk_libs_phony) $(jmk_custom_phony) $(jmk_clean_libs) clean all')
+gtags_path:
+status_log(GTAGS,)
+	gen_gtags
+
+show_cflags:
+	@echo $(CFLAGS)
+
+.PHONY: $(jmk_libs_phony) $(jmk_custom_phony) $(jmk_clean_libs) clean all show_cflags')
 
 divert(0)dnl
