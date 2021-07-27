@@ -45,13 +45,13 @@ bool fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 	return node->vtable->readdir(node, index, out);
 }
 
-struct fs_node *fs_finddir(struct fs_node *node, char *name)
+struct fs_node *fs_finddir(struct fs_node *node, char *name, uint name_len)
 {
 	if (!node || !node->vtable || !node->vtable->finddir ||
 		(node->flags & 7) != FS_DIRECTORY)
 		return NULL;
 
-	return node->vtable->finddir(node, name);
+	return node->vtable->finddir(node, name, name_len);
 }
 
 bool root_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
@@ -68,9 +68,9 @@ bool root_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 		return false;
 }
 
-struct fs_node *root_finddir(struct fs_node *node, char *name)
+struct fs_node *root_finddir(struct fs_node *node, char *name, uint name_len)
 {
-	if (!strcmp(name, "dev"))
+	if (!strncmp(name, "dev", name_len))
 	{
 		return &dev;
 	}
@@ -90,12 +90,12 @@ bool dev_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 		return false;
 }
 
-struct fs_node *dev_finddir(struct fs_node *node, char *name)
+struct fs_node *dev_finddir(struct fs_node *node, char *name, uint name_len)
 {
 	if (node != &dev)
 		return NULL;
 
-	if (!strcmp(name, "initrd"))
+	if (!strncmp(name, "initrd", MIN(name_len, FS_MAX_NAME_LEN)))
 	{
 		return &initrd;
 	}

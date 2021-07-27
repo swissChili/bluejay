@@ -19,11 +19,6 @@ const uchar ext2_s_to_ft[] =
 };
 #undef F
 
-inline uint ext2_block_size(struct ext2_superblock *sb)
-{
-	return 1024 << sb->block_size_shift;
-}
-
 void ext2_read_block(struct ext2_superblock *sb, void *buffer, uint block)
 {
 	uint block_size = ext2_block_size(sb) / 512;
@@ -68,8 +63,25 @@ uint ext2_num_block_groups(struct ext2_superblock *sb)
 	}
 }
 
-struct ext2_block_group_descriptor ext2_load_block_group_descriptor(
+void ext2_write_bgd(struct ext2_superblock *sb, uint block_group,
+					struct ext2_block_group_descriptor *d)
+{
+	ext2_load_or_write_bgd(sb, block_group, d, true);
+}
+
+struct ext2_block_group_descriptor ext2_load_bgd(
 	struct ext2_superblock *sb, uint block_group)
+{
+	struct ext2_block_group_descriptor bgd;
+	ext2_load_or_write_bgd(sb, block_group, &bgd, false);
+
+	return bgd;
+}
+
+void ext2_load_or_write_bgd(struct ext2_superblock *sb,
+							uint block_group,
+							struct ext2_block_group_descriptor *d,
+							bool set)
 {
 	/**
 	 * The BGDT (not to be confused with the GDT) is located the block after the
@@ -95,9 +107,17 @@ struct ext2_block_group_descriptor ext2_load_block_group_descriptor(
 
 	uint lba = (block_size / 512) * bgdt_block + hd_page;
 
-	ata_pio_read_sectors(&descriptors, lba, 1);
+	ata_pio_read_sectors(descriptors, lba, 1);
 
-	return descriptors[bgd_offset];
+	if (set)
+	{
+		descriptors[bgd_offset] = *d;
+		ata_pio_write_sectors(lba, 1, (ushort *)descriptors);
+	}
+	else
+	{
+		*d = descriptors[bgd_offset];
+	}
 }
 
 static bool print_entry(uint inode, const char *name, uint l, void *sb)
@@ -194,7 +214,7 @@ bool ext2_get_or_set_inode(struct ext2_superblock *sb, uint number,
 
 	// Load this from the block group descriptor table
 	struct ext2_block_group_descriptor descriptor =
-		ext2_load_block_group_descriptor(sb, block_group);
+		ext2_load_bgd(sb, block_group);
 
 	// We need to figure out what FS block the inode is on, we know how many
 	// inodes there are total in this BGD and the number per page, so this is
@@ -579,7 +599,7 @@ uint ext2_first_free_inode(struct ext2_superblock *sb)
 	for (int bg_num = 0; bg_num < num_block_groups; bg_num++)
 	{
 		struct ext2_block_group_descriptor bgd =
-			ext2_load_block_group_descriptor(sb, 0);
+			ext2_load_bgd(sb, 0);
 
 		const uint block_size = ext2_block_size(sb);
 		// + 1 because we need to round up (ie 1025 for 1024 size blocks will
@@ -609,7 +629,7 @@ uint ext2_first_free_block(struct ext2_superblock *sb)
 	for (int bg_num = 0; bg_num < num_block_groups; bg_num++)
 	{
 		struct ext2_block_group_descriptor bgd =
-			ext2_load_block_group_descriptor(sb, 0);
+			ext2_load_bgd(sb, 0);
 
 		const uint block_size = ext2_block_size(sb);
 		// + 1 because we need to round up (ie 1025 for 1024 size blocks will
@@ -705,4 +725,26 @@ uint ext2_dir_find(struct ext2_superblock *sb, struct ext2_inode *dir,
 	ext2_dir_ls(sb, dir, ext2_dir_find_cb, &d);
 
 	return d.inode;
+}
+
+uint ext2_alloc_new_block(struct ext2_superblock *sb,
+						  uint block_group)
+{
+	struct ext2_block_group_descriptor bgd =
+		ext2_load_bgd(sb, block_group);
+
+	if (bgd.unallocated_blocks == 0)
+		// TODO: handle out of blocks
+		return ext2_alloc_new_block(sb, block_group + 1);
+
+	// We can safely pass ~0 here as long as the FS is well formed
+	// because we know there is at least 1 free block
+	uint block = ext2_first_zero_bit(sb, bgd.block_bitmap, ~0, 0);
+
+	ext2_set_in_bitmap(sb, bgd.block_bitmap, block, true);
+	bgd.unallocated_blocks--;
+
+	ext2_write_bgd(sb, block_group, &bgd);
+
+	return block;
 }

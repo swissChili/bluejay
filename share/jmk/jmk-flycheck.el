@@ -35,3 +35,11 @@ Returns nil if nothing can be found"
 	(message "includes: %s" names)
 	names))
 
+(defun jmk-other-flags-for (p)
+  (let* ((args (jmk-arguments-for p))
+		 (not-includes (cl-remove-if-not (lambda (arg)
+										   (string-prefix-p "-I" arg))
+					   args))
+		 (stripped (mapcar #'string-trim not-includes)))
+	stripped))
+

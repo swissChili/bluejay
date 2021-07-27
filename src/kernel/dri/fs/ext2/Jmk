@@ -1,3 +1,5 @@
+# -*- mode:makefile -*-
+
 init(ext2, ext2.a)
 
 preset(freestanding)
@@ -10,7 +12,7 @@ archetype(c)
 
 CFLAGS += -I$(ROOT)/include/kernel
 
-OBJECTS = ext2.o
+OBJECTS = ext2.o ext2_vfs.o
 
 type(static_lib)
 

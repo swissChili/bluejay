@@ -31,15 +31,20 @@ bool initrd_readdir(struct fs_node *node, uint i, struct fs_dirent *out)
 	return true;
 }
 
-struct fs_node *initrd_finddir(struct fs_node *node, char *name)
+struct fs_node *initrd_finddir(struct fs_node *node, char *name,
+							   uint name_len)
 {
 	if (node != &real_initrd)
 		return NULL;
 
 	for (int i = 0; i < num_initrd_files; i++)
 	{
-		if (strcmp(entries[i].name, name) == 0)
+		if (strncmp(entries[i].name, name,
+					MIN(FS_MAX_NAME_LEN, name_len))
+			== 0)
+		{
 			return &initrd_content[i];
+		}
 	}
 	return NULL;
 }
@@ -58,7 +63,7 @@ uint initrd_read(struct fs_node *node, size_t offset, size_t size, uchar *buffer
 		return 0;
 
 	size = MIN(size, node->size - offset);
-	memcpy(buffer, entries[node->dri_res].data, size);
+	memcpy(buffer, entries[node->dri_res_i].data, size);
 
 	return size;
 }
@@ -104,7 +109,7 @@ void init_initrd_vfs(uchar *data)
 		entries[i].size = f->size;
 
 		initrd_content[i] = (struct fs_node){
-			.dri_res = i,
+			.dri_res_i = i,
 			.flags = FS_FILE,
 			.mask = 0b101001001,
 			.uid = 0,

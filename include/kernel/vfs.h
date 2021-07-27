@@ -4,8 +4,12 @@
 
 struct fs_vtable;
 
+#define FS_MAX_NAME_LEN 128
+
 struct fs_node
 {
+	/** length of file name */
+	uint name_len;
 	/** file name */
 	char name[128];
 	/** identifier */
@@ -21,7 +25,11 @@ struct fs_node
 	/** size in bytes */
 	size_t size;
 	/** reserved for driver */
-	uint dri_res;
+	union
+	{
+		uint dri_res_i;
+		void *dri_res_p;
+	};
 
 	struct fs_vtable *vtable;
 
@@ -33,6 +41,7 @@ struct fs_dirent
 {
 	// EXT2 supports up to 256 byte file names, so we will do the same
 	char name[256];
+	uint name_len;
 	uint inode;
 };
 
@@ -42,7 +51,7 @@ typedef void (*fs_open_t)(struct fs_node *node);
 typedef void (*fs_close_t)(struct fs_node *node);
 
 typedef bool (*fs_readdir_t)(struct fs_node *node, uint index, struct fs_dirent *dirent);
-typedef struct fs_node *(*fs_finddir_t)(struct fs_node *node, char *name);
+typedef struct fs_node *(*fs_finddir_t)(struct fs_node *node, char *name, uint name_len);
 
 struct fs_vtable
 {
@@ -78,7 +87,7 @@ void fs_open(struct fs_node *node);
 void fs_close(struct fs_node *node);
 
 bool fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out);
-struct fs_node *fs_finddir(struct fs_node *node, char *name);
+struct fs_node *fs_finddir(struct fs_node *node, char *name, uint name_len);
 
 /* Returns the following error codes:
  * 0: success

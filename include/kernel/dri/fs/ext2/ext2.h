@@ -264,6 +264,11 @@ enum
 	EXT2_FT_SYMLINK,
 };
 
+inline uint ext2_block_size(struct ext2_superblock *sb)
+{
+	return 1024 << sb->block_size_shift;
+}
+
 /// Read a file system block (0-indexed), if necessary multiple disk
 /// blocks will be read automatically
 void ext2_read_block(struct ext2_superblock *sb, void *buffer,
@@ -300,8 +305,18 @@ bool ext2_set_inode(struct ext2_superblock *sb, uint number,
 					struct ext2_inode *inode);
 
 /// Load a block group descriptor for a certain block group
-struct ext2_block_group_descriptor ext2_load_block_group_descriptor(
+struct ext2_block_group_descriptor ext2_load_bgd(
 	struct ext2_superblock *sb, uint block_group);
+
+/// Write a block group descriptor for a certain block group
+void ext2_write_bgd(struct ext2_superblock *sb, uint block_group,
+					struct ext2_block_group_descriptor *d);
+
+/// Load or write a BGD
+void ext2_load_or_write_bgd(struct ext2_superblock *sb,
+							uint block_group,
+							struct ext2_block_group_descriptor *d,
+							bool set);
 
 /// List the contents of a directory dir. Calls `cb` for each item. If
 /// `dir` is not a directory, returns false. Otherwise returns true.
@@ -324,7 +339,9 @@ bool ext2_read_inode_block(struct ext2_superblock *sb,
 bool ext2_write_inode_block(struct ext2_superblock *sb, struct ext2_inode *dir,
 							void *buffer, uint block);
 
-ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode, void *buffer, ssize_t size);
+ssize_t ext2_read_inode(struct ext2_superblock *sb,
+						struct ext2_inode *inode, void *buffer,
+						ssize_t size);
 
 /**
  * @brief Set a block in a bitmap
