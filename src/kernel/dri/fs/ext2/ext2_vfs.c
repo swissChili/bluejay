@@ -142,9 +142,9 @@ bool ext2_dir_readdir(struct fs_node *node, uint index, struct fs_dirent *dirent
 	{
 	}
 
-	if (i == index)
+	if (dent && i == index)
 	{
-		memcpy(dirent->name, dent->name, 256);
+		memcpy(dirent->name, dent->name, MAX(dent->name_len, FS_MAX_NAME_LEN));
 		dirent->name_len = dent->name_len;
 		dirent->inode = dent->inode;
 
@@ -196,8 +196,8 @@ static bool ext2_dirent_to_fs_node_cb(uint inode, const char *name,
 	struct ext2_fs_dirent *dent =
 		malloc(sizeof(struct ext2_fs_dirent));
 
-	if (strncmp(".", name, name_len) == 0 ||
-		strncmp("..", name, name_len) == 0)
+	if (strncmp(".", (char *)name, name_len) == 0 ||
+		strncmp("..", (char *)name, name_len) == 0)
 	{
 		return true;
 	}
