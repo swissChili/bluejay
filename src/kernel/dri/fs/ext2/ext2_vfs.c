@@ -196,6 +196,12 @@ static bool ext2_dirent_to_fs_node_cb(uint inode, const char *name,
 	struct ext2_fs_dirent *dent =
 		malloc(sizeof(struct ext2_fs_dirent));
 
+	if (strncmp(".", name, name_len) == 0 ||
+		strncmp("..", name, name_len) == 0)
+	{
+		return true;
+	}
+
 	dent->node = ext2_inode2vfs(d->sb, inode, (char *)name, name_len);
 	dent->name_len = name_len;
 	memcpy(dent->name, name, MIN(name_len, 256));
@@ -263,6 +269,7 @@ struct fs_node *ext2_inode2vfs(struct ext2_superblock *sb, uint inode,
 		struct ext2_fs_dirent_to_fs_data data;
 		data.d = d;
 		data.last = NULL;
+		data.sb = sb;
 
 		ext2_dir_ls(sb, &in, ext2_dirent_to_fs_node_cb, &data);
 

@@ -59,20 +59,7 @@ int kmain(struct multiboot_info *mboot)
 	kprintf(DEBUG "initrd is at 0x%x to 0x%x\n", initrd_loc);
 
 	init_initrd_vfs(initrd_loc);
-#endif
-
 	kprintf(OKAY "VFS initialized\n");
-
-	kprintf(OKAY "Initial setup complete!\n");
-
-#ifdef TEST_VFS_INITRD
-	kprintf(INFO "fs_readdir(\"/dev/initrd\")\n");
-
-	struct fs_dirent dirent;
-	for (int i = 0; fs_readdir(&root, i, &dirent); i++)
-	{
-		kprintf(INFO "name: %s, inode: %d\n", dirent.name, dirent.inode);
-	}
 #endif
 
 	asm("sti");
@@ -114,6 +101,14 @@ int kmain(struct multiboot_info *mboot)
 		kprintf(
 			WARN
 			"Filesystem is not a valid EXT2 format, only EXT2 is supported\n");
+	}
+
+	kprintf(INFO "fs_readdir(\"/\") mnt=%p\n", root.mount);
+
+	struct fs_dirent dirent;
+	for (int i = 0; fs_readdir(&root, i, &dirent); i++)
+	{
+		kprintf(INFO "name: %s, inode: %d\n", dirent.name, dirent.inode);
 	}
 
 	while (true)

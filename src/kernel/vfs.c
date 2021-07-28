@@ -6,6 +6,9 @@ struct fs_vtable root_v, dev_v;
 
 uint fs_read(struct fs_node *node, size_t offset, size_t size, uchar *buffer)
 {
+	if (node->mount)
+		node = node->mount;
+
 	if (!node || !node->vtable || !node->vtable->read)
 		return 0;
 
@@ -14,6 +17,9 @@ uint fs_read(struct fs_node *node, size_t offset, size_t size, uchar *buffer)
 
 uint fs_write(struct fs_node *node, size_t offset, size_t size, uchar *buffer)
 {
+	if (node->mount)
+		node = node->mount;
+
 	if (!node || !node->vtable || !node->vtable->write)
 		return 0;
 
@@ -22,6 +28,9 @@ uint fs_write(struct fs_node *node, size_t offset, size_t size, uchar *buffer)
 
 void fs_open(struct fs_node *node)
 {
+	if (node->mount)
+		node = node->mount;
+
 	if (!node || !node->vtable || !node->vtable->open)
 		return;
 
@@ -30,6 +39,9 @@ void fs_open(struct fs_node *node)
 
 void fs_close(struct fs_node *node)
 {
+	if (node->mount)
+		node = node->mount;
+
 	if (!node || !node->vtable || !node->vtable->close)
 		return;
 
@@ -38,6 +50,9 @@ void fs_close(struct fs_node *node)
 
 bool fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 {
+	if (node->mount)
+		node = node->mount;
+
 	if (!node || !node->vtable || !node->vtable->readdir ||
 		(node->flags & 7) != FS_DIRECTORY)
 		return false;
@@ -47,6 +62,9 @@ bool fs_readdir(struct fs_node *node, uint index, struct fs_dirent *out)
 
 struct fs_node *fs_finddir(struct fs_node *node, char *name, uint name_len)
 {
+	if (node->mount)
+		node = node->mount;
+
 	if (!node || !node->vtable || !node->vtable->finddir ||
 		(node->flags & 7) != FS_DIRECTORY)
 		return NULL;
@@ -103,24 +121,20 @@ struct fs_node *dev_finddir(struct fs_node *node, char *name, uint name_len)
 	return NULL;
 }
 
+static struct fs_vtable root_vt =
+{
+	NULL,
+};
+
 void init_vfs()
 {
-	memset(&root_v, 0, sizeof(root_v));
-	memset(&dev_v, 0, sizeof(root_v));
-	memset(&root, 0, sizeof(root));
-	memset(&dev, 0, sizeof(dev));
-
+	root.mount = NULL;
+	root.inode = 0; // fake inode
 	root.flags = FS_DIRECTORY;
-	root.vtable = &root_v;
-	dev.flags = FS_DIRECTORY;
-	dev.vtable = &dev_v;
-	initrd.flags = FS_DIRECTORY;
-
-	root_v.readdir = root_readdir;
-	root_v.finddir = root_finddir;
-
-	dev_v.readdir = dev_readdir;
-	dev_v.finddir = dev_finddir;
+	root.mask = ~0;
+	root.gid = root.uid = 0;
+	root.size = 0;
+	root.vtable = &root_vt;
 }
 
 uint fs_mount(struct fs_node *target, struct fs_node *source)

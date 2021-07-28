@@ -1,6 +1,8 @@
 #include <alloc.h>
 #include <dri/ata_pio/ata_pio.h>
 #include <dri/fs/ext2/ext2.h>
+#include <dri/fs/ext2/ext2_vfs.h>
+#include <vfs.h>
 #include <io.h>
 #include <kint.h>
 #include <log.h>
@@ -145,38 +147,17 @@ static bool print_entry(uint inode, const char *name, uint l, void *sb)
 
 void ext2_mount(struct fs_node *where)
 {
-	UNUSED(where)
 
-	struct ext2_superblock sb = ext2_read_superblock();
+	struct ext2_superblock *sb = malloc(sizeof(struct ext2_superblock));
+	*sb = ext2_read_superblock();
 
-	kprintf(DEBUG "EXT2 magic = 0x%x\n", sb.signature);
+	struct fs_node *ext2_root = ext2_inode2vfs(sb, 2, "/", 1);
+	uint err;
 
-	// Read the root inode 2
-	struct ext2_inode root;
-
-	if (ext2_find_inode(&sb, 2, &root))
+	if ((err = fs_mount(where, ext2_root)))
 	{
-		kprintf(OKAY "Found root inode 2 (size=0x%x, num_blocks=0x%x)\n",
-				root.size, root.num_blocks);
-		// kprintf(DEBUG "Root.mode = 0x%x\n", root.mode & 0xf000);
-		kassert((root.mode & 0xf000) == EXT2_S_IFDIR,
-				"Root (inode 2) is not a directory.");
-
-		char *name = "hello-hl.txt";
-		kprintf(INFO "Creating hard link %s -> hello.txt\n", name);
-		ext2_hard_link(&sb, &root, name, strlen(name), 12);
-
-		kprintf("ls /\n");
-		kprintf("inode\t name\n");
-		kprintf("--------------------\n");
-		ext2_dir_ls(&sb, &root, print_entry, &sb);
+		kprintf(WARN "Failed to mount EXT2: error %d\n", err);
 	}
-	else
-	{
-		kprintf(WARN "Failed to find root inode 2\n");
-	}
-
-	kprintf(INFO "First free inode is %d\n", ext2_first_free_inode(&sb));
 }
 
 bool ext2_valid_filesystem()

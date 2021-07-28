@@ -1,5 +1,6 @@
 ((nil . ((eval
-		  . (setq-local flycheck-clang-include-path
-						(jmk-includes-for (expand-file-name buffer-file-name))
+		  . (let ((path (expand-file-name (or buffer-file-name "."))))
+			  (setq-local flycheck-clang-include-path
+						(jmk-includes-for path)
 						flycheck-clang-args
-						(jmk-other-flags-for (expand-file-name buffer-file-name)))))))
+						(jmk-other-flags-for path)))))))
