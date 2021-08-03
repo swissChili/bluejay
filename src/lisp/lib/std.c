@@ -104,12 +104,23 @@ value_t l_read_stdin()
 	return val;
 }
 
+value_t l_num_eq(value_t a, value_t b)
+{
+	if (!integerp(a) || !integerp(b))
+	{
+		return nil;
+	}
+
+	return (a >> 3) == (b >> 3) ? t : nil;
+}
+
 void load_std(struct environment *env)
 {
 	add_c_function(env, "+", l_plus, 2);
 	add_c_function(env, "-", l_minus, 2);
 	add_c_function(env, "*", l_times, 2);
 	add_c_function(env, "/", l_divide, 2);
+	add_c_function(env, "=", l_num_eq, 2);
 
 	add_c_function(env, "car", car, 1);
 	add_c_function(env, "cdr", cdr, 1);

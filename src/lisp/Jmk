@@ -13,7 +13,7 @@ preset(nasm)
 archetype(c)
 archetype(asm)
 
-CFLAGS += -Ivendor/luajit/dynasm -Werror -lreadline
+CFLAGS += -Ivendor/luajit/dynasm -Werror -lreadline # -fsanitize=address
 LDFLAGS += -lreadline
 ASMFLAGS += -felf -Fdwarf
 

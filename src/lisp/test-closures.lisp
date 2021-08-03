@@ -1,5 +1,4 @@
 (defun main ()
-  (print (reduce (lambda (a b)
-                   (+ a b))
-                 (list 1 2 3 4 5)
-                 0)))
+  (print (reduce #'+
+				 (list 1 2 3 4)
+				 0)))

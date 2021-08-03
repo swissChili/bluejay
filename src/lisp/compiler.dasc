@@ -19,7 +19,7 @@
 |.arch x86;
 
 |.macro setup, nvars;
-|->function_start:;
+|1:;
 | push ebp;
 | mov ebp, esp;
 | sub esp, (value_size * nvars);
@@ -32,8 +32,7 @@
 |.endmacro;
 
 |.macro call_extern, address;
-| mov ebx, address;
-| call ebx;
+| call &address;
 |.endmacro;
 
 dasm_State *d;
@@ -318,8 +317,6 @@ value_t load_relative(struct environment *env, char *to, value_t name)
 	if (!stringp(name))
 		return nil;
 
-	fprintf(stderr, "Called load_relative\n");
-
 	char *new_path = (char *)(name ^ STRING_TAG);
 	char *relative_to = strdup(to);
 	char full_path[512];
@@ -554,8 +551,7 @@ void compile_expression(struct environment *env, struct local *local,
 				// push the ith item
 				| push eax;
 				// cons the top two stack items
-				| mov ebx, (cons);
-				| call ebx;
+				| call_extern cons;
 				// remove the stack items from use
 				| add esp, (2 * value_size);
 				// put the new thing on the stack
@@ -581,8 +577,7 @@ void compile_expression(struct environment *env, struct local *local,
 			| push (new_local.num_closure_slots);
 			| push (nargs_out);
 			| push (func_ptr);
-			| mov ebx, (create_closure);
-			| call ebx;
+			| call_extern create_closure;
 			| add esp, 12;
 
 			// Walk the generated local scope for V_FREE variables, since each
@@ -601,8 +596,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 					// The capture offset
 					| push (var->number);
-					| mov ebx, (set_closure_capture_variable);
-					| call ebx;
+					| call_extern set_closure_capture_variable;
 					// Skip the value and index
 					| add esp, 8;
 					// Pop the closure back in to eax
@@ -625,8 +619,7 @@ void compile_expression(struct environment *env, struct local *local,
 			compile_expression(env, local, car(args), Dst);
 			| push eax;
 			| push (env);
-			| mov ebx, (eval);
-			| call ebx;
+			| call_extern eval;
 		}
 		else if (symstreq(fsym, "load"))
 		{
@@ -639,8 +632,7 @@ void compile_expression(struct environment *env, struct local *local,
 			| push eax;
 			| push (local->current_file_path);
 			| push (env);
-			| mov ebx, (load_relative);
-			| call ebx;
+			| call_extern load_relative;
 		}
 		else
 		{
@@ -649,6 +641,10 @@ void compile_expression(struct environment *env, struct local *local,
 
 			bool is_recursive = false;
 			struct args *nargs_needed = NULL;
+
+			// The number of arguments actually passed on the stack,
+			// i.e. all varargs are 1.
+			int real_nargs = nargs;
 
 			if (local->current_function_name &&
 			    symstreq(fsym, local->current_function_name))
@@ -675,11 +671,21 @@ void compile_expression(struct environment *env, struct local *local,
 				       nargs_needed->num_required, nargs);
 			}
 
+			int total_taken = nargs_needed->num_optional +
+				nargs_needed->num_required;
+
+			if (nargs > total_taken)
+			{
+				real_nargs = total_taken + 1;
+			}
+			else
+			{
+				real_nargs = total_taken;
+			}
+
 			if (is_recursive || func->namespace == NS_FUNCTION)
 			{
 				int nargs = length(args);
-				int total_taken = nargs_needed->num_optional +
-					nargs_needed->num_required;
 
 				int line = cons_line(val);
 				char *file = cons_file(val);
@@ -697,8 +703,7 @@ void compile_expression(struct environment *env, struct local *local,
 					{
 						compile_expression(env, local, elt(args, i), Dst);
 						| push eax;
-						| mov ebx, (cons);
-						| call ebx;
+						| call_extern cons;
 						| add esp, 8;
 						| push eax;
 					}
@@ -721,14 +726,14 @@ void compile_expression(struct environment *env, struct local *local,
 
 				if (is_recursive)
 				{
-					| call ->function_start;
+					| call <1;
 				}
 				else
 				{
 					// | mov ebx, (func->code_addr);
 					| call_extern func->code_addr;
 				}
-				| add esp, (nargs * value_size);
+				| add esp, (real_nargs * value_size);
 				// result in eax
 			}
 			else if (func->namespace == NS_MACRO)
@@ -827,9 +832,6 @@ value_t call_list_args(void *code_ptr, struct args *args, value_t list,
 	list = deep_copy(list);
 
 	int nargs = length(list);
-
-	printf("IN call_list_args\n");
-	printval(list, 2);
 
 	value_t *val = &list;
 

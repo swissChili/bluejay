@@ -22,8 +22,15 @@ int main(int argc, char **argv)
 
 	value_t (*lisp_main)() = find_function(env, "main")->def0;
 
-	gc_set_base_here();
-	lisp_main();
+	if (lisp_main)
+	{
+		gc_set_base_here();
+		lisp_main();
+	}
+	else
+	{
+		fprintf(stderr, "No MAIN function defined! nothing to do\n");
+	}
 
 	free_all();
 	del_env(env);

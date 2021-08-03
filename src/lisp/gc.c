@@ -124,5 +124,6 @@ void free_all()
 		struct alloc *next = a->next;
 		free_aligned(a);
 		a = next;
+//		fprintf(stderr, "a = %p\n", a);
 	}
 }

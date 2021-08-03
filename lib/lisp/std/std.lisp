@@ -51,8 +51,6 @@ final item."
     (read-stdin)))
 
 (defun funcall (fun & list)
-  (print fun)
-  (print list)
   (apply fun list))
 
 (load "list-functions.lisp")

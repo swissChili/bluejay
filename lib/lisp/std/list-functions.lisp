@@ -29,7 +29,8 @@ accept two arguments and return the result of combining those
 arguments. The first argument will be the result so far and the second
 will be the n-th item of the list. For the first item of the list, the
 result so far will be `initial-value`, or `nil` by default."
-  (if (not list)
-      initial-value
-      (reduce fun (cdr list)
-              (funcall fun initial-value (car list)))))
+  (if (nilp list)
+      initial-value 
+	  (reduce fun (cdr list)
+			  (funcall fun initial-value
+					   (car list)))))

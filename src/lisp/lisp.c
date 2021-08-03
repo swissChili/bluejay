@@ -103,7 +103,7 @@ start:
 bool isallowedchar(char c)
 {
 	return (c >= '#' && c <= '\'') || (c >= '*' && c <= '/') ||
-	       (c >= '>' && c <= '@');
+	       (c >= '<' && c <= '@');
 }
 
 bool issymstart(char c)
@@ -125,7 +125,6 @@ bool readsym(struct istream *is, value_t *val)
 
 	int size = 8;
 	struct alloc *a = malloc_aligned(size + sizeof(struct alloc));
-	add_this_alloc(a, SYMBOL_TAG);
 
 	char *s = (char *)(a + 1);
 
@@ -133,15 +132,15 @@ bool readsym(struct istream *is, value_t *val)
 
 	for (int i = 1;; i++)
 	{
+		if (i >= size)
+		{
+			size *= 2;
+			a = realloc_aligned(a, size + sizeof(struct alloc));
+			s = (char *)(a + 1);
+		}
+
 		if (issym(is->peek(is)))
 		{
-			if (i >= size)
-			{
-				size *= 2;
-				a = realloc_aligned(a, size + sizeof(struct alloc));
-				s = (char *)(a + 1);
-			}
-
 			s[i] = is->get(is);
 		}
 		else
@@ -150,6 +149,7 @@ bool readsym(struct istream *is, value_t *val)
 			*val = (value_t)s;
 			*val |= SYMBOL_TAG;
 
+			add_this_alloc(a, SYMBOL_TAG);
 			return true;
 		}
 	}
@@ -166,7 +166,6 @@ bool readstr(struct istream *is, value_t *val)
 	int size = 8;
 
 	struct alloc *a = malloc_aligned(size + sizeof(struct alloc));
-	add_this_alloc(a, STRING_TAG);
 
 	char *s = (char *)(a + 1);
 
@@ -209,6 +208,7 @@ bool readstr(struct istream *is, value_t *val)
 			*val = (value_t)s;
 			*val |= STRING_TAG;
 
+			add_this_alloc(a, STRING_TAG);
 			return true;
 		}
 	}
@@ -275,6 +275,8 @@ bool readlist(struct istream *is, value_t *val)
 	is->get(is);
 
 	*val = readn(is);
+
+	skipws(is);
 
 	if (is->peek(is) != ')')
 	{

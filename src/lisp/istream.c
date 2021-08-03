@@ -170,6 +170,7 @@ int fistream_read(struct istream *is, char *buffer, int size)
 	struct fistream_private *p = is->data;
 
 	int offset = 0;
+	char *buffer_o = buffer;
 
 	if (p->has_next)
 	{
@@ -180,12 +181,22 @@ int fistream_read(struct istream *is, char *buffer, int size)
 		offset = 1;
 	}
 
-	return (int)fread(buffer, 1, size, p->file) + offset;
+	int read = (int)fread(buffer, 1, size, p->file) + offset;
+
+	for (int i = 0; i < read; i++)
+	{
+		if (buffer_o[i] == '\n')
+			p->line++;
+	}
+
+	return read;
 }
 
 void fistream_showpos(struct istream *s, FILE *out)
 {
-	// TODO: implement
+	struct fistream_private *p = s->data;
+
+	fprintf(out, "At %s:%d\n", p->path, p->line);
 }
 
 void fistream_getpos(struct istream *is, int *line, char **name)
