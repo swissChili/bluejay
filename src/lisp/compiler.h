@@ -113,7 +113,7 @@ struct args *list_to_args(struct environment *env, value_t list,
 void display_args(struct args *args);
 
 void compile_expression(struct environment *env, struct local *local,
-                        value_t val, dasm_State **Dst);
+                        value_t val, bool tail, dasm_State **Dst);
 
 /**
  * Compile a function

@@ -52,10 +52,10 @@ define(dollar_at, `ident($)ident(@)')
 
 dnl archetype enables a language archetype
 define(archetype,
-    `ifelse($1, c, `.c.o: gtags_path
+    `ifelse($1, c, `.c.o:
 status_log(CC, $<)
 	@$(CC) -c $< -o dollar_at $(CFLAGS)',
-        $1, asm, `.s.o: gtags_path
+        $1, asm, `.s.o:
 status_log(AS, $<)
 	@$(ASM) $(ASMFLAGS) $< -o dollar_at')')
 

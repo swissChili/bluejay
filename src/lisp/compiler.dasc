@@ -192,7 +192,8 @@ struct dasm_State *compile_function(value_t args, enum namespace namespace,
 
 	for (; !nilp(body); body = cdr(body))
 	{
-		compile_expression(env, &local, car(body), Dst);
+		bool tail = nilp(cdr(body));
+		compile_expression(env, &local, car(body), tail, Dst);
 	}
 
 	| cleanup;
@@ -253,6 +254,7 @@ void compile_tl(value_t val, struct environment *env, char *fname)
 
 void walk_and_alloc(struct local *local, value_t body)
 {
+	// TODO: handle macros
 	if (!listp(body))
 		return;
 
@@ -412,7 +414,7 @@ void compile_variable(struct variable *v, dasm_State *Dst)
 }
 
 void compile_expression(struct environment *env, struct local *local,
-                        value_t val, dasm_State **Dst)
+                        value_t val, bool tail, dasm_State **Dst)
 {
 	if (symstreq(val, "nil") || nilp(val))
 	{
@@ -443,7 +445,7 @@ void compile_expression(struct environment *env, struct local *local,
 			if (nargs < 2 || nargs > 3)
 				err("Must give at least 2 arguments to if");
 
-			compile_expression(env, local, car(args), Dst);
+			compile_expression(env, local, car(args), false, Dst);
 			int false_label = nextpc(local, Dst),
 			    after_label = nextpc(local, Dst);
 
@@ -451,18 +453,19 @@ void compile_expression(struct environment *env, struct local *local,
 			| cmp eax, (nil);
 			| je =>false_label;
 
-			compile_expression(env, local, elt(args, 1), Dst);
+			compile_expression(env, local, elt(args, 1), tail, Dst);
 			| jmp =>after_label;
 			|=>false_label:;
 			if (nargs == 3)
-				compile_expression(env, local, elt(args, 2), Dst);
+				compile_expression(env, local, elt(args, 2), tail, Dst);
 			|=>after_label:;
 		}
 		else if (symstreq(fsym, "progn"))
 		{
 			for (value_t val = args; !nilp(val); val = cdr(val))
 			{
-				compile_expression(env, local, car(val), Dst);
+				bool t = tail && nilp(cdr(val));
+				compile_expression(env, local, car(val), t, Dst);
 			}
 		}
 		else if (symstreq(fsym, "let1"))
@@ -482,7 +485,7 @@ void compile_expression(struct environment *env, struct local *local,
 			value_t name = car(binding);
 			value_t value = car(cdr(binding));
 
-			compile_expression(env, local, value, Dst);
+			compile_expression(env, local, value, false, Dst);
 
 			int i = local_alloc(local);
 
@@ -492,7 +495,8 @@ void compile_expression(struct environment *env, struct local *local,
 
 			for (; !nilp(rest); rest = cdr(rest))
 			{
-				compile_expression(env, local, car(rest), Dst);
+				bool t = tail && nilp(cdr(rest));
+				compile_expression(env, local, car(rest), t, Dst);
 			}
 
 			local_free(local, i);
@@ -546,7 +550,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 			for (int i = nargs - 1; i >= 0; i--)
 			{
-				compile_expression(env, local, elt(args, i), Dst);
+				compile_expression(env, local, elt(args, i), false, Dst);
 
 				// push the ith item
 				| push eax;
@@ -616,7 +620,7 @@ void compile_expression(struct environment *env, struct local *local,
 				err("eval takes exactly 1 argument");
 			}
 
-			compile_expression(env, local, car(args), Dst);
+			compile_expression(env, local, car(args), false, Dst);
 			| push eax;
 			| push (env);
 			| call_extern eval;
@@ -628,7 +632,7 @@ void compile_expression(struct environment *env, struct local *local,
 				err_at(val, "load takes exactly 1 argument, %d given", nargs);
 			}
 
-			compile_expression(env, local, car(args), Dst);
+			compile_expression(env, local, car(args), false, Dst);
 			| push eax;
 			| push (local->current_file_path);
 			| push (env);
@@ -644,7 +648,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 			// The number of arguments actually passed on the stack,
 			// i.e. all varargs are 1.
-			int real_nargs = nargs;
+			int real_nargs;
 
 			if (local->current_function_name &&
 			    symstreq(fsym, local->current_function_name))
@@ -674,14 +678,7 @@ void compile_expression(struct environment *env, struct local *local,
 			int total_taken = nargs_needed->num_optional +
 				nargs_needed->num_required;
 
-			if (nargs > total_taken)
-			{
-				real_nargs = total_taken + 1;
-			}
-			else
-			{
-				real_nargs = total_taken;
-			}
+			real_nargs = total_taken + (nargs_needed->variadic ? 1 : 0);
 
 			if (is_recursive || func->namespace == NS_FUNCTION)
 			{
@@ -701,7 +698,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 					for (int i = nargs - 1; i >= total_taken; i--)
 					{
-						compile_expression(env, local, elt(args, i), Dst);
+						compile_expression(env, local, elt(args, i), false, Dst);
 						| push eax;
 						| call_extern cons;
 						| add esp, 8;
@@ -720,13 +717,32 @@ void compile_expression(struct environment *env, struct local *local,
 
 				for (int i = min - 1; i >= 0; i--)
 				{
-					compile_expression(env, local, elt(args, i), Dst);
+					compile_expression(env, local, elt(args, i), false, Dst);
 					| push eax;
 				}
 
 				if (is_recursive)
 				{
-					| call <1;
+					if (tail)
+					{
+						// Move all the arguments pushed to the stack
+						// back up to the argument bit of the stack.
+
+						for (int i = 0; i < real_nargs; i++)
+						{
+							| pop eax;
+							| mov dword[ebp + (value_size * (i + 2))], eax;
+						}
+
+						// Jmp back to start
+						| mov esp, ebp;
+						| pop ebp;
+						| jmp <1;
+					}
+					else
+					{
+						| call <1;
+					}
 				}
 				else
 				{
@@ -746,7 +762,7 @@ void compile_expression(struct environment *env, struct local *local,
 
 				pop_pool(pool);
 
-				compile_expression(env, local, expanded_to, Dst);
+				compile_expression(env, local, expanded_to, false, Dst);
 			}
 		}
 	}
