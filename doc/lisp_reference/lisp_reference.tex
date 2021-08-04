@@ -1,0 +1,295 @@
+\documentclass[letterpaper,11pt,twocolumn]{article}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{textcomp}
+\usepackage{listings}
+\usepackage{glossaries}
+\usepackage{parskip}
+\usepackage{imakeidx}
+\usepackage[normalem]{ulem}
+
+\title{Bluejay Lisp Reference}
+\author{swissChili}
+\date{Development Version: \today}
+
+\newcommand{\startexplanation}{$\triangleright$\hskip1.4ex}
+\newcommand{\definition}[2]{#1
+\begin{quote}%
+    \startexplanation#2%
+\end{quote}}
+\newcommand{\plus}{\texttt{+}}
+\newcommand{\pluses}[1]{\plus{}#1\plus{}}
+\newcommand{\earmuff}{\texttt{*}}
+\newcommand{\earmuffs}[1]{\earmuff{}#1\earmuff{}}
+\newcommand{\func}[1]{\text{$_f$\textbf{#1}}}
+\newcommand{\mac}[1]{\text{$_m$\textbf{#1}}}
+\newcommand{\reader}[1]{\text{$_r$\textbf{#1}}}
+\newcommand{\const}[1]{\text{$_c$\textbf{#1}}}
+\newcommand{\var}[1]{\text{$_v$\textbf{#1}}}
+\newcommand{\param}[1]{\textit{#1}}
+\newcommand{\ret}[1]{\uline{#1}}
+\newcommand{\type}[1]{\text{$_t$\textbf{#1}}}
+\newcommand{\more}{ \ldots}
+\newcommand{\T}{\texttt{t}}
+\newcommand{\nil}{\texttt{nil}}
+\newcommand{\default}[1]{\text{\textsubscript{
+    \setlength{\fboxsep}{1pt}\setlength{\fboxrule}{0.2bp}%
+    \fbox{#1}}}}
+\newcommand{\opt}[2]{\text{$[$}\param{#1}\default{#2}\text{$]$}}
+\newcommand{\mut}[1]{\text{$\widetilde{#1}$}}
+\newcommand{\super}[1]{\text{$ ^{#1} $}}
+
+\newcommand{\optlist}[1]{\text{\(
+    \left\{
+    \begin{array}{l}
+        #1
+    \end{array}
+    \right\}
+\)}}
+
+\makeindex
+\makeglossaries
+
+\newglossaryentry{closure}{name={closure},description={A \type{function-object} that captures certain variables from its defining context}}
+
+\newglossaryentry{lexical-scope}{name={lexical scope},description={A method of scoping where the values in scope at a given time are determined by the static content of the source program, not by the state of the callstack or other execution details. This allows for example closures to \gls{closure}s to capture some of the state of their defining context}}
+
+\newglossaryentry{truthy}{name={truthy},description={A value that is not \nil}}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+This document provides a brief reference to the Bluejay Lisp language and standard library. It documents every currently valid function, macro, reader macro, and special form supported by the compiler.
+
+\subsection{Typography}
+
+The following text styles and symbols are used within this document to indicate particular values or meanings:
+
+\begin{tabular}[t]{p{0.2\linewidth} p{0.7\linewidth}}
+    \func{cons} & A function ``cons.'' \\
+    \const{\plus{}foo\plus} & A constant ``\plus{}foo\plus.'' \\
+    \var{\earmuff{}bar\earmuff} & A global variable ``\earmuff{}bar\earmuff''. \\
+    \reader{baz} & A reader macro ``baz.'' \\
+    \mac{quux} & A macro ``quux.'' \\
+    \param{parameter} & A function argument ``parameter`` \\
+    \opt{var}{123} & An optional function argument ``var'' with the default value ``123.'' \\
+    \param{args}\more & ``args'' represents the rest of the items in the list. \\
+    \mut{\param{mut}} & A function argument ``mut'' that might be mutated. \\
+    \ret{value} & Indicates that a form will evaluate to ``value''. \\
+    \type{integer} & The type ``integer''. \\
+    \optlist{\text{a}\\\text{b}} & One of ``a'' or ``b.''
+\end{tabular}
+
+\section{Primitives}
+
+\subsection{Type Predicates}
+
+\definition{
+    (\optlist{
+        \func{nilp} \text{ or } \func{not} \\
+        \func{integerp}
+    } \param{value})\index{nilp}\index{not}
+}{
+    \ret{\T} if \param{value} is of the specified type, \ret{\nil} otherwise.
+}
+
+\subsection{Definitions and Variables}
+
+\definition{
+    (\mac{defun} \param{name} (\param{args}\more) \param{body}\more)\index{defun} \\
+    (\mac{defmacro} \param{name} (\param{args}\more) \param{body}\more)\index{defmacro}
+}{
+    Define a function or macro respectively, taking \param{args} arguments and evaluating \param{body} in turn, finally evaluating to \ret{the final entry in \param{body}} or \ret{\nil} if \param{body} is empty.
+}
+
+\definition{
+    (\mac{let1} (\param{variable} \param{form}) \param{body}\more)\index{let1}
+}{
+    First evaluate \param{form}, binding it to \param{variable}. Then evaluate \param{body}, finally evaluating to \ret{the final entry in \param{body}} or \ret{\nil} if \param{body} is empty. \param{variable} is no longer in scope after this form ends.
+}
+
+\definition{
+    \reader{\textquotesingle}\param{value} \\
+    (\mac{quote} \param{value})\index{quote}
+}{
+    \ret{Return \param{value}} as-is, without evaluating it.
+}
+
+\subsection{Control Flow}
+
+\definition{
+    (\mac{if} \param{predicate} \param{then} \opt{otherwise}{nil})\index{if} \\
+    (\mac{when} \param{predicate} \param{then\more})\index{when} \\
+    (\mac{unless} \param{predicate} \param{otherwise\more})\index{unless}
+}{
+    First evaluate \param{predicate}. If it is \gls{truthy} evaluate and return \ret{\param{then}}, otherwise \ret{\param{otherwise}}. If either is not provided return \ret{\nil}.
+}
+
+\definition{
+    (\mac{progn} \opt{forms\more}{nil})\index{progn}
+}{
+    Evaluate \param{forms} from first to last, finally returning \ret{the last form}.
+}
+
+\section{Numbers}
+
+\subsection{Integers}
+
+\definition{
+    (\func{$+$} \param{a b})\index{+} \\
+    (\func{$-$} \param{a b})\index{-} \\
+    (\func{$*$} \param{a b})\index{*} \\
+    (\func{$/$} \param{a b})\index{/}
+}{
+    The \ret{sum, difference, product, or quotient} of \param{a} and \param{b} as an \type{integer}.
+}
+
+\definition{
+    (\func{=} \param{a b})
+}{
+    \ret{\T} if \param{a} and \param{b} hold the same \type{integer} value, \ret{\nil} otherwise.
+}
+
+\section{Function Manipulation}
+
+\definition{
+    (\mac{funcall} \param{function} \param{args}\more)\index{funcall} \\
+    (\func{apply} \param{function} \param{args})\index{apply}
+}{
+    Call the \type{closure} or \type{function-object} \param{function} with \param{args} and evaluate to \ret{its result}. An error occurs if \param{args} are not acceptable.
+}
+
+\definition{
+    (\mac{function} \param{function-name})\index{function} \\
+    \reader{\#\textquotesingle}\param{function-name}\index{\#\textquotesingle}
+}{
+    Create a \ret{\type{function-object} from an existing function}. \param{function} must be a symbol literal at compile time.
+}
+
+\definition{
+    (\func{lambda} (\param{args}\more) \param{body}\more)\index{lambda}
+}{
+    Create a \ret{lexically-scoped \type{\gls{closure}}} taking \param{args} and evaluating to \param{body}. 
+}
+
+\definition{
+    (\func{eval} \param{form})\index{eval}
+}{
+    Evaluate and return \ret{\param{form}} in the current global environment. The evaluated form does not use \gls{lexical-scope}.
+}
+
+\section{Lists}
+
+\subsection{Creating Lists}
+
+\definition{
+    (\func{cons} \param{a} \param{b})\index{cons}
+}{
+    Join \param{a} and \param{b} into a \ret{\type{cons} pair}.
+}
+
+\definition{
+    (\func{list} \param{values}\more)\index{list}
+}{
+    Construct a \ret{\type{cons}-list of \param{values}}.
+}
+
+\subsection{Deconstructing Lists}
+
+\definition{
+    (\func{length} \param{list})\index{list}
+}{
+    Return the \ret{length of \param{list}} if it is a \type{cons}-list, \nil{} otherwise.
+}
+
+\definition{
+    (\func{car} \param{pair})\index{car} \\
+    (\func{cdr} \param{pair})\index{cdr}
+}{
+    Return the \ret{first or second item} of \type{cons} \param{pair}, respectively.
+}
+
+\definition{
+    (\optlist{
+        \func{caar}\\
+        \func{cadr}\\
+        \func{caddr}\\
+        \func{cadar}\\
+        \func{caddar}
+    } \param{val})
+}{
+    Behave like a combination of \func{car} and \func{cdr} would.
+}
+
+\definition{
+    (\func{elt} \param{list} \param{n})\index{elt}
+}{
+    Return the \ret{\param{n}\super{th} element of \param{list}}, starting from 0, or \ret{\nil} if \param{n} $ \ge $ (\func{length} \param{list}) or \param{list} is not a \type{cons}-list or \param{n} is not an \type{integer}.
+}
+
+\subsection{Operating on Lists}
+
+\definition{
+    (\func{mapcar} \param{fun} \param{list})\index{mapcar}
+}{
+    Apply \param{fun} to each element of \param{list}, returning a \ret{new \type{cons}-list} containing the results of the respective applications of \param{fun}.
+}
+
+\definition{
+    (\optlist{\func{remove-if}\\\func{remove-if-not}} \param{predicate} \param{list})\index{remove-if}\index{remove-if-not}
+}{
+    Return a \ret{new \type{cons}-list} of all the items of \param{list} that either do not or do satisfy \param{predicate}, respectively.
+}
+
+\definition{
+    (\func{reduce} \param{fun} \param{list} \opt{initial-value}{\nil})
+}{
+    Apply \param{fun} to two arguments at a time, starting with \param{initial-value} and (\func{car} \param{list}) and continuing with the result of the previous invocation and the successive element of \param{list}. Return \ret{the result of the final invocation}, or \ret{\param{initial-value}} if \param{list} is empty.
+}
+
+\section{Input \& Output}
+
+\definition{
+    (\func{print} \param{value})\index{print}
+}{
+    Print \param{value} to standard output. Return \ret{\nil}.
+}
+
+\definition{
+    (\func{read})\index{read}
+}{
+    Read and return an \ret{S-expression} from standard input
+}
+
+\subsection{Loading Programs}
+
+\definition{
+    \const{\pluses{current-file}}\index{\pluses{current-file}}
+}{
+    The current file being compiled, or \nil{} if not compiling a file.
+}
+
+\definition{
+    (\func{load} \param{lisp-file})\index{load}
+}{
+    Load and evaluate \type{string} \param{lisp-file} as a local path relative to the current file, or the current working directory if not compiling a file. Return \ret{\nil}.
+}
+
+\printindex
+
+\printglossaries
+
+\end{document}
