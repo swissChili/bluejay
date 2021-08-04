@@ -370,9 +370,34 @@ void compile_backquote(struct environment *env, struct local *local,
 	else
 	{
 		value_t fsym = car(val), args = cdr(val);
-		int nargs = length(args);
+		int nargs = length(args),
+			n = length(val);
 
-		// TODO
+		if (symstreq(fsym, "unquote"))
+		{
+			if (nargs != 1)
+			{
+				err_at(val, "unquote (or ,) takes exactly 1 argument");
+			}
+
+			compile_expression(env, local, car(args), false, Dst);
+		}
+		else
+		{
+			| push nil;
+
+			for (int i = n - 1; i >= 0; i--)
+			{
+				compile_backquote(env, local, elt(val, i), Dst);
+				| push eax;
+				| call_extern cons;
+				| add esp, 8;
+
+				// Remove unnecessary pop
+				| push eax;
+			}
+				| pop eax;
+		}
 	}
 }
 
@@ -552,17 +577,12 @@ void compile_expression(struct environment *env, struct local *local,
 			{
 				compile_expression(env, local, elt(args, i), false, Dst);
 
-				// push the ith item
 				| push eax;
-				// cons the top two stack items
 				| call_extern cons;
-				// remove the stack items from use
 				| add esp, (2 * value_size);
-				// put the new thing on the stack
 				| push eax;
 			}
-
-			| pop eax;
+				| pop eax;
 		}
 		else if (symstreq(fsym, "lambda"))
 		{

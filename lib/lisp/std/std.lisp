@@ -19,8 +19,6 @@
 
 ;; /Boring utilitites
 
-
-
 (defun not (val)
   (nilp val))
 
