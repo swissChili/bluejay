@@ -220,7 +220,7 @@ void compile_tl(value_t val, struct environment *env, char *fname)
 		enum namespace namespace = NS_FUNCTION;
 
 		if (symstreq(form, "defmacro"))
-		namespace = NS_MACRO;
+			namespace = NS_MACRO;
 
 		struct local local;
 		struct args *a;
@@ -396,7 +396,7 @@ void compile_backquote(struct environment *env, struct local *local,
 				// Remove unnecessary pop
 				| push eax;
 			}
-				| pop eax;
+			| pop eax;
 		}
 	}
 }
@@ -485,6 +485,37 @@ void compile_expression(struct environment *env, struct local *local,
 				compile_expression(env, local, elt(args, 2), tail, Dst);
 			|=>after_label:;
 		}
+		else if (symstreq(fsym, "and") || symstreq(fsym, "or"))
+		{
+			bool or = symstreq(fsym, "or"); // false == and
+
+			// Boolean and and or, short circuit like &&/||
+			if (nargs < 1)
+			{
+				err_at(val, "and & or require at least 1 argument.");
+			}
+
+			int after = nextpc(local, Dst);
+
+			for (; !nilp(args); args = cdr(args))
+			{
+				compile_expression(env, local, car(args), false, Dst);
+				if (!nilp(cdr(args)))
+				{
+					| cmp eax, nil;
+					if (or)
+					{
+						| jne =>early;
+					}
+					else
+					{
+						| je =>early;
+					}
+				}
+			}
+
+			|=>after:;
+		}
 		else if (symstreq(fsym, "progn"))
 		{
 			for (value_t val = args; !nilp(val); val = cdr(val))
@@ -563,11 +594,26 @@ void compile_expression(struct environment *env, struct local *local,
 				    "compile time");
 			}
 
-			struct function *f =
-			    find_function(env, (char *)(car(args) ^ SYMBOL_TAG));
-			value_t closure = create_closure(f->code_ptr, f->args, 0);
+			char *name = (char *)(car(args) ^ SYMBOL_TAG);
 
-			| mov eax, (closure);
+			if (!strcmp(name, local->current_function_name))
+			{
+				| push 0;
+				| push local->args;
+				| push <1;
+				| call_extern create_closure;
+			}
+			else
+			{
+				struct function *f = find_function(env, name);
+
+				if (!f)
+				{
+					err_at(val, "Function `%s' does not exist", (char *)(car(args) ^ SYMBOL_TAG));
+				}
+				value_t closure = create_closure(f->code_ptr, f->args, 0);
+				| mov eax, (closure);
+			}
 		}
 		else if (symstreq(fsym, "list"))
 		{
@@ -807,6 +853,15 @@ void compile_expression(struct environment *env, struct local *local,
 
 			compile_variable(v, Dst);
 		}
+	}
+	else if (closurep(val))
+	{
+		| mov eax, val;
+	}
+	else
+	{
+		printval(val, 1);
+		err_at(val, "Don't know how to compile this, sorry.");
 	}
 }
 

@@ -46,6 +46,7 @@
     \fbox{#1}}}}
 \newcommand{\opt}[2]{\text{$[$}\param{#1}\default{#2}\text{$]$}}
 \newcommand{\mut}[1]{\text{$\widetilde{#1}$}}
+\newcommand{\mighteval}[1]{\text{$\widehat{#1}$}}
 \newcommand{\super}[1]{\text{$ ^{#1} $}}
 
 \newcommand{\optlist}[1]{\text{\(
@@ -78,16 +79,17 @@ This document provides a brief reference to the Bluejay Lisp language and standa
 
 The following text styles and symbols are used within this document to indicate particular values or meanings:
 
-\begin{tabular}[t]{p{0.2\linewidth} p{0.7\linewidth}}
+\begin{tabular}[t]{p{0.2\linewidth} p{0.64\linewidth}}
     \func{cons} & A function ``cons.'' \\
     \const{\plus{}foo\plus} & A constant ``\plus{}foo\plus.'' \\
     \var{\earmuff{}bar\earmuff} & A global variable ``\earmuff{}bar\earmuff''. \\
     \reader{baz} & A reader macro ``baz.'' \\
     \mac{quux} & A macro ``quux.'' \\
-    \param{parameter} & A function argument ``parameter`` \\
+    \param{parameter} & A function argument ``parameter'' \\
     \opt{var}{123} & An optional function argument ``var'' with the default value ``123.'' \\
     \param{args}\more & ``args'' represents the rest of the items in the list. \\
     \mut{\param{mut}} & A function argument ``mut'' that might be mutated. \\
+    \mighteval{\param{maybe}} & ``maybe'' may or may not be evaluated. \\
     \ret{value} & Indicates that a form will evaluate to ``value''. \\
     \type{integer} & The type ``integer''. \\
     \optlist{\text{a}\\\text{b}} & One of ``a'' or ``b.''
@@ -144,6 +146,13 @@ The following text styles and symbols are used within this document to indicate 
     Evaluate \param{forms} from first to last, finally returning \ret{the last form}.
 }
 
+\definition{
+    (\mac{and} \param{first} \param{\mighteval{rest}}\more)\index{and} \\
+    (\mac{or} \param{first} \param{\mighteval{rest}}\more)\index{or}
+}{
+    Short circuiting $\land$ and $\lor$, respectively. Return the first value that is \nil{} or truthy, respectively, or the last value if all are truthy/\nil{}.
+}
+
 \section{Numbers}
 
 \subsection{Integers}
@@ -166,7 +175,7 @@ The following text styles and symbols are used within this document to indicate 
 \section{Function Manipulation}
 
 \definition{
-    (\func{funcall} \param{function} \param{args}\more)\index{funcall} \\
+    (\func{funcall} \param{args}\more)\index{funcall} \\
     (\func{apply} \param{function} \param{args})\index{apply}
 }{
     Call the \type{closure} or \type{function-object} \param{function} with \param{args} and evaluate to \ret{its result}. An error occurs if \param{args} are not acceptable.
@@ -176,7 +185,7 @@ The following text styles and symbols are used within this document to indicate 
     (\mac{function} \param{function-name})\index{function} \\
     \reader{\#\textquotesingle}\param{function-name}\index{\#\textquotesingle}
 }{
-    Create a \ret{\type{function-object} from an existing function}. \param{function} must be a symbol literal at compile time.
+    Create a \ret{\type{function-object} from an existing function or macro}. \param{function} must be a symbol literal at compile time.
 }
 
 \definition{
