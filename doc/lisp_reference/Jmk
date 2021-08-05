@@ -1,0 +1,12 @@
+# -*- mode:makefile -*-
+
+init(lisp_reference, lisp_reference.pdf)
+
+preset(glossaries)
+preset(xelatex)
+
+LATEX_SOURCES = lisp_reference.tex
+
+type(latex)
+
+finish

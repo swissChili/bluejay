@@ -22,6 +22,9 @@ ROOT := jmk_root
 ASM ?= nasm
 CC ?= gcc
 LD ?= ld
+LATEXC ?= pdflatex
+LATEX_MAKE_GLOSSARIES = 0
+LATEX_EXTRAS = *.aux *.glg *.glo *.gls *.idx *.ilg *ind *.ist *.log *.toc
 CFLAGS += -I$(ROOT)/include
 ASMFLAGS += -felf
 jmk_clean_libs =
@@ -43,7 +46,9 @@ define(preset,
 ASMFLAGS += -Fdwarf',
         $1, `32', `CFLAGS += -m32',
         $1, `warn', `CFLAGS += -Wall -Wno-unused-function -Wno-unused-variable -Wno-incompatible-pointer-types',
-        $1, `nasm', `ASM = nasm')')
+        $1, `nasm', `ASM = nasm',
+		$1, `glossaries', `LATEX_MAKE_GLOSSARIES = 1',
+		$1, xelatex, `LATEXC = xelatex')')
 
 dnl this is really, really terrible, but to my knowledge there is no
 dnl other way to escape a $. The manual says nothing about this.
@@ -95,7 +100,16 @@ status_log(AR, dollar_at)
 `$(jmk_target): $(OBJECTS)
 status_log(LD, dollar_at)
 	@gen_gtags
-	@$(LD) $(LDFLAGS) -o dollar_at $^')')
+	@$(LD) $(LDFLAGS) -o dollar_at $^',
+	$1, latex,
+`$(jmk_target): $(LATEX_SOURCES)
+status_log(LATEX, dollar_at)
+	@$(LATEXC) $<
+ifeq ($(LATEX_MAKE_GLOSSARIES),1)
+status_log(GLOSSARY, dollar_at)
+	@makeglossaries $(patsubst %.tex,%,$<)
+	@$(LATEXC) $<
+endif')')
 
 define(option,
 `$1 ?= $3
@@ -107,7 +121,7 @@ dnl final declarations
 
 define(finish,
 `clean: $(jmk_clean_libs)
-	@rm -f **/*.o **/*.a *.so $(jmk_target) $(OBJECTS)
+	@rm -f **/*.o **/*.a *.so $(jmk_target) $(OBJECTS) $(LATEX_EXTRAS)
 
 Makefile: Jmk
 status_log(JMK, jmk_build_dir)

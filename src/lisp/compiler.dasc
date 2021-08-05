@@ -505,11 +505,11 @@ void compile_expression(struct environment *env, struct local *local,
 					| cmp eax, nil;
 					if (or)
 					{
-						| jne =>early;
+						| jne =>after;
 					}
 					else
 					{
-						| je =>early;
+						| je =>after;
 					}
 				}
 			}
