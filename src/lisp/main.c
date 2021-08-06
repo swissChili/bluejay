@@ -12,13 +12,13 @@ int main(int argc, char **argv)
 	}
 
 	bool ok;
-	struct environment *env = compile_file(argv[1], &ok);
-
-	if (!ok)
+	struct environment *env = NULL;
+	struct error compile_error;
+	if (!IS_OKAY((compile_error = compile_file(argv[1], &env))))
 	{
-		fprintf(stderr, "Could not open %s\n", argv[1]);
-		return 1;
-	}
+		ereport(compile_error);
+		goto done;
+	}		
 
 	value_t (*lisp_main)() = find_function(env, "main")->def0;
 
@@ -32,6 +32,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "No MAIN function defined! nothing to do\n");
 	}
 
+done:
 	free_all();
-	del_env(env);
+	if (env)
+		del_env(env);
 }

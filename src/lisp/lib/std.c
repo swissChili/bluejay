@@ -89,6 +89,7 @@ value_t l_elt(value_t seq, value_t i)
 
 value_t l_read_stdin()
 {
+#ifndef NO_READLINE
 	char *string = read_input_line("lisp> ");
 	if (!string)
 		return nil;
@@ -96,12 +97,25 @@ value_t l_read_stdin()
 	struct istream *is = new_stristream_nt(string);
 
 	value_t val = nil;
-	read1(is, &val);
+	struct error err;
+	
+	if (!IS_OKAY((err = read1(is, &val))))
+	{
+		ereport(err);
+
+		del_stristream(is);
+		free(string);
+		// tail recursion, yay!
+		return l_read_stdin();
+	}
 
 	del_stristream(is);
 	free(string);
 
 	return val;
+#else
+	return nil;
+#endif
 }
 
 value_t l_num_eq(value_t a, value_t b)
@@ -114,8 +128,10 @@ value_t l_num_eq(value_t a, value_t b)
 	return (a >> 3) == (b >> 3) ? t : nil;
 }
 
-void load_std(struct environment *env)
+struct error load_std(struct environment *env)
 {
+	E_INIT();
+
 	add_c_function(env, "+", l_plus, 2);
 	add_c_function(env, "-", l_minus, 2);
 	add_c_function(env, "*", l_times, 2);
@@ -135,8 +151,10 @@ void load_std(struct environment *env)
 
 	if (!load_library(env, "std"))
 	{
-		err("Could not load library `std`, make sure your $LISP_LIBRARY_PATH is correct.");
+		THROW(ENOTFOUND, "Could not load library `std`, make sure your $LISP_LIBRARY_PATH is correct.");
 	}
+
+	OKAY();
 }
 
 bool load_library(struct environment *env, char *name)

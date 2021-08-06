@@ -1,5 +1,6 @@
 #pragma once
 
+#include "error.h"
 #include "istream.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -153,22 +154,21 @@ bool pool_alive(unsigned char pool);
 
 bool startswith(struct istream *s, char *pattern);
 
-bool readsym(struct istream *is, value_t *val);
-bool readstr(struct istream *is, value_t *val);
-bool readlist(struct istream *is, value_t *val);
-bool readint(struct istream *is, value_t *val);
+struct error readsym(struct istream *is, value_t *val) WARN_UNUSED;
+struct error readstr(struct istream *is, value_t *val) WARN_UNUSED;
+struct error readlist(struct istream *is, value_t *val) WARN_UNUSED;
+struct error readint(struct istream *is, value_t *val) WARN_UNUSED;
 
 /**
  * Read a quoted form, including `'` (quote) `\`` (backquote) and `,` (unquote)
- * @returns true if read successfully, and sets `val`.
  */
-bool readquote(struct istream *is, value_t *val);
+struct error readquote(struct istream *is, value_t *val) WARN_UNUSED;
 
 value_t intval(int i);
 value_t strval(char *str);
 value_t symval(char *str);
 value_t cons(value_t car, value_t cdr);
-bool read1(struct istream *is, value_t *val);
+struct error read1(struct istream *is, value_t *val) WARN_UNUSED;
 value_t read(struct istream *is);
 value_t readn(struct istream *is);
 
@@ -198,9 +198,6 @@ int length(value_t v);
 value_t elt(value_t v, int index);
 
 void printval(value_t v, int depth);
-
-void err(const char *msg);
-void err_at(value_t form, const char *msg, ...);
 
 bool symstreq(value_t sym, char *str);
 

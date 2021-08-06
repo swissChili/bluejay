@@ -104,16 +104,16 @@ struct local
  * `defun`, `defmacro`, `lambda`, etc.
  * @returns NULL if the list is malformed.
  */
-struct args *list_to_args(struct environment *env, value_t list,
-                          struct local *local);
+struct error list_to_args(struct environment *env, value_t list,
+                          struct local *local, struct args **args);
 
 /**
  * Print out `args` to stdout. Useful for debugging.
  */
 void display_args(struct args *args);
 
-void compile_expression(struct environment *env, struct local *local,
-                        value_t val, bool tail, dasm_State **Dst);
+struct error compile_expression(struct environment *env, struct local *local,
+								value_t val, bool tail, dasm_State **Dst) WARN_UNUSED;
 
 /**
  * Compile a function
@@ -130,19 +130,20 @@ void compile_expression(struct environment *env, struct local *local,
  * @returns The compiled function state. You should probably give this to
  * `add_function` or something similar.
  */
-struct dasm_State *compile_function(value_t args, enum namespace namespace,
-                                    struct environment *env,
-                                    struct local *local_out,
-                                    struct local *local_parent,
-                                    struct args **ar, char *name, char *path);
+struct error compile_function(value_t args, enum namespace namespace,
+							  struct environment *env,
+							  struct local *local_out,
+							  struct local *local_parent,
+							  struct args **ar, char *name, char *path,
+							  dasm_State **s) WARN_UNUSED;
 
-void compile_variable(struct variable *v, dasm_State *Dst);
+struct error compile_variable(struct variable *v, dasm_State *Dst) WARN_UNUSED;
 
 /**
  * Compile a backquoted expression
  */
-void compile_backquote(struct environment *env, struct local *local,
-                       value_t val, dasm_State **Dst);
+struct error compile_backquote(struct environment *env, struct local *local,
+							   value_t val, dasm_State **Dst) WARN_UNUSED;
 
 int nextpc(struct local *local, dasm_State **Dst);
 
@@ -172,7 +173,7 @@ void walk_and_alloc(struct local *local, value_t body);
  * @param fname The path to the current file.
  * @param val The expression to compile.
  */
-void compile_tl(value_t val, struct environment *env, char *fname);
+struct error compile_tl(value_t val, struct environment *env, char *fname) WARN_UNUSED;
 
 /**
  * Compile a file in a new environment.
@@ -182,7 +183,7 @@ void compile_tl(value_t val, struct environment *env, char *fname);
  * @returns The environment for the compiled file, or an empty environment if
  * `ok` was set to `false` (i.e. the file could not be compiled).
  */
-struct environment *compile_file(char *filename, bool *ok);
+struct error compile_file(char *filename, struct environment **env) WARN_UNUSED;
 
 struct function *find_function(struct environment *env, char *name);
 struct variable *add_variable(struct local *local, enum var_type type,

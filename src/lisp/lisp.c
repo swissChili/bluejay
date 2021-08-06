@@ -1,4 +1,5 @@
 #include "lisp.h"
+#include "error.h"
 #include "plat/plat.h"
 
 #include <ctype.h>
@@ -14,28 +15,6 @@ value_t nil = 0b00101111; // magic ;)
 value_t t = 1 << 3;
 
 unsigned char max_pool = 0, current_pool = 0;
-
-__attribute__((noreturn)) void err(const char *msg)
-{
-	fprintf(stderr, "ERROR: %s\n", msg);
-	exit(1);
-}
-
-__attribute__((noreturn)) void err_at(value_t form, const char *msg, ...)
-{
-	int line = cons_line(form);
-	char *file = cons_file(form);
-
-	fprintf(stderr, "\033[31merror at\033[0m %s:%d\n", file, line);
-
-	va_list list;
-	va_start(list, msg);
-	vfprintf(stderr, msg, list);
-	va_end(list);
-	fprintf(stderr, "\n");
-
-	exit(1);
-}
 
 value_t intval(int i)
 {
@@ -116,12 +95,14 @@ bool issym(char c)
 	return isalpha(c) || isallowedchar(c) || isdigit(c);
 }
 
-bool readsym(struct istream *is, value_t *val)
+struct error readsym(struct istream *is, value_t *val)
 {
+	E_INIT();
+
 	skipws(is);
 
 	if (!issymstart(is->peek(is)))
-		return false;
+		THROWSAFE(EEXPECTED);
 
 	int size = 8;
 	struct alloc *a = malloc_aligned(size + sizeof(struct alloc));
@@ -150,17 +131,20 @@ bool readsym(struct istream *is, value_t *val)
 			*val |= SYMBOL_TAG;
 
 			add_this_alloc(a, SYMBOL_TAG);
-			return true;
+
+			OKAY();
 		}
 	}
 }
 
-bool readstr(struct istream *is, value_t *val)
+struct error readstr(struct istream *is, value_t *val)
 {
+	E_INIT();
+
 	skipws(is);
 
 	if (is->peek(is) != '"')
-		return false;
+		THROWSAFE(EEXPECTED);
 
 	bool escape = false;
 	int size = 8;
@@ -209,7 +193,8 @@ bool readstr(struct istream *is, value_t *val)
 			*val |= STRING_TAG;
 
 			add_this_alloc(a, STRING_TAG);
-			return true;
+
+			OKAY();
 		}
 	}
 }
@@ -265,12 +250,15 @@ void printval(value_t v, int depth)
 	}
 }
 
-bool readlist(struct istream *is, value_t *val)
+struct error readlist(struct istream *is, value_t *val)
 {
+	E_INIT();
+	NEARIS(is);
+
 	skipws(is);
 
 	if (is->peek(is) != '(')
-		return false;
+		THROWSAFE(EEXPECTED);
 
 	is->get(is);
 
@@ -280,23 +268,24 @@ bool readlist(struct istream *is, value_t *val)
 
 	if (is->peek(is) != ')')
 	{
-		is->showpos(is, stderr);
-		err("Unterminated list");
-		return false;
+		NEARIS(is);
+		THROW(EEXPECTED, "Unterminated list");
 	}
 	is->get(is);
 
-	return true;
+	OKAY();
 }
 
-bool readint(struct istream *is, value_t *val)
+struct error readint(struct istream *is, value_t *val)
 {
+	E_INIT();
+
 	skipws(is);
 
 	int number = 0;
 
 	if (!isdigit(is->peek(is)))
-		return false;
+		THROWSAFE(EEXPECTED);
 
 	while (isdigit(is->peek(is)))
 	{
@@ -305,11 +294,13 @@ bool readint(struct istream *is, value_t *val)
 	}
 
 	*val = intval(number);
-	return true;
+	OKAY();
 }
 
-bool readquote(struct istream *is, value_t *val)
+struct error readquote(struct istream *is, value_t *val)
 {
+	E_INIT();
+
 	skipws(is);
 
 	char c = is->peek(is);
@@ -332,15 +323,9 @@ bool readquote(struct istream *is, value_t *val)
 		// Read the next form and wrap it in the appropriate function
 
 		value_t wrapped;
-		bool has_next = read1(is, &wrapped);
+		NEARIS(is);
 
-		if (!has_next)
-		{
-			fprintf(stderr, "Expected a form after reader macro char %c\n", c);
-			is->showpos(is, stderr);
-			err("Invalid reader macro");
-			return false;
-		}
+		TRY_ELSE(read1(is, &wrapped), EEXPECTED, "Expected a form after reader macro char %c", c);
 
 		value_t symbol = nil;
 
@@ -362,39 +347,33 @@ bool readquote(struct istream *is, value_t *val)
 			symbol = symval("function");
 			break;
 		default:
-			is->showpos(is, stderr);
-			err("Something went wrong parsing a reader macro");
+			NEARIS(is);
+			THROW(EINVALID, "Invalid reader macro char %c", c);
 		}
 
 		*val = cons(symbol, cons(wrapped, nil));
 
-		return true;
+		OKAY();
 	}
 	else
 	{
-		return false;
+		THROWSAFE(EEXPECTED);
 	}
 }
 
-bool read1(struct istream *is, value_t *val)
+struct error read1(struct istream *is, value_t *val)
 {
-	// This could all be one big short-circuiting || but that is ugly.
-	if (readquote(is, val))
-		return true;
+	E_INIT();
 
-	if (readsym(is, val))
-		return true;
+	NEARIS(is);
 
-	if (readstr(is, val))
-		return true;
+	OKAY_IF(readquote(is, val));
+	OKAY_IF(readsym(is, val));
+	OKAY_IF(readstr(is, val));
+	OKAY_IF(readint(is, val));
+	OKAY_IF(readlist(is, val));
 
-	if (readint(is, val))
-		return true;
-
-	if (readlist(is, val))
-		return true;
-
-	return false;
+	THROWSAFE(EEXPECTED);
 }
 
 void set_cons_info(value_t cons, int line, char *name)
@@ -415,7 +394,7 @@ value_t readn(struct istream *is)
 
 	value_t read_val;
 
-	while (read1(is, &read_val))
+	while (IS_OKAY(read1(is, &read_val)))
 	{
 		int line;
 		char *file;
@@ -703,6 +682,7 @@ value_t deep_copy(value_t val)
 	}
 	else
 	{
-		err("Don't know how to deep copy this, sorry... please report this bug :)");
+		fprintf(stderr, "Don't know how to deep copy this, sorry... please report this bug :)");
+		return nil;
 	}
 }

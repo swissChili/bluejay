@@ -13,9 +13,15 @@ preset(nasm)
 archetype(c)
 archetype(asm)
 
+NO_READLINE ?= 0
+
 CFLAGS += -Ivendor/luajit/dynasm -Werror -lreadline # -fsanitize=address
 LDFLAGS += -lreadline
 ASMFLAGS += -felf -Fdwarf
+
+ifeq ($(NO_READLINE),1)
+CFLAGS += -DNO_READLINE
+endif
 
 OBJECTS = main.o \
 			lisp.o \
@@ -24,7 +30,8 @@ OBJECTS = main.o \
 			plat/linux.o \
 			istream.o \
 			gc.o \
-			call_list.o
+			call_list.o \
+			error.o
 
 LUA = vendor/luajit/src/host/minilua
 

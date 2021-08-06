@@ -22,7 +22,7 @@ tasks:
       cd bluejay
       ./bin/jmk
       cd src/lisp
-      make
+      make NO_READLINE=1
   - build-latex: |
       cd bluejay
       ./bin/jmk
