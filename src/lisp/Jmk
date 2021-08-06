@@ -15,12 +15,14 @@ archetype(asm)
 
 NO_READLINE ?= 0
 
-CFLAGS += -Ivendor/luajit/dynasm -Werror -lreadline # -fsanitize=address
-LDFLAGS += -lreadline
+CFLAGS += -Ivendor/luajit/dynasm -Werror # -fsanitize=address
 ASMFLAGS += -felf -Fdwarf
 
 ifeq ($(NO_READLINE),1)
 CFLAGS += -DNO_READLINE
+else
+LDFLAGS += -lreadline
+CFLAGS += -lreadline
 endif
 
 OBJECTS = main.o \

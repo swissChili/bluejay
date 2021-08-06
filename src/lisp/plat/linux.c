@@ -4,8 +4,10 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#ifndef NO_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
+#endif
 
 void *malloc_aligned(size_t size)
 {
@@ -45,10 +47,16 @@ bool file_exists(const char *path)
 
 char *read_input_line(char *prompt)
 {
+#ifndef NO_READLINE
 	return readline(prompt);
+#else
+	return "";
+#endif
 }
 
 void add_line_to_history(char *line)
 {
+#ifndef NO_READLINE
 	add_history(line);
+#endif
 }

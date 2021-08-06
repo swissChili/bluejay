@@ -10,9 +10,16 @@ packages:
   - nasm
   - texlive
   - texlive-latex-extra
+  - texlive-plain-generic
+  - lmodern
   - texlive-xetex
   - global
 tasks:
+  - build-latex: |
+      cd bluejay
+      ./bin/jmk
+      cd doc/lisp_reference
+      make
   - build-kernel: |
       cd bluejay
       ./bin/jmk
@@ -23,11 +30,6 @@ tasks:
       ./bin/jmk
       cd src/lisp
       make NO_READLINE=1
-  - build-latex: |
-      cd bluejay
-      ./bin/jmk
-      cd doc/lisp_reference
-      make
 artifacts:
   - bluejay/src/lisp/lisp
   - bluejay/src/kernel/kernel.elf
