@@ -54,6 +54,10 @@ run: lisp
 	status_log(LISP, $(F))
 	@LISP_LIBRARY_PATH="$(lisp_libpath)" ./lisp $(F)
 
+repl: lisp
+	status_log(LISP, repl)
+	@LISP_LIBRARY_PATH="$(lisp_libpath)" ./lisp $(ROOT)/lib/lisp/repl/repl.lisp
+
 leak-check: lisp
 	status_log(VALGRIND, lisp $(F))
 	@LISP_LIBRARY_PATH="$(lisp_libpath)" valgrind --leak-check=full ./lisp $(F)

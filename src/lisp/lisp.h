@@ -147,6 +147,8 @@ unsigned char push_pool(unsigned char pool);
  */
 void pop_pool(unsigned char pool);
 
+void add_to_pool(value_t form);
+
 /**
  * @returns true if pool is still alive (in scope).
  */

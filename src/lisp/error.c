@@ -42,3 +42,12 @@ void ereport(struct error err)
 		}
 	}
 }
+
+void edebug(struct error err, char *file, int line, const char *func, const char *why)
+{
+	if (!err.safe_state)
+	{
+		fprintf(stderr, "\033[43m%s at\033[0m %s:%d %s\n", why, file, line, func);
+		ereport(err);
+	}
+}

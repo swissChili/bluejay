@@ -20,26 +20,21 @@
 ;; /Boring utilitites
 
 (defun not (val)
+  "Identical to NILP, returns T if VAL is NIL, NIL otherwise."
   (nilp val))
 
 ;; TODO: make tail recursive (for this `flet` would be nice)
 (defun length (list)
-  "Returns the length of `list`, or `nil` if it is not a list"
+  "Returns the length of LIST, or NIL if it is not a list"
   (if (nilp list)
     0
     (+ 1 (length (cdr list)))))
 
 (defmacro when (cond & body)
-  "Evaluate `body` when `cond` is truthy.
-When `cond` is truthy, evaluates `body` in order, finally evaluating to
-the final item."
   (list 'if cond
     (cons 'progn body)))
 
 (defmacro unless (cond & body)
-  "Evaluate `body` unless `cond` is truthy.
-When `cond` is nil, evaluates `body` in order, finally evaluating to the
-final item."
   (list 'if cond
     nil
     (cons 'progn body)))
@@ -51,4 +46,8 @@ final item."
 (defun funcall (fun & list)
   (apply fun list))
 
-(load "list-functions.lisp")
+;; (defmacro flet1 (func & body)
+;;   `(let1 (,(car func) ,(cons 'lambda (cdr func)))
+;;          ,@load))
+
+(list "body-functions.lisp")

@@ -97,7 +97,7 @@ value_t l_read_stdin()
 	struct istream *is = new_stristream_nt(string);
 
 	value_t val = nil;
-	struct error err;
+	struct error err = { 0 };
 	
 	if (!IS_OKAY((err = read1(is, &val))))
 	{

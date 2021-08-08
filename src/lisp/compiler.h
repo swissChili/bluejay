@@ -166,7 +166,7 @@ void del_env(struct environment *env);
 /**
  * Walk `body` and reserve space in `local` for any variable declarations.
  */
-void walk_and_alloc(struct local *local, value_t body);
+struct error walk_and_alloc(struct environment *env, struct local *local, value_t *body);
 
 /**
  * Compile a top level definition

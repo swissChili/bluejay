@@ -20,10 +20,11 @@ int main(int argc, char **argv)
 		goto done;
 	}		
 
-	value_t (*lisp_main)() = find_function(env, "main")->def0;
+	struct function *lisp_main_f = find_function(env, "main");
 
-	if (lisp_main)
+	if (lisp_main_f)
 	{
+		value_t (*lisp_main)() = lisp_main_f->def0;
 		gc_set_base_here();
 		lisp_main();
 	}

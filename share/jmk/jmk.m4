@@ -45,7 +45,7 @@ define(preset,
         $1, `debug', `CFLAGS += -g
 ASMFLAGS += -Fdwarf',
         $1, `32', `CFLAGS += -m32',
-        $1, `warn', `CFLAGS += -Wall -Wno-unused-function -Wno-unused-variable -Wno-incompatible-pointer-types',
+        $1, `warn', `CFLAGS += -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-incompatible-pointer-types',
         $1, `nasm', `ASM = nasm',
 		$1, `glossaries', `LATEX_MAKE_GLOSSARIES = 1',
 		$1, xelatex, `LATEXC = xelatex')')

@@ -325,7 +325,8 @@ struct error readquote(struct istream *is, value_t *val)
 		value_t wrapped;
 		NEARIS(is);
 
-		TRY_ELSE(read1(is, &wrapped), EEXPECTED, "Expected a form after reader macro char %c", c);
+		struct error read_error = read1(is, &wrapped);
+		TRY_ELSE(read_error, EEXPECTED, "Expected a form after reader macro char %c", c);
 
 		value_t symbol = nil;
 
@@ -575,6 +576,15 @@ void pop_pool(unsigned char pool)
 bool pool_alive(unsigned char pool)
 {
 	return pool != 0;
+}
+
+void add_to_pool(value_t form)
+{
+	if (!heapp(form))
+		return;
+
+	struct alloc *a = (void *)(form & ~0b111);
+	a[-1].pool = current_pool;
 }
 
 int cons_line(value_t val)

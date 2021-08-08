@@ -187,7 +187,7 @@ struct error compile_function(value_t args, enum namespace namespace,
 
 	for (value_t body_ = body; !nilp(body_); body_ = cdr(body_))
 	{
-		walk_and_alloc(&local, car(body_));
+		TRY(walk_and_alloc(env, &local, carref(body_)));
 	}
 
 	| setup (local.num_stack_entries);
@@ -269,11 +269,15 @@ struct error compile_tl(value_t val, struct environment *env, char *fname)
 	OKAY();
 }
 
-void walk_and_alloc(struct local *local, value_t body)
+struct error walk_and_alloc(struct environment *env, struct local *local, value_t *bp)
 {
+	E_INIT();
+
+	value_t body = *bp;
+
 	// TODO: handle macros
 	if (!listp(body))
-		return;
+		OKAY();
 
 	value_t args = cdr(body);
 
@@ -284,7 +288,7 @@ void walk_and_alloc(struct local *local, value_t body)
 		value_t expr = cdr(args);
 		for (; !nilp(expr); expr = cdr(expr))
 		{
-			walk_and_alloc(local, car(expr));
+			walk_and_alloc(env, local, carref(expr));
 		}
 
 		local_free(local, slot);
@@ -293,15 +297,40 @@ void walk_and_alloc(struct local *local, value_t body)
 	{
 		// We don't want to walk the lambda because it's another function. When
 		// the lambda is compiled it will be walked.
-		return;
+		OKAY();
 	}
 	else
 	{
-		for (; !nilp(args); args = cdr(args))
+		// Is this a macro?
+		
+		struct function *mac = NULL;
+
+		if (symbolp(car(body)))
+			mac = find_function(env, (char *)(car(body) ^ SYMBOL_TAG));
+		else
+			walk_and_alloc(env, local, carref(body));
+
+		if (mac && mac->namespace == NS_MACRO)
 		{
-			walk_and_alloc(local, car(args));
+			unsigned char pool = push_pool(0);
+			value_t form = call_list(mac, args);
+			pop_pool(pool);
+
+			add_to_pool(form);
+			*bp = form;
+
+			walk_and_alloc(env, local, bp);
+		}
+		else
+		{
+			for (; !nilp(args); args = cdr(args))
+			{
+				walk_and_alloc(env, local, carref(args));
+			}
 		}
 	}
+
+	OKAY();
 }
 
 bool load(struct environment *env, char *path)
@@ -320,16 +349,31 @@ bool load(struct environment *env, char *path)
 
 	value_t val;
 
-	while (IS_OKAY(read1(is, &val)))
+	struct error read_error;
+
+	while (IS_OKAY((read_error = read1(is, &val))))
 	{
 		if (!IS_OKAY(compile_tl(val, env, path)))
-			break;
+		{
+			goto failure;
+		}
+	}
+
+	if (!read_error.safe_state)
+	{
+		goto failure;
 	}
 
 	del_fistream(is);
 	pop_pool(pop);
 
 	return true;
+
+failure:
+	del_fistream(is);
+	pop_pool(pool);
+
+	return false;
 }
 
 value_t load_relative(struct environment *env, char *to, value_t name)
@@ -410,6 +454,10 @@ struct error compile_backquote(struct environment *env, struct local *local,
 			}
 
 			TRY(compile_expression(env, local, car(args), false, Dst));
+		}
+		else if (symstreq(fsym, "unquote-splice"))
+		{
+
 		}
 		else
 		{

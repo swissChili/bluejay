@@ -43,3 +43,5 @@ Returns nil if nothing can be found"
 		 (stripped (mapcar #'string-trim not-includes)))
 	stripped))
 
+(provide 'jmk-flycheck)
+;;; jmk-flycheck.el ends here
