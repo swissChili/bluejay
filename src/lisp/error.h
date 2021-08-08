@@ -98,3 +98,5 @@ char *ehsprintf(const char *msg, ...);
 void ereport(struct error err);
 
 void edebug(struct error err, char *file, int line, const char *func, const char *why);
+
+#define UNUSED(val) (void)(val)

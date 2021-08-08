@@ -170,12 +170,16 @@ value_t intval(int i);
 value_t strval(char *str);
 value_t symval(char *str);
 value_t cons(value_t car, value_t cdr);
+value_t merge2(value_t front, value_t back);
 struct error read1(struct istream *is, value_t *val) WARN_UNUSED;
 value_t read(struct istream *is);
 value_t readn(struct istream *is);
 
 value_t car(value_t v);
 value_t cdr(value_t v);
+/// Return a pointer to the "nil" tail of the list, or NULL if you do
+/// something stupid.
+value_t *nilptr(value_t val);
 value_t *carref(value_t v);
 value_t *cdrref(value_t v);
 /// @returns the `index`-th `cdr`

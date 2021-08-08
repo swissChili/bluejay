@@ -696,3 +696,33 @@ value_t deep_copy(value_t val)
 		return nil;
 	}
 }
+
+value_t *nilptr(value_t val)
+{
+	if (!listp(val))
+		return NULL;
+
+	if (nilp(val))
+		return NULL;
+
+	value_t *p;
+
+	for (p = cdrref(val); !nilp(*p); p = cdrref(*p))
+	{
+	}
+
+	return p;
+}
+
+value_t merge2(value_t front, value_t back)
+{
+	if (!listp(front) || !listp(back))
+		return nil;
+
+	if (nilp(front))
+		return back;
+	else
+		*nilptr(front) = back;
+
+	return front;
+}

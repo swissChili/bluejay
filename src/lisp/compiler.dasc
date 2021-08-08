@@ -139,6 +139,8 @@ struct error compile_function(value_t args, enum namespace namespace,
 							  char *path,
 							  dasm_State **state)
 {
+	UNUSED(namespace);
+
 	E_INIT();
 
 	dasm_State *d;
@@ -455,23 +457,46 @@ struct error compile_backquote(struct environment *env, struct local *local,
 
 			TRY(compile_expression(env, local, car(args), false, Dst));
 		}
-		else if (symstreq(fsym, "unquote-splice"))
-		{
-
-		}
 		else
 		{
 			| push nil;
 
 			for (int i = n - 1; i >= 0; i--)
 			{
-				TRY(compile_backquote(env, local, elt(val, i), Dst));
-				| push eax;
-				| call_extern cons;
-				| add esp, 8;
+				value_t v = elt(val, i);
 
-				// Remove unnecessary pop
-				| push eax;
+				if (listp(v) && symstreq(car(v), "unquote-splice"))
+				{
+					NEARVAL(v);
+
+					if (length(v) != 2)
+					{
+						THROW(EARGS, "unquote-splice (or ,@) takes exactly 1 argument");
+					}
+
+					value_t expr = car(cdr(v));
+
+					if (!listp(expr))
+					{
+						THROW(EINVALID, "unquote-splice (or ,@) argument must be a list");
+					}
+
+					TRY(compile_expression(env, local, expr, false, Dst));
+					| push eax;
+					| call_extern merge2;
+					| add esp, 8;
+					| push eax;
+				}
+				else
+				{
+					TRY(compile_backquote(env, local, v, Dst));
+					| push eax;
+					| call_extern cons;
+					| add esp, 8;
+
+					// Remove unnecessary pop
+					| push eax;
+				}
 			}
 			| pop eax;
 		}

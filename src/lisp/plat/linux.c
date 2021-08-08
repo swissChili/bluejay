@@ -1,4 +1,5 @@
 #include "plat.h"
+#include "../error.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +51,7 @@ char *read_input_line(char *prompt)
 #ifndef NO_READLINE
 	return readline(prompt);
 #else
+	UNUSED(prompt);
 	return "";
 #endif
 }
@@ -58,5 +60,7 @@ void add_line_to_history(char *line)
 {
 #ifndef NO_READLINE
 	add_history(line);
+#else
+	UNUSED(line);
 #endif
 }
