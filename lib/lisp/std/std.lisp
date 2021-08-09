@@ -46,8 +46,20 @@
 (defun funcall (fun & list)
   (apply fun list))
 
-;; (defmacro flet1 (func & body)
-;;   `(let1 (,(car func) ,(cons 'lambda (cdr func)))
-;;          ,@load))
+(defmacro flet1 (func & body)
+  `(let1 (,(car func)
+           (lambda ,@(cdr func)))
+         ,@body))
+
+(defun flet- (funcs body)
+  (if funcs
+      `(flet1 ,(car funcs)
+              ,(flet- (cdr funcs)
+                        body))
+      `(progn ,@body)))
+
+(defmacro flet (funcs & body)
+  ;; (flet- funcs body)
+  (print funcs))
 
 (list "body-functions.lisp")

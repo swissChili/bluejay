@@ -113,7 +113,10 @@ indicate particular values or meanings:
 \definition{
   (\optlist{
     \func{nilp} \text{ or } \func{not} \\
-    \func{integerp}
+    \func{closurep} \text{ or } \func{functionp} \\
+    \func{integerp} \\
+    \func{consp} \\
+    \func{symbolp}
   } \param{value})\index{nilp}\index{not}
 }{
   \ret{\T} if \param{value} is of the specified type, \ret{\nil}
@@ -133,12 +136,25 @@ indicate particular values or meanings:
 }
 
 \definition{
-  (\mac{let1} (\param{variable} \param{form}) \param{body}\more)\index{let1}
+  (\mac{let1} (\param{variable} \param{form}) \param{body}\more)\index{let1} \\
+  (\mac{let} ((\param{variable} \param{form})\more) \param{body}\more)\index{let}
 }{
   First evaluate \param{form}, binding it to \param{variable}. Then
   evaluate \param{body}, finally evaluating to \ret{the final entry in
     \param{body}} or \ret{\nil} if \param{body} is
   empty. \param{variable} is no longer in scope after this form ends.
+  \mac{let} is similar to \mac{let*} in other lisps, later variables
+  can reference previous ones.
+}
+
+\definition{
+  (\mac{flet1} (\param{name} (\param{args}\more) \param{body}\more)) \\
+  (\mac{flet} ((\param{name} (\param{args}\more)\more) \param{body}\more))
+  \index{flet}\index{flet1}
+}{
+  Like \mac{let} and \mac{let1} but creates a lambda. Unlike other
+  lisps the defined function remains in the variable namespace as a
+  \type{function-object}.
 }
 
 \definition{

@@ -716,13 +716,13 @@ value_t *nilptr(value_t val)
 
 value_t merge2(value_t front, value_t back)
 {
-	if (!listp(front) || !listp(back))
-		return nil;
+	if (!listp(front) && listp(back))
+		return cons(front, back);
 
-	if (nilp(front))
-		return back;
-	else
-		*nilptr(front) = back;
+	if (listp(front) && !listp(back))
+		back = cons(back, nil);
+
+	*nilptr(front) = back;
 
 	return front;
 }

@@ -128,6 +128,16 @@ value_t l_num_eq(value_t a, value_t b)
 	return (a >> 3) == (b >> 3) ? t : nil;
 }
 
+#define LISP_PREDICATE(name) value_t l_##name(value_t v) { return name(v) ? t : nil; }
+
+LISP_PREDICATE(listp)
+LISP_PREDICATE(integerp)
+LISP_PREDICATE(symbolp)
+LISP_PREDICATE(closurep)
+LISP_PREDICATE(consp)
+
+#undef LISP_PREDICATE
+
 struct error load_std(struct environment *env)
 {
 	E_INIT();
@@ -147,6 +157,13 @@ struct error load_std(struct environment *env)
 	add_c_function(env, "apply", l_apply, 2);
 
 	add_c_function(env, "nilp", l_nilp, 1);
+	add_c_function(env, "listp", l_listp, 1);
+	add_c_function(env, "integerp", l_integerp, 1);
+	add_c_function(env, "symbolp", l_symbolp, 1);
+	add_c_function(env, "closurep", l_closurep, 1);
+	add_c_function(env, "functionp", l_closurep, 1);
+	add_c_function(env, "consp", l_consp, 1);
+	
 	add_c_function(env, "elt", l_elt, 2);
 
 	if (!load_library(env, "std"))
@@ -171,6 +188,7 @@ bool load_library(struct environment *env, char *name)
 
 		if (file_exists(path))
 		{
+			fprintf(stderr, "path: %s\n", path);
 			return load(env, path);
 		}
 
@@ -178,6 +196,7 @@ bool load_library(struct environment *env, char *name)
 
 		if (file_exists(path))
 		{
+			fprintf(stderr, "path: %s\n", path);
 			return load(env, path);
 		}
 	}

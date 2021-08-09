@@ -189,7 +189,7 @@ struct error compile_function(value_t args, enum namespace namespace,
 
 	for (value_t body_ = body; !nilp(body_); body_ = cdr(body_))
 	{
-		TRY(walk_and_alloc(env, &local, carref(body_)));
+		TRY(walk_and_alloc(env, &local, carref(body_), false));
 	}
 
 	| setup (local.num_stack_entries);
@@ -271,31 +271,34 @@ struct error compile_tl(value_t val, struct environment *env, char *fname)
 	OKAY();
 }
 
-struct error walk_and_alloc(struct environment *env, struct local *local, value_t *bp)
+struct error walk_and_alloc(struct environment *env, struct local *local, value_t *bp, bool quoted)
 {
+	// Note: this kind of sucks. Some of the quote-handling code is
+	// duplicated here and compile_expression. TODO: refactor
+	// eventually.
+
 	E_INIT();
 
 	value_t body = *bp;
 
-	// TODO: handle macros
 	if (!listp(body))
 		OKAY();
 
 	value_t args = cdr(body);
 
-	if (symstreq(car(body), "let1"))
+	if (!quoted && symstreq(car(body), "let1"))
 	{
 		int slot = local_alloc(local);
 
 		value_t expr = cdr(args);
 		for (; !nilp(expr); expr = cdr(expr))
 		{
-			walk_and_alloc(env, local, carref(expr));
+			walk_and_alloc(env, local, carref(expr), false);
 		}
 
 		local_free(local, slot);
 	}
-	else if (symstreq(car(body), "lambda"))
+	else if (!quoted && symstreq(car(body), "lambda"))
 	{
 		// We don't want to walk the lambda because it's another function. When
 		// the lambda is compiled it will be walked.
@@ -303,31 +306,46 @@ struct error walk_and_alloc(struct environment *env, struct local *local, value_
 	}
 	else
 	{
-		// Is this a macro?
-		
-		struct function *mac = NULL;
-
-		if (symbolp(car(body)))
-			mac = find_function(env, (char *)(car(body) ^ SYMBOL_TAG));
-		else
-			walk_and_alloc(env, local, carref(body));
-
-		if (mac && mac->namespace == NS_MACRO)
+		if (quoted)
 		{
-			unsigned char pool = push_pool(0);
-			value_t form = call_list(mac, args);
-			pop_pool(pool);
-
-			add_to_pool(form);
-			*bp = form;
-
-			walk_and_alloc(env, local, bp);
+			if (symstreq(car(body), "unquote") || symstreq(car(body), "unquote-splice"))
+			{
+				for (value_t b = cdr(body); !nilp(b); b = cdr(b))
+				{
+					walk_and_alloc(env, local, carref(b), false);
+				}
+			}
 		}
 		else
 		{
-			for (; !nilp(args); args = cdr(args))
+			// Is this a macro?
+		
+			struct function *mac = NULL;
+
+			if (symbolp(car(body)))
+				mac = find_function(env, (char *)(car(body) ^ SYMBOL_TAG));
+			else if (consp(car(body))) // consp, not just listp, since we don't care about nil.
+				walk_and_alloc(env, local, carref(body), false);
+
+			if (mac && mac->namespace == NS_MACRO)
 			{
-				walk_and_alloc(env, local, carref(args));
+				unsigned char pool = push_pool(0);
+				value_t form = call_list(mac, args);
+				pop_pool(pool);
+
+				add_to_pool(form);
+				*bp = form;
+
+				walk_and_alloc(env, local, bp, false);
+			}
+			else
+			{
+				bool should_quote = symstreq(car(body), "quote") || symstreq(car(body), "backquote");
+
+				for (; !nilp(args); args = cdr(args))
+				{
+					walk_and_alloc(env, local, carref(args), should_quote);
+				}
 			}
 		}
 	}
@@ -351,12 +369,13 @@ bool load(struct environment *env, char *path)
 
 	value_t val;
 
-	struct error read_error;
+	struct error compile_error, read_error;
 
 	while (IS_OKAY((read_error = read1(is, &val))))
 	{
-		if (!IS_OKAY(compile_tl(val, env, path)))
+		if (!IS_OKAY((compile_error = compile_tl(val, env, path))))
 		{
+			ereport(compile_error);
 			goto failure;
 		}
 	}
@@ -475,11 +494,6 @@ struct error compile_backquote(struct environment *env, struct local *local,
 					}
 
 					value_t expr = car(cdr(v));
-
-					if (!listp(expr))
-					{
-						THROW(EINVALID, "unquote-splice (or ,@) argument must be a list");
-					}
 
 					TRY(compile_expression(env, local, expr, false, Dst));
 					| push eax;
