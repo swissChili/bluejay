@@ -156,6 +156,22 @@ indicate particular values or meanings:
   and \mac{unquote-splice} forms (and their reader-macro equivalents).
 }
 
+\definition{
+  \reader{,}\param{value} \\
+  (\mac{unquote} \param{value}) \\
+  \reader{,\texttt{@}}\param{value} \\
+  (\mac{unquote-splice} \param{value})
+  \index{unquote}\index{unquote-splice}
+  \index{,}\index{,@}
+}{
+  In the context of a \mac{backquote}, evaluate \param{value} instead of
+  using it as-is. \mac{unquote-splice} and \reader{,\texttt{@}} take a
+  list as their argument, and ``splice'' each element in to
+  the \mac{backquote} list so that each element of that argument corresponds
+  to an element of the \mac{backquote} list.
+  The other two macros insert their argument as a single element in the list.
+}
+
 \subsection{Control Flow}
 
 \definition{
