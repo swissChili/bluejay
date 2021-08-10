@@ -1,9 +1,14 @@
 #include "gc.h"
 #include "lisp.h"
 #include "plat/plat.h"
+#include <stdarg.h>
+#include <string.h>
 
 value_t *gc_base;
 THREAD_LOCAL static unsigned int gc_mark;
+
+struct gc_skipped_segment gc_segments[64] = { 0 };
+int gc_current_segment = 0;
 
 void __attribute__((noinline)) gc_set_base_here()
 {
@@ -95,23 +100,36 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 
 	gc_mark++;
 
-	// For every stack frame until the base of the stack
-	while (esp_p < gc_base)
+	for (int i = gc_current_segment; i <= 0; i--)
 	{
-		// Walk up the stack until we reach either the frame pointer or the base
-		// of the stack. Basically walk to the top of this function's stack
-		// frame.
-		for (; esp_p < ebp_p && esp_p < gc_base; esp_p++)
+		value_t *base = gc_segments[i].top;
+
+		// For every stack frame until the base of the stack
+		while (esp_p < base)
 		{
-			_mark(*esp_p, &num_marked);
+			// Walk up the stack until we reach either the frame pointer or the base
+			// of the stack. Basically walk to the top of this function's stack
+			// frame.
+			for (; esp_p < ebp_p && esp_p < base; esp_p++)
+			{
+				_mark(*esp_p, &num_marked);
+			}
+
+			// Set the frame pointer to the frame pointer on the stack
+			ebp_p = (value_t *)*esp_p;
+
+			// Step up two stack slots, one for the frame pointer and one for the
+			// return address.
+			esp_p += 2;
 		}
 
-		// Set the frame pointer to the frame pointer on the stack
-		ebp_p = (value_t *)*esp_p;
-
-		// Step up two stack slots, one for the frame pointer and one for the
-		// return address.
-		esp_p += 2;
+		// Mark the values marked by the skipped segment
+		for (int j = 0; j < gc_segments[i].num_marked; j++)
+		{
+			_mark(gc_segments[i].mark[j], &num_marked);
+		}
+		
+		esp_p = gc_segments[i].bottom;
 	}
 
 	_sweep();
@@ -126,4 +144,44 @@ void free_all()
 		a = next;
 //		fprintf(stderr, "a = %p\n", a);
 	}
+}
+
+void gc_skip(void *last_arg, ...)
+{
+	va_list list;
+	va_start(list, last_arg);
+
+	struct gc_skipped_segment *seg = &gc_segments[++gc_current_segment];
+	memset(seg, 0, sizeof(struct gc_skipped_segment));
+
+	seg->bottom = last_arg + sizeof(value_t);
+
+	for (int i = 0; i < 8; i++)
+	{
+		value_t v = va_arg(list, value_t);
+		if (nilp(v))
+			break;
+		seg->mark[i] = v;
+		seg->num_marked++;
+	}
+
+	va_end(list);
+}
+
+void gc_resume()
+{
+	gc_resumen(0);
+}
+
+void gc_resumen(int n)
+{
+	void *esp;
+	asm("movl %%esp, %0" : "=g"(esp));
+
+	gc_segments[gc_current_segment].top = esp - sizeof(value_t) * n;;
+}
+
+void gc_endskip()
+{
+	gc_current_segment--;
 }

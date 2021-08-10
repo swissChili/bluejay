@@ -25,7 +25,8 @@ int main(int argc, char **argv)
 	if (lisp_main_f)
 	{
 		value_t (*lisp_main)() = lisp_main_f->def0;
-		gc_set_base_here();
+
+		gc_resume();
 		lisp_main();
 	}
 	else
