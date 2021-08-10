@@ -1,0 +1,33 @@
+# -*- mode:tcl -*-
+
+source "../../share/jmk/jmk.tcl"
+
+init lisp
+
+presets 32 debug warn nasm
+cflags -Ivendor/luajit/dynasm -O0
+
+option NO_READLINE 0
+
+type executable
+
+if {$options(NO_READLINE) == 0} {
+	cflags -lreadline
+} else {
+	cflags -DNO_READLINE
+}
+
+set lua vendor/luajit/src/host/minilua
+
+rule $lua ${lua}.c {
+	log CC $source
+	cc $source -o $target -lm
+}
+
+rule compiler.c "compiler.dasc $lua" {
+	log DYNASM $first_source
+	shell $::lua vendor/luajit/dynasm/dynasm.lua -o $target $first_source
+}
+
+sources main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \
+	call_list.s error.c
