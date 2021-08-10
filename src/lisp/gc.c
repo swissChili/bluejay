@@ -33,13 +33,14 @@ void _mark(value_t value, unsigned int *marked)
 
 			alloc->mark = gc_mark;
 
-			// printf("[ GC ] val =");
-			// printval(alloc_to_value(alloc), 2);
+			printf("[ GC ] val =");
+			printval(alloc_to_value(alloc), 2);
 
 			switch (alloc->type_tag)
 			{
 			case CONS_TAG: {
 				struct cons_alloc *cons = (struct cons_alloc *)alloc;
+
 				_mark(cons->cons.car, marked);
 				_mark(cons->cons.cdr, marked);
 				break;
@@ -65,8 +66,10 @@ value_t alloc_to_value(struct alloc *a)
 	return (unsigned int)val | a->type_tag;
 }
 
-void _sweep()
+unsigned int _sweep()
 {
+	unsigned int swept = 0;
+
 	for (struct alloc *a = first_a; a;)
 	{
 		if (pool_alive(a->pool) || a->mark == gc_mark)
@@ -76,9 +79,14 @@ void _sweep()
 		}
 		else
 		{
+			fprintf(stderr, "_sweeping:\n");
+			printval(alloc_to_value(a), 2);
+
 			// Free and remove from allocation list
 			struct alloc *p = a->prev, *n = a->next;
+
 			free_aligned(a);
+			swept++;
 
 			a = n;
 
@@ -89,9 +97,13 @@ void _sweep()
 				n->prev = p;
 		}
 	}
+
+	fprintf(stderr, "current pool = %d, swept %d\n", current_pool, swept);
+
+	return swept;
 }
 
-void _do_gc(unsigned int esp, unsigned int ebp)
+unsigned int _do_gc(unsigned int esp, unsigned int ebp)
 {
 	value_t *esp_p = (value_t *)esp,
 		*ebp_p = (value_t *)ebp;
@@ -100,12 +112,12 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 
 	gc_mark++;
 
-	for (int i = gc_current_segment; i <= 0; i--)
+	for (int i = gc_current_segment; i >= 0; i--)
 	{
 		value_t *base = gc_segments[i].top;
 
 		// For every stack frame until the base of the stack
-		while (esp_p < base)
+		while (esp_p && esp_p < base)
 		{
 			// Walk up the stack until we reach either the frame pointer or the base
 			// of the stack. Basically walk to the top of this function's stack
@@ -132,7 +144,7 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 		esp_p = gc_segments[i].bottom;
 	}
 
-	_sweep();
+	return _sweep();
 }
 
 void free_all()
@@ -184,4 +196,14 @@ void gc_resumen(int n)
 void gc_endskip()
 {
 	gc_current_segment--;
+}
+
+void gc_pushmark(value_t val)
+{
+	gc_segments[gc_current_segment].mark[gc_segments[gc_current_segment].num_marked++] = val;
+}
+
+void gc_popmark()
+{
+	gc_segments[gc_current_segment].num_marked--;
 }

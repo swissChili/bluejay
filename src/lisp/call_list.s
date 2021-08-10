@@ -4,6 +4,7 @@
 	[global _call_list]
 	[extern length]
 	[extern elt]
+	[extern gc_resume]
 	;;; This function should call it's first argument with the arguments from
 	;;; the cons-list passed as its second argument.
 
@@ -53,9 +54,10 @@ _call_list:
 	jmp .loop
 
 .done:
-	mov ebx, [ebp + 16]						; Function pointer
+	call gc_resume
+	mov esi, [ebp + 16]						; Function pointer
 	mov edi, [ebp + 24]						; Closure data pointer
-	call ebx
+	call esi 
 
 	mov esp, ebp
 	pop ebp

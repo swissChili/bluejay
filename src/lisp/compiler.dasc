@@ -42,8 +42,8 @@ unsigned int npc = 8;
 | mov eax, esp;
 | push ebp;
 | push eax;
-| mov eax, _do_gc;
-| call eax;
+| call_extern _do_gc;
+| shl eax, 2; // to value_t
 |.endmacro;
 
 struct function *find_function(struct environment *env, char *name)
@@ -353,6 +353,15 @@ struct error walk_and_alloc(struct environment *env, struct local *local, value_
 	OKAY();
 }
 
+struct error read1_in_pool(struct istream *is, value_t *val, unsigned char pool)
+{
+	unsigned char pop = push_pool(pool);
+	struct error res = read1(is, val);
+	pop_pool(pop);
+
+	return res;
+}
+
 bool load(struct environment *env, char *path)
 {
 	if (!file_exists(path))
@@ -361,7 +370,6 @@ bool load(struct environment *env, char *path)
 	add_load(env, path);
 
 	unsigned char pool = make_pool();
-	unsigned char pop = push_pool(pool);
 
 	struct istream *is = new_fistream(path, false);
 	if (!is)
@@ -371,7 +379,7 @@ bool load(struct environment *env, char *path)
 
 	struct error compile_error, read_error;
 
-	while (IS_OKAY((read_error = read1(is, &val))))
+	while (IS_OKAY((read_error = read1_in_pool(is, &val, pool))))
 	{
 		if (!IS_OKAY((compile_error = compile_tl(val, env, path))))
 		{
@@ -386,7 +394,6 @@ bool load(struct environment *env, char *path)
 	}
 
 	del_fistream(is);
-	pop_pool(pop);
 
 	return true;
 
@@ -399,6 +406,8 @@ failure:
 
 value_t load_relative(struct environment *env, char *to, value_t name)
 {
+	gc_skip(&name, name, nil);
+
 	if (!stringp(name))
 		return nil;
 
@@ -409,9 +418,15 @@ value_t load_relative(struct environment *env, char *to, value_t name)
 	snprintf(full_path, 512, "%s/%s", dirname(relative_to), new_path);
 
 	if (load(env, full_path))
+	{
+		gc_endskip();
 		return t;
+	}
 	else
+	{
+		gc_endskip();
 		return nil;
+	}
 }
 
 struct error compile_file(char *filename, struct environment **e)
@@ -521,6 +536,7 @@ struct error compile_backquote(struct environment *env, struct local *local,
 
 value_t eval(struct environment *env, value_t form)
 {
+	gc_skip(&form, form, nil);
 	// Eval!
 	value_t function = cons(nil, cons(form, nil));
 
@@ -534,13 +550,19 @@ value_t eval(struct environment *env, value_t form)
 										 &args, NULL, "/", &d))))
 	{
 		ereport(err);
+		gc_endskip();
 		return nil;
 	}
 
 	del_local(&local);
 
 	value_t (*f)() = link_program(&d);
-	return f();
+
+	gc_resume();
+	value_t res = f();
+
+	gc_endskip();
+	return res;
 }
 
 struct error compile_variable(struct variable *v, dasm_State *Dst)
@@ -968,7 +990,9 @@ struct error compile_expression(struct environment *env, struct local *local,
 
 				pop_pool(pool);
 
+				gc_pushmark(expanded_to);
 				TRY(compile_expression(env, local, expanded_to, false, Dst));
+				gc_popmark();
 			}
 		}
 	}

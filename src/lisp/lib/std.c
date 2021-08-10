@@ -1,4 +1,5 @@
 #include "std.h"
+#include "../gc.h"
 #include "../plat/plat.h"
 #include <stdlib.h>
 #include <string.h>
@@ -43,13 +44,19 @@ value_t l_printval(value_t val)
 
 value_t l_apply(value_t func, value_t args)
 {
+	gc_skip(&args, args, nil);
+
 	if (!closurep(func))
 		return nil;
 
 	if (!listp(args))
 		return nil;
 
-	return call_list_closure((struct closure *)(func ^ CLOSURE_TAG), args);
+	gc_resumen(2);
+	value_t res = call_list_closure((struct closure *)(func ^ CLOSURE_TAG), args);
+
+	gc_endskip();
+	return res;
 }
 
 value_t l_nilp(value_t val)
@@ -166,9 +173,12 @@ struct error load_std(struct environment *env)
 	
 	add_c_function(env, "elt", l_elt, 2);
 
-	if (!load_library(env, "std"))
+	if (!getenv("LISP_NO_STD"))
 	{
-		THROW(ENOTFOUND, "Could not load library `std`, make sure your $LISP_LIBRARY_PATH is correct.");
+		if (!load_library(env, "std"))
+		{
+			THROW(ENOTFOUND, "Could not load library `std`, make sure your $LISP_LIBRARY_PATH is correct.");
+		}
 	}
 
 	OKAY();

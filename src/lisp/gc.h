@@ -22,9 +22,9 @@ extern int gc_current_segment;
 void gc_set_base_here();
 
 value_t alloc_to_value(struct alloc *a);
-void _do_gc(unsigned int esp, unsigned int ebp);
+unsigned int _do_gc(unsigned int esp, unsigned int ebp);
 void _mark(value_t value, unsigned int *marked);
-void _sweep();
+unsigned int _sweep();
 void free_all();
 
 // varargs should be a series of value_t's, followed by nil. Call this
@@ -35,3 +35,5 @@ void gc_resume();
 /// @param n Number of non-GC arguments passed to function
 void gc_resumen(int n);
 void gc_endskip();
+void gc_pushmark(value_t val);
+void gc_popmark();

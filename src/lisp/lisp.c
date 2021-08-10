@@ -218,6 +218,10 @@ void printval(value_t v, int depth)
 	}
 	else if (consp(v))
 	{
+		struct alloc *a = (struct alloc *)(v ^ CONS_TAG) - 1;
+
+		printf("pool=%d ", a->pool);
+
 		if (listp(v))
 		{
 			printf("list:\n");

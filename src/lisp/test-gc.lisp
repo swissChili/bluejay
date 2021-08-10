@@ -1,0 +1,6 @@
+(defun main ()
+  (let1 (val (cons 123 456))
+        (cons 'a 'b)
+        (gc)
+        (cons 'c 'd)
+        (gc)))
