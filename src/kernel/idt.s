@@ -61,7 +61,7 @@ ISRNOERR 129
 
 	[extern isr_handler]
 isr_common:
-	pusha						; Save all registers
+	pushad						; Save all registers
 
 	mov ax, ds					; Save data segment
 	push eax
@@ -80,7 +80,7 @@ isr_common:
 	mov fs, ax
 	mov gs, ax
 
-	popa
+	popad
 	add esp, 8 					; Passed arguments
 	sti
 	iret						; Return from interrupt

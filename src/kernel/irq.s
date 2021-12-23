@@ -28,7 +28,7 @@ IRQ 15, 47
 
 	[extern irq_handler]
 irq_common:
-	pusha
+	pushad
 	mov ax, ds					; Save data segment
 	push eax
 
@@ -46,7 +46,7 @@ irq_common:
 	mov fs, bx
 	mov gs, bx
 
-	popa
+	popad
 	add esp, 8
 	sti
 	iret

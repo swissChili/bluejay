@@ -12,6 +12,7 @@ static uint frames[NUM_FRAMES];
 static uint first_page_table[1024] __attribute__((aligned(4096)));
 uint kernel_page_directory[1024] __attribute__((aligned(4096)));
 
+
 /* frame utils */
 
 #define BITS 32
@@ -94,14 +95,39 @@ void map_4mb(uint *dir, size_t virt_start, size_t phys_start, bool user,
 
 uint *get_or_create_table(uint *dir, uint table, bool user, bool rw)
 {
-	if (dir[table] >> 12)
+	// If used AND NOT 4mb page (see figure 4-4, page 115 of Intel
+	// manual volume 3)
+	if (dir[table] & 1 && dir[table] ^ 1 << 7)
 	{
-		return (uint *)(size_t)PHYS_TO_VIRT((dir[table] ^ 0xfff));
+		return (uint *)(size_t)PHYS_TO_VIRT((dir[table] & ~0xfff));
 	}
 
-	uint *page_table = kmalloc_a(sizeof(uint[1024]));
+	uint *page_table = malloc(sizeof(uint[1024]));
 	dir[table] = VIRT_TO_PHYS(page_table) | 1 | rw << 1 | user << 2;
 	return page_table;
+}
+
+void unmap_all_frames(uint page_table_p)
+{
+	uint *table = (uint *)PHYS_TO_VIRT(page_table_p);
+
+	for (int i = 0; i < 1024; i++)
+	{
+		if (table[i] & 1)
+		{
+			clear_frame(table[i] >> 12);
+		}
+	}
+}
+
+void destroy_page_table_if_exists(uint *dir, uint table)
+{
+	// If used AND NOT 4mb page
+	if (dir[table] & 1 && dir[table] ^ 1 << 7)
+	{
+		unmap_all_frames(dir[table] >> 12);
+		free((void *)PHYS_TO_VIRT(dir[table] >> 12));
+	}
 }
 
 void unmap_page(uint *dir, void *virt)
@@ -171,6 +197,26 @@ void map_page(uint *dir, size_t virt_start, bool user, bool rw)
 
 /* paging stuff */
 
+uint *new_page_directory_v()
+{
+	// Only call this AFTER allocator + paging are initialized!
+	uint *dir = malloc(1024 * 4);
+	map_4mb(kernel_page_directory, (size_t)KERNEL_VIRTUAL_BASE, 0, false,
+			false);
+
+	return dir;
+}
+
+void free_page_directory_v(uint *dir_v)
+{
+	for (int i = 0; i < 1024; i++)
+	{
+		destroy_page_table_if_exists(dir_v, i);
+	}
+
+	free(dir_v);
+}
+
 void init_paging()
 {
 	memset(kernel_page_directory, 0, 1024 * 4);
@@ -178,6 +224,7 @@ void init_paging()
 			false);
 
 	load_page_directory((uint)kernel_page_directory - 0xC0000000);
+
 	add_interrupt_handler(14, page_fault);
 }
 

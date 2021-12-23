@@ -62,4 +62,4 @@
   ;; (flet- funcs body)
   (print funcs))
 
-(list "body-functions.lisp")
+(load "list-functions.lisp")

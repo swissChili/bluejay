@@ -39,6 +39,7 @@ OBJECTS = 	boot.o \
 			io.o \
 			vga.o \
 			gdt_flush.o \
+			tss_flush.o \
 			idt.o \
 			log.o \
 			irq.o \

@@ -34,7 +34,7 @@ struct task
 	struct process *proc;
 	/// Physical address of the top of the stack.
 	uint stack_top_p;
-	uint esp, ebp, eip;
+	struct registers state;
 };
 
 struct ll_task_i
@@ -70,9 +70,10 @@ void set_waiting(int tid, bool waiting);
 void kill_this_thread();
 
 /**
- * Force a task switch. Only call in a safe environment (ISR).
+ * Force a task switch
+ * @param ctx The context to switch out of
  */
-extern void switch_task();
+void switch_task(struct registers ctx);
 
 /**
  * Switch to a specific task. Only call in a safe environment (ISR).

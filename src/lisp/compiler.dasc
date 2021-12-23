@@ -431,6 +431,7 @@ struct error compile_file(char *filename, struct environment **e)
 	if (!ok_)
 	{
 		free(env);
+		NEARFL(filename, 1);
 		THROWSAFE(ENOTFOUND);
 	}
 

@@ -1,0 +1,17 @@
+init(bf_sso, bf_sso.a)
+
+preset(freestanding)
+preset(optimize)
+preset(debug)
+preset(32)
+preset(warn)
+
+archetype(c)
+
+CFLAGS += -I$(ROOT)/include/kernel
+
+OBJECTS = bf_sso.o
+
+type(static_lib)
+
+finish

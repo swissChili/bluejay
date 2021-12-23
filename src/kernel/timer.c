@@ -12,7 +12,7 @@ static void timer_cb(struct registers *regs)
 	if (tasks_initialized)
 	{
 		// Preemptive multitasking!
-		switch_task();
+		switch_task(*regs);
 	}
 }
 

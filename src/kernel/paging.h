@@ -4,7 +4,7 @@
 #include "registers.h"
 
 #define VIRT_TO_PHYS(virt) ((uint)(virt) - 0xC0000000)
-#define PHYS_TO_VIRT(phys) ((void *)((phys) + 0xC0000000))
+#define PHYS_TO_VIRT(phys) ((void *)((uint)(phys) + 0xC0000000))
 #define KERNEL_VIRTUAL_BASE 0xC0000000
 #define KERNEL_PAGE_NUMBER (KERNEL_VIRTUAL_BASE >> 22)
 
@@ -20,3 +20,4 @@ void alloc_frame(uint *page_table_entry, bool user, bool writable);
 void alloc_page(uint *dir, uint *page);
 void alloc_kernel_page(uint *page);
 void page_fault(struct registers *regs);
+uint *new_page_directory_v();

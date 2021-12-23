@@ -11,7 +11,7 @@ static uint next_task_id = 0;
 
 bool tasks_initialized = false;
 
-void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip);
+void _init_tasks(struct registers *regs);
 
 void init_tasks()
 {
@@ -22,10 +22,10 @@ void init_tasks()
 
 void _sys_init_tasks_h(struct registers *regs)
 {
-	_init_tasks(regs->esp, regs->ebp, regs->eip);
+	_init_tasks(regs);
 }
 
-void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
+void _init_tasks(struct registers *regs)
 {
 	processes[0] = (struct process){
 		.exists = true,
@@ -33,12 +33,13 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 		.ring = 0,
 		.uid = 0,
 		.page_directory_p = VIRT_TO_PHYS(kernel_page_directory),
-		// Obviously this isn't the actual stack position, but we want it to
-		// grow down from 4 gb so we will pretend that the first task has its
-		// stack at exactly 4gb and work from there. Because the new stack will
-		// be mapped to any random frame, it doesn't actually matter where we
-		// put it, we just want somewhere that won't collide with any user space
-		// stuff or our heap.
+		// Obviously this isn't the actual stack position, but we want
+		// it to grow down from 4 gb so we will pretend that the first
+		// task has its stack at exactly 4gb and work from
+		// there. Because the new stack will be mapped to any random
+		// frame, it doesn't actually matter where we put it, we just
+		// want somewhere that won't collide with any user space stuff
+		// or our heap.
 		.last_stack_pos = 0xFFFFF000,
 	};
 	strcpy(processes[0].name, "kernel");
@@ -47,11 +48,10 @@ void _init_tasks(uint kernel_esp, uint kernel_ebp, uint kernel_eip)
 
 	first_task->next = NULL;
 	first_task->prev = NULL;
+	memset(&first_task->task, 0, sizeof(struct task));
 	first_task->task = (struct task){
 		.proc = &processes[0],
-		.esp = kernel_esp,
-		.ebp = kernel_ebp,
-		.eip = kernel_eip,
+		.state = *regs,
 		.id = next_task_id++,
 		.waiting = false,
 	};
@@ -101,11 +101,15 @@ void spawn_thread(void (*function)(void *), void *data)
 	struct ll_task_i *ll_task = malloc(sizeof(struct ll_task_i));
 	memset(ll_task, 0, sizeof(struct ll_task_i));
 	struct task *task = &ll_task->task;
+	// New task is basically the same as the old one but with just a
+	// few changes
+	*task = current_task->task;
 
-	task->proc = proc;
+	// Namely a new TID
 	task->id = next_task_id++;
-	task->ebp = task->esp = new_stack_base_v;
-	task->eip = (uint)function;
+	// And stack, frame, and instruction pointers
+	task->state.ebp = task->state.esp = new_stack_base_v;
+	task->state.eip = (uint)function;
 	task->waiting = false;
 
 	last_task->next = ll_task;
@@ -132,8 +136,9 @@ void kill_this_thread()
 
 	if (current_task->next != NULL)
 	{
-		// If this is NULL, task will be first_task, which can't be the current task
-		// because we know there are more than one task, and this is the last one.
+		// If this is NULL, task will be first_task, which can't be
+		// the current task because we know there are more than one
+		// task, and this is the last one.
 		current_task->next->prev = current_task->prev;
 		task = current_task->next;
 	}
@@ -152,27 +157,29 @@ void kill_this_thread()
 	asm("sti");
 }
 
-extern void _switch_to_task(uint page_directory, uint eip, uint ebp, uint esp);
+extern void _switch_to_task(uint page_directory, struct registers ctx);
+#if 0
+{
+	asm("mov %0, %%ecx" :: "g"(page_directory));
+	asm("mov %ecx, %cr3");
+	// "ctx" will be at the top of the stack.
+	asm("iret");
+}
+#endif
 
 void switch_to_task(struct task *task)
 {
-	_switch_to_task(task->proc->page_directory_p, task->eip, task->ebp,
-					task->esp);
+	_switch_to_task(task->proc->page_directory_p, task->state);
 	__builtin_unreachable();
 }
 
-// WARNING: do not call this manually, it will clobber everything
-// except esp, ebp, and eip (obviously). Use switch_task in task_api.s
-// instead.
-void _do_switch_task(uint eip, uint ebp, uint esp)
+void _do_switch_task(struct registers regs)
 {
 	// sti is called in switch_to_task
 	asm("cli");
 
 	// save context for this task
-	current_task->task.ebp = ebp;
-	current_task->task.esp = esp;
-	current_task->task.eip = eip;
+	current_task->task.state = regs;
 
 	struct ll_task_i *original = current_task;
 
@@ -212,4 +219,10 @@ void set_waiting(int tid, bool waiting)
 	}
 
 	asm("sti");
+}
+
+void switch_task(struct registers ctx)
+{
+	if (tasks_initialized)
+		_do_switch_task(ctx);
 }

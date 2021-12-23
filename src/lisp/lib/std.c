@@ -71,6 +71,15 @@ void add_function(struct environment *env, char *name, void *func, struct args *
 	env->first = new;
 }
 
+void add_c_varargs(struct environment *env, char *name, void *func, int nargs)
+{
+	struct args *args = new_args();
+	args->num_required = nargs;
+	args->variadic = true;
+
+	add_function(env, name, func, args, NS_FUNCTION);
+}
+
 void add_c_function(struct environment *env, char *name, void *func, int nargs)
 {
 	struct args *args = new_args();
@@ -125,7 +134,64 @@ value_t l_num_eq(value_t a, value_t b)
 		return nil;
 	}
 
-	return (a >> 3) == (b >> 3) ? t : nil;
+	return (a >> 2) == (b >> 2) ? t : nil;
+}
+
+value_t l_num_gt(value_t a, value_t b)
+{
+	if (!integerp(a) || !integerp(b))
+		return nil;
+
+	return (a >> 2) > (b >> 2) ? t : nil;
+}
+
+value_t l_num_lt(value_t a, value_t b)
+{
+	if (!integerp(a) || !integerp(b))
+		return nil;
+
+	return (a >> 2) < (b >> 2) ? t : nil;
+}
+
+value_t l_append(value_t l)
+{
+	if (nilp(l))
+		return l;
+
+	value_t first = nil;
+	value_t *last = NULL;
+
+	for (value_t item = l; !nilp(item); item = cdr(item))
+	{
+		value_t a = car(item);
+
+		if (!listp(a))
+		{
+			value_t new = cons(a, nil);
+			*last = new;
+			last = cdrref(new);
+			continue;
+		}
+
+		for (value_t i = a; !nilp(i); i = cdr(i))
+		{
+			value_t b = car(i);
+
+			if (!last)
+			{
+				first = cons(b, nil);
+				last = cdrref(first);
+			}
+			else
+			{
+				value_t new = cons(b, nil);
+				*last = new;
+				last = cdrref(new);
+			}
+		}
+	}
+
+	return first;
 }
 
 #define LISP_PREDICATE(name) value_t l_##name(value_t v) { return name(v) ? t : nil; }
@@ -147,6 +213,8 @@ struct error load_std(struct environment *env)
 	add_c_function(env, "*", l_times, 2);
 	add_c_function(env, "/", l_divide, 2);
 	add_c_function(env, "=", l_num_eq, 2);
+	add_c_function(env, "<", l_num_lt, 2);
+	add_c_function(env, ">", l_num_gt, 2);
 
 	add_c_function(env, "car", car, 1);
 	add_c_function(env, "cdr", cdr, 1);
@@ -155,6 +223,7 @@ struct error load_std(struct environment *env)
 	add_c_function(env, "print", l_printval, 1);
 	add_c_function(env, "read-stdin", l_read_stdin, 0);
 	add_c_function(env, "apply", l_apply, 2);
+	add_c_varargs(env,  "append", l_append, 0);
 
 	add_c_function(env, "nilp", l_nilp, 1);
 	add_c_function(env, "listp", l_listp, 1);
@@ -168,6 +237,7 @@ struct error load_std(struct environment *env)
 
 	if (!load_library(env, "std"))
 	{
+		fprintf(stderr, "Not found std\n");
 		THROW(ENOTFOUND, "Could not load library `std`, make sure your $LISP_LIBRARY_PATH is correct.");
 	}
 
@@ -188,7 +258,7 @@ bool load_library(struct environment *env, char *name)
 
 		if (file_exists(path))
 		{
-			fprintf(stderr, "path: %s\n", path);
+			// fprintf(stderr, "loading path: %s\n", path);
 			return load(env, path);
 		}
 
@@ -196,7 +266,7 @@ bool load_library(struct environment *env, char *name)
 
 		if (file_exists(path))
 		{
-			fprintf(stderr, "path: %s\n", path);
+			// fprintf(stderr, "loading path: %s\n", path);
 			return load(env, path);
 		}
 	}

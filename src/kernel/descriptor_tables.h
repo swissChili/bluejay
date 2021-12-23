@@ -71,6 +71,50 @@ struct idt_pointer
 	uint base;
 } __attribute__((packed));
 
+// We don't use hardware task switching, but we need a TSS entry
+// anyway.
+struct __attribute__((packed)) tss_entry
+{
+	// Previous TSS. Unused.
+	uint prev_tss;   
+	// Kernel stack pointer.
+	uint esp0;       
+	// Kernel stack segment.
+	uint ss0;        
+	// Unused
+	uint esp1;       
+	uint ss1;
+	uint esp2;
+	uint ss2;
+	uint cr3;
+	uint eip;
+	uint eflags;
+	uint eax;
+	uint ecx;
+	uint edx;
+	uint ebx;
+	uint esp;
+	uint ebp;
+	uint esi;
+	uint edi;
+	// The value to load into ES when we change to kernel mode.
+	uint es;         
+	// The value to load into CS when we change to kernel mode.
+	uint cs;         
+	// The value to load into SS when we change to kernel mode.
+	uint ss;         
+	// The value to load into DS when we change to kernel mode.
+	uint ds;         
+	// The value to load into FS when we change to kernel mode.
+	uint fs;         
+	// The value to load into GS when we change to kernel mode.
+	uint gs;         
+	// Unused...
+	uint ldt;        
+	ushort trap;
+	ushort iomap_base;
+};
+
 extern void isr0();
 extern void isr1();
 extern void isr2();
@@ -129,3 +173,8 @@ extern void irq15();
 void init_descriptor_tables();
 void init_idt();
 void init_gdt();
+
+/// Set the stack to be used for Kernel-mode interrupt routines
+void set_kernel_interrupt_stack(void *stack);
+
+extern struct tss_entry tss_entry;

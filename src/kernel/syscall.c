@@ -11,7 +11,7 @@ void do_syscall(struct registers *regs)
 	{
 	case SYS_GIVEUP:
 		// easy, just switch tasks
-		switch_task();
+		switch_task(*regs);
 		break;
 
 	default:

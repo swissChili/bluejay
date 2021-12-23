@@ -44,6 +44,7 @@ struct error
 	__error.loc.line = cons_line(val),			\
 		__error.loc.file = cons_file(val)
 #define NEARIS(is) (is)->getpos((is), &__error.loc.line, &__error.loc.file)
+#define NEARFL(f, l) __error.loc.line=l, __error.loc.file=f
 #define _TRY(expr, m, c)								\
 	{													\
 		struct error __sub = (expr);					\
