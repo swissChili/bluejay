@@ -19,6 +19,7 @@ uint pci_config_readd(uchar bus, uchar slot, uchar func, uchar offset)
 
 struct pci_device pci_check_device(uchar bus, uchar slot, uchar func)
 {
+
 	uint vendor_device = pci_config_readd(bus, slot, func, 0);
 	ushort vendor = vendor_device & 0xffff;
 

@@ -85,8 +85,8 @@ void spawn_thread(void (*function)(void *), void *data)
 	// Virtual address of page directory (in kernel memory)
 	uint *dir_v = PHYS_TO_VIRT(proc->page_directory_p);
 
-	// Virtual location of new stack, with space reserved for argument and
-	// return address to kill_this_thread().
+	// Virtual location of new stack, with space reserved for argument
+	// and return address to kill_this_thread().
 	uint new_stack_base_v = proc->last_stack_pos;
 	proc->last_stack_pos -= 0x1000;
 

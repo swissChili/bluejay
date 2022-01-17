@@ -47,11 +47,12 @@ int kmain(struct multiboot_info *mboot)
 	test_allocator();
 #endif
 
-	// Load initrd
-	struct multiboot_info mb = make_multiboot_physical(mboot);
 	init_vfs();
 
 #ifdef INITRD
+	// Load initrd
+	struct multiboot_info mb = make_multiboot_physical(mboot);
+
 	kassert(mb.mods_count, "No multiboot modules loaded!");
 	kprintf(DEBUG "mboot->mods_addr = %d (0x%x)\n", mb.mods_addr, mb.mods_addr);
 	uchar *initrd_loc = (uchar *)((uint *)mb.mods_addr)[0];
@@ -64,7 +65,7 @@ int kmain(struct multiboot_info *mboot)
 
 	asm("sti");
 
-	init_tasks();
+	// init_tasks();
 	init_sync();
 
 	pci_init();
