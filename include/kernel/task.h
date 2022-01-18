@@ -23,6 +23,7 @@ struct process
 	// NOTE: must be PAGE ALIGNED
 	uint last_stack_pos;
 };
+
 /**
  * The smallest schedulable unit, a thread of a process.
  */

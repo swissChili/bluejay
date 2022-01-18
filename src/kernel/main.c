@@ -65,7 +65,7 @@ int kmain(struct multiboot_info *mboot)
 
 	asm("sti");
 
-	// init_tasks();
+	init_tasks();
 	init_sync();
 
 	pci_init();

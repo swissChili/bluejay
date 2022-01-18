@@ -33,7 +33,8 @@ void irq_handler(struct registers regs)
 	if (interrupt_handlers[regs.interrupt_number])
 		interrupt_handlers[regs.interrupt_number](&regs);
 	else
-		kprintf(ERROR "Unhandled hardware interrupt: %d, called from %d\n", regs.interrupt_number, regs.eip);
+		kprintf(ERROR "Unhandled hardware interrupt: %d, called from %d\n",
+				regs.interrupt_number, regs.eip);
 }
 
 void isr_handler(struct registers regs)
@@ -41,7 +42,8 @@ void isr_handler(struct registers regs)
 	if (interrupt_handlers[regs.interrupt_number])
 		interrupt_handlers[regs.interrupt_number](&regs);
 	else
-		kprintf(ERROR "Unhandled interrupt: %d, called from %d\n", regs.interrupt_number, regs.eip);
+		kprintf(ERROR "Unhandled interrupt: %d, called from %d\n",
+				regs.interrupt_number, regs.eip);
 }
 
 void add_interrupt_handler(uchar interrupt, void (*handler)(struct registers *))

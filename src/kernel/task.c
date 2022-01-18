@@ -81,6 +81,8 @@ void spawn_thread(void (*function)(void *), void *data)
 {
 	asm("cli");
 
+	kprintf(DEBUG "Spawning thread %p, data=%p\n", function, data);
+
 	struct process *proc = current_task->task.proc;
 	// Virtual address of page directory (in kernel memory)
 	uint *dir_v = PHYS_TO_VIRT(proc->page_directory_p);
@@ -93,10 +95,13 @@ void spawn_thread(void (*function)(void *), void *data)
 	// Alloc a new page in the current process mapping to the new stack
 	alloc_page(dir_v, (void *)proc->last_stack_pos);
 
+	kprintf(INFO "new_stack_base_v = %p\n", new_stack_base_v);
 	new_stack_base_v -= sizeof(uint);
 	*((uint *)new_stack_base_v) = (size_t)data;
 	new_stack_base_v -= sizeof(uint);
 	*((uint *)new_stack_base_v) = (size_t)&kill_this_thread;
+
+	kprintf(DEBUG "Set stack\n");
 
 	struct ll_task_i *ll_task = malloc(sizeof(struct ll_task_i));
 	memset(ll_task, 0, sizeof(struct ll_task_i));
@@ -175,8 +180,10 @@ void switch_to_task(struct task *task)
 
 void _do_switch_task(struct registers regs)
 {
-	// sti is called in switch_to_task
+	// Resetting eflags in _switch_to_task iret will switch this back
 	asm("cli");
+
+	kprintf(DEBUG "switching tasks\n");
 
 	// save context for this task
 	current_task->task.state = regs;

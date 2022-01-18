@@ -5,6 +5,14 @@
 #include "log.h"
 #include "pic.h"
 
+/**
+ * NOTE: In order to understand this code you should have the paging
+ * section of the Intel IA-32 and 64 manual volume 3 open. Sadly I
+ * have littered this with magic numbers that you will need to consult
+ * the manual to understand.
+ * TODO: Fix this!
+ */
+
 #define NUM_FRAMES 0xffffffff / 0x1000 / 32
 /* frames bitset, 0 = free, 1 = used */
 static uint frames[NUM_FRAMES];
