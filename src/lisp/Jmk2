@@ -1,6 +1,6 @@
 # -*- mode:tcl -*-
 
-source "../../share/jmk/jmk.tcl"
+# source "../../share/jmk/jmk.tcl"
 
 init lisp
 
@@ -9,7 +9,10 @@ cflags -Ivendor/luajit/dynasm -O0
 
 option NO_READLINE 0
 
-type executable
+srcs main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \
+	call_list.s error.c
+
+set lisp_libpath "$::root/lib/lisp"
 
 if {$options(NO_READLINE) == 0} {
 	cflags -lreadline
@@ -20,14 +23,18 @@ if {$options(NO_READLINE) == 0} {
 set lua vendor/luajit/src/host/minilua
 
 rule $lua ${lua}.c {
-	log CC $source
-	cc $source -o $target -lm
+	log CC $::src
+	cc "$::src -o $::target -lm"
 }
 
 rule compiler.c "compiler.dasc $lua" {
-	log DYNASM $first_source
-	shell $::lua vendor/luajit/dynasm/dynasm.lua -o $target $first_source
+	log DYNASM $::first_src
+	shell "$::lua vendor/luajit/dynasm/dynasm.lua -o $::target $::first_src"
 }
 
-sources main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \
-	call_list.s error.c
+rule repl lisp {
+	log LISP repl
+	shell "LISP_LIBRARY_PATH=$::lisp_libpath ./lisp $::root/lib/lisp/repl/repl.lisp"
+}
+
+type executable

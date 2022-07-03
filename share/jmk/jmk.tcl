@@ -8,7 +8,11 @@ variable asmflags {}
 variable asm as
 variable cc cc
 
-variable options
+# variable options
+
+variable src \$^
+variable first_src \$<
+variable target \$@
 
 proc init {name {target {DEFAULT_TARGET}}} {
 	if {$target eq {DEFAULT_TARGET}} {
@@ -20,6 +24,10 @@ proc init {name {target {DEFAULT_TARGET}}} {
 
 	set jmk_name $name
 	set jmk_target $target
+
+	puts {MAKEFILE_DEPTH ?= 1}
+
+	rule all $target {}
 }
 
 proc preset {p} {
@@ -61,7 +69,82 @@ proc option {name val} {
 	}
 }
 
+proc log {category message} {
+	puts "\t@printf '\\e\[1;34m%8s\\e\[m  %s\\n' '$category' '$message' > /dev/stderr"
+}
+
+proc cc {command} {
+	puts "\t@$::cc $command $::cflags"
+}
+
+proc asm {command} {
+	puts "\t@$::asm $command $::asmflags"
+}
+
+proc shell {command} {
+	puts "\t@$command"
+}
+
+proc rule {target deps does} {
+	puts ""
+	puts "$target: $deps"
+	eval $does
+}
+
+proc type {type} {
+	::type::$type
+}
+
+proc srcs {args} {
+	puts ""
+	variable objs ""
+
+	foreach src $args {
+		variable obj [regsub -- {(.+)\.\w+} $src {\1.o}]
+		variable objs "$objs $obj"
+	}
+
+	puts "OBJECTS += $objs"
+}
+
+namespace eval type {
+	proc executable {} {
+		global jmk_target
+
+		rule $jmk_target "\$(OBJECTS)" {
+			log LD $::target
+			cc "-o $::target $::src"
+		}
+
+		helpers
+	}
+
+proc helpers {} {
+	rule .c.o {} {
+		log CC $::first_src
+		cc "-c $::first_src -o $::target"
+	}
+
+	rule .s.o {} {
+		log ASM $::first_src
+		asm "\$(ASMFLAGS) $::first_src -o $::target"
+	}
+
+	rule clean {} {
+		shell "rm -f **/*.o **/*.a *.so $::target \$(OBJECTS)"
+	}
+}	
+}
+
 namespace eval preset {
+	proc freestanding {} {
+		cflags -nostdlib -nostdinc -fno-builtin -fno-stack-protector -ffreestanding
+	}
+
+	proc optimize {} {
+		cflags -O2
+	}
+	
 	proc 32 {} {
 		cflag -m32
 		asmflag -felf32
@@ -73,17 +156,11 @@ namespace eval preset {
 	}
 
 	proc warn {} {
-		cflag "-Wall -Wextra -Werror"
+		cflags -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Wno-incompatible-pointer-types -Werror
 	}
 
 	proc nasm {} {
 		global asm
 		set asm nasm
 	}
-}
-
-if {[catch {array set options $argv} msg]} {
-	puts "Sorry, you must pass an even number of arguments to this script"
-	puts "in the form <key> <value>"
-	exit 1
 }

@@ -9,6 +9,7 @@
 *.img
 bin/*
 !bin/jmk
+!bin/jmk2
 **/Makefile
 **/Jmk.options
 .gitignore
