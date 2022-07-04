@@ -237,7 +237,7 @@ enum
 /// File type flag (used on inode->mode)
 #define EXT2_F_TYPE 0xf000
 
-const extern uchar ext2_s_to_ft[];
+extern const uchar ext2_s_to_ft[];
 
 /// Converts the file "mode" (inode->mode, EXT2_S_*) to a file type
 /// (EXT2_FT_*).
