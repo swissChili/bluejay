@@ -1,7 +1,5 @@
 # -*- mode:tcl -*-
 
-# source "../../share/jmk/jmk.tcl"
-
 init lisp
 
 presets 32 debug warn nasm

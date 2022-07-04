@@ -9,7 +9,7 @@ if rtd:
 	subprocess.call('doxygen lisp.doxyfile', shell=True)
 
 project = 'Bluejay'
-copyright = '2021, swissChili'
+copyright = '2022, swissChili'
 author = 'swissChili'
 
 extensions = [

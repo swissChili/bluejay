@@ -11,6 +11,7 @@ The Bluejay Operating System
    :hidden:
 
    build
+   jmk
    architecture
    filesystem
    lisp-std
