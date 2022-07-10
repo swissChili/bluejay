@@ -18,7 +18,7 @@ while getopts "hD:" arg; do
     esac
 done
 
-echo "$options"
+echo "Options: {$options }"
 
 for file in $(find -name Jmk2); do
     echo "$file" > /dev/stderr
@@ -30,5 +30,6 @@ set jmk_build_cmd {$0}
 set jmk_build_dir {$(pwd)}
 cd {$outdir}
 array set options {$options}
+source {$root/share/jmk/multiplat.jmk}
 EOF
 done

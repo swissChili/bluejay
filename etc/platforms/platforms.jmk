@@ -1,0 +1,7 @@
+# -*- tcl -*-
+
+isa x86_32
+device pc-generic x86_32
+
+isa riscv32
+device esp32c3 riscv32

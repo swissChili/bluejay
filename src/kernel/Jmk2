@@ -4,69 +4,15 @@ init kernel kernel.elf
 
 presets freestanding debug 32 warn nasm
 
-cflags -I$root/include/kernel -I$root/include -O0 -Wno-ignored-qualifiers -Wno-sign-compare
+cflags -I$root/include/kernel -I$root/include -I[pwd] -O0 -Wno-ignored-qualifiers -Wno-unused-params -Wno-sign-compare
 
-ldflags -Tlink.ld -melf_i386
-asmflags -felf -Fdwarf
-set qemuflags "-drive file=hd0_ext2.img,format=raw"
+# Sources are mostly platform dependent (for now ;D )
+enable_multiplat
 
-depends sys $root/src/libsys libsys.a
-depends initrd $root/boot/initrd initrd.img
-depends ata_pio dri/ata_pio ata_pio.a
-depends pci dri/pci pci.a
-depends ide dri/ide ide.a
-depends ext2 dri/fs/ext2 ext2.a
-
-option FS ext2
-
-srcs boot.s \
-	main.c \
-	descriptor_tables.c \
-	io.c \
-	vga.c \
-	gdt_flush.s \
-	tss_flush.s \
-	idt.s \
-	log.c \
-	irq.c \
-	pic.c \
-	timer.c \
-	paging.c \
-	switch_table.s \
-	scan_codes.c \
-	kheap.c \
-	alloc.c \
-	vfs.c \
-	multiboot.c \
-	vfs_initrd.c \
-	syscall.c \
-	task.c \
-	task_api.s \
-	faults.c \
-	sync.c
-
-objs [lib ext2] \
-	[lib ide] \
-	[lib ata_pio] \
-	[lib pci] \
-	[lib sys]
-
-type custom_link
-
-rule debug-wait kernel.elf {
-	shell "qemu-system-i386 -s -S $::qemuflags -kernel kernel.efl"
-}
-rule debug kernel.elf {
-	shell "qemu-system-i386 -s -S $::qemuflags -kernel kernel.efl"
-	shell "echo run target remote localhost:1234 to connect to qemu"
-	shell "gdb $::first_src"
-	shell "pkill qemu-system-i386"
-}
-
-rule qemu "kernel.elf hd0_$::options(FS).img" {
-	shell "qemu-system-i386 $::qemuflags -d cpu_reset -monitor stdio -kernel kernel.elf -no-reboot"
-}
+srcs scan_codes.c
 
 rule scan_codes.c "gen_scan_codes.py scan_codes.tsv" {
 	shell "python3 $::first_src > $::target"
 }
+
+type custom_link

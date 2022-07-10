@@ -7,6 +7,8 @@ variable jmk_phony_libs {}
 variable jmk_lib_paths
 variable jmk_lib_targets
 
+variable jmk_sourced
+
 variable cflags {}
 variable asmflags {}
 variable ldflags {}
@@ -98,6 +100,15 @@ proc log {category message} {
 	puts "\t@printf ' \\e\[1;34m%8s\\e\[m  %s\\n' '$category' '$message' > /dev/stderr"
 }
 
+proc jmk_log {message} {
+	puts stderr $message
+}
+
+proc jmk_error {message} {
+	puts stderr "\e[31mError\e[0m $message"
+	exit 1
+}
+
 proc cc {command} {
 	puts "\t@$::cc $command $::cflags"
 }
@@ -132,9 +143,9 @@ proc objs {args} {
 
 proc srcs {args} {
 	puts ""
-	variable objs ""
 
 	foreach src $args {
+		set src [file join [pwd] $src]
 		variable obj [regsub -- {(.+)\.\w+} $src {\1.o}]
 		set ::objs "$::objs $obj"
 	}
@@ -232,4 +243,22 @@ namespace eval preset {
 		global asm
 		set asm nasm
 	}
+}
+
+proc jmk_source {path} {
+	variable dir [pwd]
+
+	if {![file exists $path]} {
+		jmk_error "jmk_source: $dir/$path doesn't exist"
+	}
+
+	lappend ::jmk_sourced "$dir/$path"
+
+	cd [file dirname $path]
+	uplevel 1 source [file tail $path]
+	cd $dir
+}
+
+proc jmk_finalize {} {
+	puts "Jmk2: $::jmk_sourced"
 }

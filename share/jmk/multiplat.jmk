@@ -1,0 +1,53 @@
+# -*- tcl -*-
+
+variable isas
+variable devices
+
+variable isa_features
+
+proc isa {name} {
+	lappend ::isas $name
+}
+
+proc device {name isa} {
+	lappend ::devices($isa) $name
+}
+
+proc target_feature {feature} {
+	lappend ::isa_features $feature
+}
+
+proc target_features {args} {
+	lappend ::isa_features {*}$args
+}
+
+proc feature_supported {feature} {
+	return [expr {[lsearch -exact $::isa_features $feature] != -1}]
+}
+
+option ISA x86_32
+option DEVICE pc-generic
+
+proc source_if_exists {path} {
+	if {[file exists $path]} {
+		uplevel 1 jmk_source $path
+	}
+}
+
+proc enable_multiplat {} {
+	uplevel 1 source_if_exists "$::root/etc/platforms/platforms.jmk"
+
+	if {[lsearch -exact $::isas $::options(ISA)] == -1} {
+		jmk_error "Specified ISA $::options(ISA) is invalid, choose one of $::isas"
+	}
+
+	if {[lsearch -exact $::devices($::options(ISA)) $::options(DEVICE)] == -1} {
+		jmk_error "Specified DEVICE $::options(DEVICE) is invalid, choose one of $::devices($::options(ISA))"
+	}
+
+	uplevel 1 source_if_exists "$::root/etc/platforms/$::options(ISA)/$::options(DEVICE).jmk"
+	uplevel 1 source_if_exists "$::root/etc/platforms/$::options(ISA)/$::options(ISA).jmk"
+
+	uplevel 1 source_if_exists "$::options(ISA)/$::options(DEVICE).jmk"
+	uplevel 1 source_if_exists "$::options(ISA)/$::options(ISA).jmk"
+}
