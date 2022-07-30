@@ -9,10 +9,17 @@ options=""
 
 disable_gtags=false
 
-while getopts "hD:" arg; do
+cc=cc
+ld=ld
+asm=as
+
+while getopts "hD:c:a:l:" arg; do
     case $arg in
 	h) echo "Please read the JMK manual for more information." ;;
 	D) options="$options $(echo $OPTARG | sed 's/=/ /')" ;;
+	c) cc="$OPTARG" ;;
+	a) ld="$OPTARG" ;;
+	l) asm="$OPTARG" ;;
 	?) echo "Invalid argument"
 	   exit 1 ;;
     esac
@@ -25,6 +32,9 @@ for file in $(find -name Jmk2); do
     outdir="$(dirname $file)"
 	cat - $file << EOF | tclsh - $options > "$outdir/Makefile"
 source {$root/share/jmk/jmk.tcl}
+set cc {$cc}
+set ld {$ld}
+set asm {$asm}
 set root {$root}
 set jmk_build_cmd {$0}
 set jmk_build_dir {$(pwd)}

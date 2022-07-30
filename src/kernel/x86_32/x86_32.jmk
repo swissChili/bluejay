@@ -22,7 +22,7 @@ srcs boot.s \
 	tss_flush.s \
 	idt.s \
 	log.c \
-	irq.c \
+	irq.s \
 	pic.c \
 	timer.c \
 	paging.c \

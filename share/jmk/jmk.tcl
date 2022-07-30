@@ -148,6 +148,23 @@ proc srcs {args} {
 		set src [file join [pwd] $src]
 		variable obj [regsub -- {(.+)\.\w+} $src {\1.o}]
 		set ::objs "$::objs $obj"
+
+		if {[string match *.c $src]} {
+			variable cc $::cc
+			if {[string match *distcc* $cc]} {
+				variable cc [regsub -- {.*distcc +(.+)$} $cc {\1}]
+			}
+
+			if {[file exists $src]} {
+				puts [exec sh -c "$cc $src -MM -MT $obj $::cflags"]
+			} else {
+				rule $obj $src {}
+			}
+
+			log CC [file normalize $src]
+			cc "-c $::first_src -o $::target"
+			puts ""
+		}
 	}
 }
 
@@ -196,10 +213,10 @@ proc custom_link {} {
 }
 
 proc helpers {} {
-	rule .c.o {} {
-		log CC $::first_src
-		cc "-c $::first_src -o $::target"
-	}
+	# rule .c.o {} {
+	# 	log CC $::first_src
+	# 	cc "-c $::first_src -o $::target"
+	# }
 
 	rule .s.o {} {
 		log ASM $::first_src

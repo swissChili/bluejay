@@ -11,7 +11,9 @@ project produces a single output based on some sources.
 The script ``bin/jmk2`` looks in the source tree for ``Jmk2`` files,
 and process each one into the corresponding Makefile. It accepts
 option definitions with the ``-D`` flag, eg ``./bin/jmk2
--DSOME_OPTION=123``.
+-DSOME_OPTION=123``. You can also specify the C compiler, assembler,
+and linker to use with the ``-c``, ``-a``, and ``-l`` flags,
+respectively.
 
 Here is an example Jmk2 file:
 
