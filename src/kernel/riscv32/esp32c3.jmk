@@ -1,0 +1,9 @@
+# -*- tcl -*-
+
+ldflags -T[pwd]/link-esp32c3.ld
+
+srcs serial-esp32c3.c
+
+rule kernel.bin kernel.elf {
+	shell {objcopy -O binary $^ $@}
+}

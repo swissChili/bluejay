@@ -220,7 +220,7 @@ proc helpers {} {
 
 	rule .s.o {} {
 		log ASM $::first_src
-		asm "\ $::first_src -o $::target"
+		asm "$::asmflags $::first_src -o $::target"
 	}
 
 	rule clean {} {
@@ -242,14 +242,8 @@ namespace eval preset {
 		cflags -O2
 	}
 	
-	proc 32 {} {
-		cflag -m32
-		asmflag -felf32
-	}
-
 	proc debug {} {
 		cflag -g
-		asmflag -Fdwarf
 	}
 
 	proc warn {} {
@@ -259,6 +253,7 @@ namespace eval preset {
 	proc nasm {} {
 		global asm
 		set asm nasm
+		asmflag -Fdwarf
 	}
 }
 

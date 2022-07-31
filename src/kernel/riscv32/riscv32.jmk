@@ -1,0 +1,10 @@
+# -*- tcl -*-
+
+srcs boot.s \
+	main.c
+
+rule qemu "" {
+	shell "qemu-system-riscv32 -M ? | grep virt >/dev/null || exit"
+	shell "echo C-a X to exit qemu"
+	shell "qemu-system-riscv32 -nographic -smp 4 -machine virt -bios none -kernel kernel.elf"
+}

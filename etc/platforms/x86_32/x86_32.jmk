@@ -1,3 +1,4 @@
 # -*- tcl -*-
 
-# nothing
+cflag -m32
+asmflag -felf32

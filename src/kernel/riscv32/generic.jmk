@@ -1,0 +1,3 @@
+ldflags -T[pwd]/link.ld
+
+srcs serial-generic.c

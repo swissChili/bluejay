@@ -26,7 +26,7 @@ proc feature_supported {feature} {
 }
 
 option ISA x86_32
-option DEVICE pc-generic
+option DEVICE generic
 
 proc source_if_exists {path} {
 	if {[file exists $path]} {
