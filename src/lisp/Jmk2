@@ -2,6 +2,10 @@
 
 init lisp
 
+presets 32 debug warn nasm
+cflags -Ivendor/luajit/dynasm -O0
+asmflags -felf32
+
 # Make this `readline', `edit', or `none'
 option READLINE readline
 
@@ -12,10 +16,6 @@ if {$options(READLINE) == "none"} {
 } else {
 	cflags -L/usr/lib/i386-linux-gnu -l$options(READLINE)
 }
-
-presets 32 debug warn nasm
-cflags -Ivendor/luajit/dynasm -O0
-asmflags -felf32
 
 set lua [pwd]/vendor/luajit/src/host/minilua
 

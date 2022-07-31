@@ -2,7 +2,7 @@
 
 init kernel kernel.elf
 
-presets freestanding debug 32 warn nasm
+presets freestanding debug warn
 
 cflags -I$root/include/kernel -I$root/include -I[pwd] -O0 -Wno-ignored-qualifiers -Wno-unused-params -Wno-sign-compare
 

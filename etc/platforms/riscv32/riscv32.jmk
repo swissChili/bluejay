@@ -1,0 +1,9 @@
+# -*- tcl -*-
+
+set ::ld "clang --target=riscv32"
+set ::cc "clang --target=riscv32"
+set ::asm "clang --target=riscv32"
+
+cflags -mcmodel=medany -march=rv32ima -mabi=ilp32
+asmflags -nostdlib -c
+ldflags $::cflags

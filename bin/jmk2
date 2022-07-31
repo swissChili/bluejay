@@ -36,7 +36,7 @@ set cc {$cc}
 set ld {$ld}
 set asm {$asm}
 set root {$root}
-set jmk_build_cmd {$0}
+set jmk_build_cmd {$0 $*}
 set jmk_build_dir {$(pwd)}
 cd {$outdir}
 array set options {$options}
