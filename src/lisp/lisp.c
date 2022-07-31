@@ -25,6 +25,7 @@ value_t intval(int i)
 
 void add_this_alloc(struct alloc *a, int tag)
 {
+	a->mark = -1;
 	a->type_tag = tag;
 	a->pool = current_pool;
 
@@ -598,6 +599,18 @@ void add_to_pool(value_t form)
 
 	struct alloc *a = (void *)(form & ~0b111);
 	a[-1].pool = current_pool;
+}
+
+void del_alloc(struct alloc *alloc)
+{
+	if (alloc->type_tag == CLOSURE_TAG)
+	{
+		fprintf(stderr, "del_alloc closure\n");
+		struct closure_alloc *ca = alloc;
+		free(ca->closure.args);
+	}
+
+	free_aligned(alloc);
 }
 
 int cons_line(value_t val)

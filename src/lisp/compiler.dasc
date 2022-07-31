@@ -105,6 +105,8 @@ void del_env(struct environment *env)
 	{
 		next = f->prev;
 		// We're not gonna bother munmap()ing the function
+		if (f->args)
+			free(f->args);
 		free(f);
 	}
 
@@ -207,9 +209,14 @@ struct error compile_function(value_t args, enum namespace namespace,
 
 	if (local_out)
 		*local_out = local;
+	else
+		del_local(&local);
 
 	if (args_out)
 		*args_out = ar;
+
+	if (!local_out && !args_out)
+		free(ar);
 
 	*state = d;
 
@@ -407,6 +414,8 @@ value_t load_relative(struct environment *env, char *to, value_t name)
 	char full_path[512];
 
 	snprintf(full_path, 512, "%s/%s", dirname(relative_to), new_path);
+
+	free(relative_to);
 
 	if (load(env, full_path))
 		return t;
@@ -775,7 +784,7 @@ struct error compile_expression(struct environment *env, struct local *local,
 		{
 			// Compile the function with this as the parent scope
 			struct local new_local;
-			int nargs_out;
+			struct args *nargs_out;
 			dasm_State *d;
 			TRY(compile_function(
 					args, NS_ANONYMOUS, env, &new_local, local, &nargs_out,
@@ -1251,6 +1260,8 @@ struct error list_to_args(struct environment *env, value_t list,
 
 			add_variable(local, V_ARGUMENT, (char *)(name ^ SYMBOL_TAG),
 			             args->num_required + args->num_optional - 1);
+
+			dasm_free(&d);
 		}
 	}
 

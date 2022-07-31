@@ -84,13 +84,22 @@ void _sweep()
 		}
 		else
 		{
-			fprintf(stderr, "[ GC ] freeing: ");
-			printval(alloc_to_value(a), 1);
+			fprintf(stderr, "[ GC ] freeing: %p\n", a);
 			// Free and remove from allocation list
 			struct alloc *p = a->prev, *n = a->next;
-			free_aligned(a);
+			del_alloc(a);
 
 			a = n;
+
+			if (a == first_a)
+			{
+				first_a = n;
+			}
+
+			if (a == last_a)
+			{
+				last_a = p;
+			}
 
 			if (p)
 				p->next = n;
@@ -152,7 +161,7 @@ void free_all()
 	for (struct alloc *a = first_a; a;)
 	{
 		struct alloc *next = a->next;
-		free_aligned(a);
+		del_alloc(a);
 		a = next;
 //		fprintf(stderr, "a = %p\n", a);
 	}

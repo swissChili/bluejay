@@ -1,6 +1,6 @@
 #include "compiler.h"
-#include "lisp.h"
 #include "gc.h"
+#include "lisp.h"
 #include "plat/plat.h"
 
 int main(int argc, char **argv)
@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 	{
 		ereport(compile_error);
 		goto done;
-	}		
+	}
 
 	struct function *lisp_main_f = find_function(env, "main");
 

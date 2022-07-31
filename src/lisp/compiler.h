@@ -152,8 +152,11 @@ unsigned int local_alloc(struct local *local);
 void local_free(struct local *local, unsigned int slot);
 
 /**
- * Deletes the memory allocated in `local`. Does not actually call `free()` on
- * `local` itself, but frees the variables and stack slots associated with it.
+ * Deletes the memory allocated in `local`. Does not actually call
+ * `free()` on `local` itself, but frees the variables and stack slots
+ * associated with it.  Also does NOT free `local->args`. You must do
+ * that yourself if you want. This is because these arguments are
+ * often used in multiple places.
  */
 void del_local(struct local *local);
 

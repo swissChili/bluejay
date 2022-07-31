@@ -34,6 +34,11 @@ rule repl [pwd]/lisp {
 	shell "LISP_LIBRARY_PATH=$::lisp_libpath ./lisp $::root/lib/lisp/repl/repl.lisp"
 }
 
+rule valgrind [pwd]/lisp {
+	log VALGRIND "lisp test-gc.lisp"
+	shell "LISP_LIBRARY_PATH=$::lisp_libpath valgrind --track-origins=yes --leak-check=full ./lisp test-gc.lisp"
+}
+
 srcs main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \
 	call_list.s error.c
 

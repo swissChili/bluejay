@@ -149,6 +149,8 @@ void pop_pool(unsigned char pool);
 
 void add_to_pool(value_t form);
 
+void del_alloc(struct alloc *alloc);
+
 /**
  * @returns true if pool is still alive (in scope).
  */
