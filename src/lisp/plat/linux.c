@@ -51,8 +51,12 @@ char *read_input_line(char *prompt)
 #ifndef NO_READLINE
 	return readline(prompt);
 #else
-	UNUSED(prompt);
-	return "";
+	fprintf(stdout, "%s", prompt);
+	fflush(stdout);
+	char *buffer = malloc(512);
+	fgets(buffer, 512, stdin);
+
+	return buffer;
 #endif
 }
 

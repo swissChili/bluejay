@@ -161,7 +161,7 @@ proc srcs {args} {
 				rule $obj $src {}
 			}
 
-			log CC [file normalize $src]
+			log CC $src
 			cc "-c $::first_src -o $::target"
 			puts ""
 		}
@@ -220,7 +220,7 @@ proc helpers {} {
 
 	rule .s.o {} {
 		log ASM $::first_src
-		asm "\$(ASMFLAGS) $::first_src -o $::target"
+		asm "\ $::first_src -o $::target"
 	}
 
 	rule clean {} {

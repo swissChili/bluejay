@@ -1,4 +1,5 @@
 #include "std.h"
+#include "../gc.h"
 #include "../plat/plat.h"
 #include <stdlib.h>
 #include <string.h>
@@ -98,7 +99,6 @@ value_t l_elt(value_t seq, value_t i)
 
 value_t l_read_stdin()
 {
-#ifndef NO_READLINE
 	char *string = read_input_line("lisp> ");
 	if (!string)
 		return nil;
@@ -122,9 +122,6 @@ value_t l_read_stdin()
 	free(string);
 
 	return val;
-#else
-	return nil;
-#endif
 }
 
 value_t l_num_eq(value_t a, value_t b)
@@ -194,6 +191,15 @@ value_t l_append(value_t l)
 	return first;
 }
 
+value_t l_gc_stats()
+{
+	struct gc_stats stats = gc_get_stats();
+
+	return cons(intval(stats.total_allocs),
+				cons(intval(stats.gc_runs),
+					 nil));
+}
+
 #define LISP_PREDICATE(name) value_t l_##name(value_t v) { return name(v) ? t : nil; }
 
 LISP_PREDICATE(listp)
@@ -234,6 +240,8 @@ struct error load_std(struct environment *env)
 	add_c_function(env, "consp", l_consp, 1);
 	
 	add_c_function(env, "elt", l_elt, 2);
+
+	add_c_function(env, "gc-stats", l_gc_stats, 0);
 
 	if (!load_library(env, "std"))
 	{

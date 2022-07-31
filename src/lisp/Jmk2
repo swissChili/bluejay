@@ -2,37 +2,39 @@
 
 init lisp
 
-presets 32 debug warn nasm
-cflags -Ivendor/luajit/dynasm -O0
-
-option NO_READLINE 0
-
-srcs main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \
-	call_list.s error.c
+# Make this `readline', `edit', or `none'
+option READLINE readline
 
 set lisp_libpath "$::root/lib/lisp"
 
-if {$options(NO_READLINE) == 0} {
-	cflags -lreadline
-} else {
+if {$options(READLINE) == "none"} {
 	cflags -DNO_READLINE
+} else {
+	cflags -L/usr/lib/i386-linux-gnu -l$options(READLINE)
 }
 
-set lua vendor/luajit/src/host/minilua
+presets 32 debug warn nasm
+cflags -Ivendor/luajit/dynasm -O0
+asmflags -felf32
+
+set lua [pwd]/vendor/luajit/src/host/minilua
 
 rule $lua ${lua}.c {
 	log CC $::src
 	cc "$::src -o $::target -lm"
 }
 
-rule compiler.c "compiler.dasc $lua" {
+rule [pwd]/compiler.c "[pwd]/compiler.dasc $lua" {
 	log DYNASM $::first_src
 	shell "$::lua vendor/luajit/dynasm/dynasm.lua -o $::target $::first_src"
 }
 
-rule repl lisp {
+rule repl [pwd]/lisp {
 	log LISP repl
 	shell "LISP_LIBRARY_PATH=$::lisp_libpath ./lisp $::root/lib/lisp/repl/repl.lisp"
 }
+
+srcs main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \
+	call_list.s error.c
 
 type executable

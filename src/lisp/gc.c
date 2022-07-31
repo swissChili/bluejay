@@ -4,6 +4,7 @@
 
 value_t *gc_base;
 THREAD_LOCAL static unsigned int gc_mark;
+THREAD_LOCAL static unsigned long gc_runs = 0;
 
 void __attribute__((noinline)) gc_set_base_here()
 {
@@ -19,6 +20,15 @@ void _mark(value_t value, unsigned int *marked)
 	{
 		void *pointer = (void *)(value & ~HEAP_MASK);
 		struct alloc *alloc = pointer - sizeof(struct alloc);
+
+		if (!pointer)
+		{
+			// TODO: Where are these coming from? Maybe this is a C
+			// stack variable that we are interpreting as beign in
+			// Lisp stack space on accident?
+			fprintf(stderr, "lisp:gc:warning: value %x is a null pointer\n", value);
+			return;
+		}
 
 		// Only recursively mark if this hasn't been marked yet. i.e. prevent
 		// marking circular references twice
@@ -64,6 +74,9 @@ void _sweep()
 {
 	for (struct alloc *a = first_a; a;)
 	{
+		// fprintf(stderr, "[ GC ] %s %p pool? %d\n", (a->mark != gc_mark) ? "Unmarked" : "Marked", a, pool_alive(a->pool));
+		// printval(alloc_to_value(a), 2);
+		
 		if (pool_alive(a->pool) || a->mark == gc_mark)
 		{
 			// Marked or in living pool
@@ -71,6 +84,8 @@ void _sweep()
 		}
 		else
 		{
+			fprintf(stderr, "[ GC ] freeing: ");
+			printval(alloc_to_value(a), 1);
 			// Free and remove from allocation list
 			struct alloc *p = a->prev, *n = a->next;
 			free_aligned(a);
@@ -86,6 +101,20 @@ void _sweep()
 	}
 }
 
+struct gc_stats gc_get_stats()
+{
+	struct gc_stats stats = {0};
+
+	stats.gc_runs = gc_runs;
+
+	for (struct alloc *a = first_a; a; a = a->next)
+	{
+		stats.total_allocs++;
+	}
+
+	return stats;
+}
+
 void _do_gc(unsigned int esp, unsigned int ebp)
 {
 	value_t *esp_p = (value_t *)esp,
@@ -94,6 +123,7 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 	unsigned int num_marked = 0;
 
 	gc_mark++;
+	gc_runs++;
 
 	// For every stack frame until the base of the stack
 	while (esp_p < gc_base)

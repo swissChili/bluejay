@@ -112,7 +112,7 @@ struct alloc
 	/**
 	 * Reserved for the GC.
 	 */
-	unsigned int mark : 24;   // + 2 = 16
+	unsigned int mark : 24;   // + 3 = 16
 
 	// Whatever else
 };
