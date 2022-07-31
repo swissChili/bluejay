@@ -199,39 +199,45 @@ struct error readstr(struct istream *is, value_t *val)
 	}
 }
 
-void printval(value_t v, int depth)
+void printval_ol(value_t v)
 {
-	for (int i = 0; i < depth; i++)
-		printf("  ");
+//	for (int i = 0; i < depth; i++)
+//		printf(" ");
 
 	if (symbolp(v))
 	{
-		printf("'%s\n", (char *)(v ^ SYMBOL_TAG));
+		printf("%s", (char *)(v ^ SYMBOL_TAG));
 	}
 	else if (stringp(v))
 	{
-		printf("\"%s\"\n", (char *)(v ^ STRING_TAG));
+		printf("\"%s\"", (char *)(v ^ STRING_TAG));
 	}
 	else if (integerp(v))
 	{
-		printf("%d\n", v >> 2);
+		printf("%d", v >> 2);
 	}
 	else if (consp(v))
 	{
 		if (listp(v))
 		{
-			printf("list:\n");
+			printf("(");
+			printval_ol(car(v));
 
-			for (value_t n = v; !nilp(n); n = cdr(n))
+			for (value_t n = cdr(v); !nilp(n); n = cdr(n))
 			{
-				printval(car(n), depth + 1);
+				printf(" ");
+				printval_ol(car(n));
 			}
+
+			printf(")");
 		}
 		else
 		{
-			printf("cons:\n");
-			printval(car(v), depth + 1);
-			printval(cdr(v), depth + 1);
+			printf("(");
+			printval_ol(car(v));
+			printf(" . ");
+			printval_ol(cdr(v));
+			printf(")");
 		}
 	}
 	else if (nilp(v))
@@ -241,13 +247,20 @@ void printval(value_t v, int depth)
 	else if (closurep(v))
 	{
 		struct closure *c = (void *)(v ^ CLOSURE_TAG);
-		printf("closure %p taking %d argument(s) and capturing %d value(s)\n",
+		printf("<closure %p (%d) %d>",
 		       c->function, c->args->num_required, c->num_captured);
 	}
 	else
 	{
-		printf("<unknown %d>\n", v);
+		printf("<unknown %d>", v);
 	}
+}
+
+void printval(value_t v, int depth)
+{
+	UNUSED(depth);
+	printval_ol(v);
+	printf("\n");
 }
 
 struct error readlist(struct istream *is, value_t *val)
