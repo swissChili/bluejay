@@ -1,5 +1,6 @@
 #include "std.h"
 #include "../gc.h"
+#include "../compiler.h"
 #include "../plat/plat.h"
 #include <stdlib.h>
 #include <string.h>
@@ -200,6 +201,22 @@ value_t l_gc_stats()
 					 nil));
 }
 
+value_t l_list_functions(value_t env)
+{
+	if (!integerp(env))
+		return nil;
+
+	struct environment *e = (void *)env;
+	value_t list = nil;
+
+	for (struct function *fun = e->first; fun; fun = fun->prev)
+	{
+		list = cons(symval(fun->name), list);
+	}
+
+	return list;
+}
+
 #define LISP_PREDICATE(name) value_t l_##name(value_t v) { return name(v) ? t : nil; }
 
 LISP_PREDICATE(listp)
@@ -242,6 +259,8 @@ struct error load_std(struct environment *env)
 	add_c_function(env, "elt", l_elt, 2);
 
 	add_c_function(env, "gc-stats", l_gc_stats, 0);
+
+	add_c_function(env, "env-functions", l_list_functions, 1);
 
 	if (!load_library(env, "std"))
 	{

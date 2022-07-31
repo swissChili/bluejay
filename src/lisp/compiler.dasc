@@ -981,6 +981,13 @@ struct error compile_expression(struct environment *env, struct local *local,
 
 			| mov eax, (file_name_val);
 		}
+		else if (symstreq(val, "+current-env+"))
+		{
+			// TODO: we return this as a raw "integer", which is a bad
+			// idea. Once classes are added this needs to be wrapped
+			// in a class.
+			| mov eax, (env);
+		}
 		else
 		{
 			struct variable *v =

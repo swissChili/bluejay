@@ -389,6 +389,40 @@ indicate particular values or meanings:
   not compiling a file. Return \ret{\nil}.
 }
 
+\section{Inspecting \& Modifying the Environment}
+
+\subsection{Managing Memory}
+
+\definition{
+  (\func{gc})\index{gc}
+}{
+  Run the garbage collector.
+}
+
+\definition{
+  (\func{gc-stats})\index{gc-stats}
+}{
+  Return some
+  statistics about the garbage collector, in the form of a list:
+  \ret{(\param{total-allocs} \param{gc-runs})}, where
+  \param{total-allocs} is the current number of active allocations,
+  and \param{gc-runs} is the total number of times the garbage
+  collector has been run.
+}
+
+\subsection{Introspection}
+
+\definition{ \const{\pluses{current-env}} }{ An opaque object
+  representing the current environment.  }
+
+\definition{
+  (\func{env-functions} \param{current-env})
+}{
+  Returns a
+  list of symbols, each of which is the name of a function defined in
+  the environment specified by \param{current-env}.
+}
+
 \printindex
 
 \printglossaries
