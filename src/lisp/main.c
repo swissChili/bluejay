@@ -39,4 +39,5 @@ done:
 	free_all();
 	if (env)
 		del_env(env);
+	gc_pop_segment();
 }

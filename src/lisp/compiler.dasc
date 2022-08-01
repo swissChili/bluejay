@@ -554,6 +554,9 @@ value_t eval(struct environment *env, value_t form)
 
 	value_t (*f)() = link_program(&d);
 
+	dasm_free(&d);
+	free(args);
+
 	gc_prepare_call(0);
 	value_t val = f();
 

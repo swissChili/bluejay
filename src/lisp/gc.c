@@ -69,15 +69,6 @@ void _mark(value_t value, unsigned int *marked)
 		void *pointer = (void *)(value & ~HEAP_MASK);
 		struct alloc *alloc = pointer - sizeof(struct alloc);
 
-		if (!pointer)
-		{
-			// TODO: Where are these coming from? Maybe this is a C
-			// stack variable that we are interpreting as beign in
-			// Lisp stack space on accident?
-			fprintf(stderr, "lisp:gc:warning: value %x is a null pointer\n", value);
-			return;
-		}
-
 		// Only recursively mark if this hasn't been marked yet. i.e. prevent
 		// marking circular references twice
 		if (alloc->mark != gc_mark)
@@ -85,9 +76,6 @@ void _mark(value_t value, unsigned int *marked)
 			++*marked;
 
 			alloc->mark = gc_mark;
-
-			// printf("[ GC ] val =");
-			// printval(alloc_to_value(alloc), 2);
 
 			switch (alloc->type_tag)
 			{
@@ -132,7 +120,6 @@ void _sweep()
 		}
 		else
 		{
-			fprintf(stderr, "[ GC ] freeing: %p\n", a);
 			// Free and remove from allocation list
 			struct alloc *p = a->prev, *n = a->next;
 			del_alloc(a);
@@ -207,17 +194,12 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 		value_t *args = seg->seg_end + 4;
 		for (int i = 0; i < seg->nargs; i++)
 		{
-			fprintf(stderr, "Marking arg %d\n", i);
-
 			// mark arguments
 			_mark(args[i], &num_marked);
 		}
 
 		for (int i = 0; i < seg->nretained; i++)
 		{
-			fprintf(stderr, "Marking retained %d\n", i);
-			printval(seg->retained[i], 0);
-
 			_mark(seg->retained[i], &num_marked);
 		}
 
