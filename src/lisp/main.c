@@ -5,6 +5,8 @@
 
 int main(int argc, char **argv)
 {
+	gc_push_segment(NULL, 0);
+	
 	if (argc < 2)
 	{
 		puts("pass the program you want to run as the first argument please");
@@ -25,7 +27,7 @@ int main(int argc, char **argv)
 	if (lisp_main_f)
 	{
 		value_t (*lisp_main)() = lisp_main_f->def0;
-		gc_set_base_here();
+		gc_prepare_call(0);
 		lisp_main();
 	}
 	else

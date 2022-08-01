@@ -531,8 +531,11 @@ struct error compile_backquote(struct environment *env, struct local *local,
 
 value_t eval(struct environment *env, value_t form)
 {
+	gc_push_segment(&form, 1);
 	// Eval!
 	value_t function = cons(nil, cons(form, nil));
+
+	gc_set_retained(0, function);
 
 	struct local local;
 	struct args *args;
@@ -550,7 +553,13 @@ value_t eval(struct environment *env, value_t form)
 	del_local(&local);
 
 	value_t (*f)() = link_program(&d);
-	return f();
+
+	gc_prepare_call(0);
+	value_t val = f();
+
+	gc_pop_segment();
+
+	return val;
 }
 
 struct error compile_variable(struct variable *v, dasm_State *Dst)

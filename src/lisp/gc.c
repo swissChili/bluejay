@@ -1,8 +1,10 @@
 #include "gc.h"
 #include "lisp.h"
 #include "plat/plat.h"
+#include <stdlib.h>
 
 value_t *gc_base;
+struct gc_segment *gc_last_segment = NULL;
 THREAD_LOCAL static unsigned int gc_mark;
 THREAD_LOCAL static unsigned long gc_runs = 0;
 
@@ -13,6 +15,52 @@ void __attribute__((noinline)) gc_set_base_here()
 	// after this, the stack top for it will be the same as for this function.
 	asm("movl %%esp, %0" : "=g"(gc_base));
 }
+
+void gc_push_segment(void *last_arg_addr, int nretained)
+{
+	// base will be the address below (at higher memory than) the ret
+	// pointer when lisp func is called.
+	struct gc_segment *seg = malloc(sizeof(struct gc_segment) + sizeof(value_t) * nretained);
+
+	if (last_arg_addr)
+		seg->seg_start = last_arg_addr + 4;
+	else
+		seg->seg_start = NULL;
+
+	seg->nretained = nretained;
+	seg->prev = gc_last_segment;
+	gc_last_segment = seg;
+
+	// remember, stack looks like this:
+	// ret
+	// old ebp          <- current ebp points here
+	// ...
+	void **ebp;
+	asm("movl %%ebp, %0" : "=g"(ebp));
+	seg->old_ebp = *ebp; // could do this in one mov but whatever
+}
+
+void gc_pop_segment()
+{
+	struct gc_segment *prev = gc_last_segment->prev;
+	free(gc_last_segment);
+	gc_last_segment = prev;
+}
+
+void gc_prepare_call_(void *esp, int nargs)
+{
+	gc_last_segment->nargs = nargs;
+	// esp points to its position BEFORE the lisp function is
+	// called. So seg_end is that + return pointer + arguments.
+	gc_last_segment->seg_end = esp + 4 + sizeof(value_t) * nargs;
+}
+
+void gc_set_retained(int index, value_t retained)
+{
+	gc_last_segment->retained[index] = retained;
+}
+
+void gc_set_retained(int index, value_t retained);
 
 void _mark(value_t value, unsigned int *marked)
 {
@@ -134,23 +182,47 @@ void _do_gc(unsigned int esp, unsigned int ebp)
 	gc_mark++;
 	gc_runs++;
 
-	// For every stack frame until the base of the stack
-	while (esp_p < gc_base)
+	for (struct gc_segment *seg = gc_last_segment; seg && seg->seg_start; seg = seg->prev)
 	{
-		// Walk up the stack until we reach either the frame pointer or the base
-		// of the stack. Basically walk to the top of this function's stack
-		// frame.
-		for (; esp_p < ebp_p && esp_p < gc_base; esp_p++)
+		// For every stack frame until the base of the stack
+		while (esp_p < (value_t *)seg->seg_end)
 		{
-			_mark(*esp_p, &num_marked);
+			// Walk up the stack until we reach either the frame pointer or the base
+			// of the stack. Basically walk to the top of this function's stack
+			// frame.
+			for (; esp_p < ebp_p && esp_p < gc_base; esp_p++)
+			{
+				_mark(*esp_p, &num_marked);
+			}
+
+			// Set the frame pointer to the frame pointer on the stack
+			ebp_p = (value_t *)*esp_p;
+
+			// Step up two stack slots, one for the frame pointer and one for the
+			// return address.
+			esp_p += 2;
 		}
 
-		// Set the frame pointer to the frame pointer on the stack
-		ebp_p = (value_t *)*esp_p;
+		// skip above ret pointer
+		value_t *args = seg->seg_end + 4;
+		for (int i = 0; i < seg->nargs; i++)
+		{
+			fprintf(stderr, "Marking arg %d\n", i);
 
-		// Step up two stack slots, one for the frame pointer and one for the
-		// return address.
-		esp_p += 2;
+			// mark arguments
+			_mark(args[i], &num_marked);
+		}
+
+		for (int i = 0; i < seg->nretained; i++)
+		{
+			fprintf(stderr, "Marking retained %d\n", i);
+			printval(seg->retained[i], 0);
+
+			_mark(seg->retained[i], &num_marked);
+		}
+
+		esp_p = seg->seg_start;
+		ebp_p = seg->old_ebp;
 	}
 
 	_sweep();
