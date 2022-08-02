@@ -83,6 +83,18 @@ struct closure
 	value_t data[];
 };
 
+struct class
+{
+	// A symbol representing the name of the class this is an instance
+	// of.
+	value_t type;
+
+	int num_members;
+	// C data
+	void *cdata;
+	value_t members[];
+};
+
 /// Default pool (no pool)
 #define NO_POOL 0
 
@@ -129,6 +141,12 @@ struct closure_alloc
 {
 	struct alloc alloc;
 	struct closure closure;
+};
+
+struct class_alloc
+{
+	struct alloc alloc;
+	struct class class;
 };
 
 /**
@@ -181,7 +199,7 @@ value_t car(value_t v);
 value_t cdr(value_t v);
 /// Return a pointer to the "nil" tail of the list, or NULL if you do
 /// something stupid.
-value_t *nilptr(value_t val);
+value_t *nilptr(value_t *val);
 value_t *carref(value_t v);
 value_t *cdrref(value_t v);
 /// @returns the `index`-th `cdr`

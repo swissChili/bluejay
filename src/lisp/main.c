@@ -2,25 +2,41 @@
 #include "gc.h"
 #include "lisp.h"
 #include "plat/plat.h"
+#include "lib/std.h"
+#include <stdlib.h>
 
 int main(int argc, char **argv)
 {
 	gc_push_segment(NULL, 0);
 	
-	if (argc < 2)
-	{
-		puts("pass the program you want to run as the first argument please");
-		return 1;
-	}
-
-	bool ok;
 	struct environment *env = NULL;
 	struct error compile_error;
-	if (!IS_OKAY((compile_error = compile_file(argv[1], &env))))
+
+	if (argc < 2)
 	{
-		ereport(compile_error);
-		goto done;
+		env = malloc(sizeof(struct environment));
+		env->first = NULL;
+		env->first_loaded = NULL;
+
+		if (!IS_OKAY((compile_error = load_std(env))))
+		{
+			ereport(compile_error);
+			goto done;
+		}
+
+		if (!load_library(env, "repl"))
+			goto done;
 	}
+	else
+	{
+		if (!IS_OKAY((compile_error = compile_file(argv[1], &env))))
+		{
+			ereport(compile_error);
+			goto done;
+		}
+	}
+
+	
 
 	struct function *lisp_main_f = find_function(env, "main");
 

@@ -59,7 +59,15 @@
       `(progn ,@body)))
 
 (defmacro flet (funcs & body)
-  ;; (flet- funcs body)
-  (print funcs))
+  (flet- funcs body))
+
+(defmacro let (bindings & body)
+  (flet ((let- (bindings body)
+           (if bindings
+               `(let1 ,(car bindings)
+                      ,(recurse (cdr bindings)
+                                body))
+               `(progn ,@body)))))
+  (funcall let- bindings body))
 
 (load "list-functions.lisp")

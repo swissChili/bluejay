@@ -36,7 +36,7 @@ rule repl [pwd]/lisp {
 
 rule valgrind [pwd]/lisp {
 	log VALGRIND "lisp test-gc.lisp"
-	shell "LISP_LIBRARY_PATH=$::lisp_libpath valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all ./lisp test-gc.lisp"
+	shell "LISP_LIBRARY_PATH=$::lisp_libpath valgrind --track-origins=yes --leak-check=full --show-leak-kinds=all ./lisp quicksort.lisp"
 }
 
 srcs main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \

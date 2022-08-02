@@ -488,6 +488,7 @@ struct error compile_backquote(struct environment *env, struct local *local,
 		}
 		else
 		{
+			// tail of the list
 			| push nil;
 
 			for (int i = n - 1; i >= 0; i--)
@@ -693,6 +694,7 @@ struct error compile_expression(struct environment *env, struct local *local,
 			NEARVAL(binding);
 			if (length(binding) != 2)
 			{
+				printval(args, 0);
 				THROW(EARGS, "Binding list in let1 must contain exactly two entries");
 			}
 

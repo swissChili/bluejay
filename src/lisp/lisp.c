@@ -603,12 +603,12 @@ void add_to_pool(value_t form)
 
 void del_alloc(struct alloc *alloc)
 {
-	if (alloc->type_tag == CLOSURE_TAG)
-	{
-		fprintf(stderr, "del_alloc closure\n");
-		struct closure_alloc *ca = alloc;
-		free(ca->closure.args);
-	}
+	/* if (alloc->type_tag == CLOSURE_TAG) */
+	/* { */
+	/* 	fprintf(stderr, "del_alloc closure\n"); */
+	/* 	struct closure_alloc *ca = alloc; */
+	/* 	free(ca->closure.args); */
+	/* } */
 
 	free_aligned(alloc);
 }
@@ -723,17 +723,20 @@ value_t deep_copy(value_t val)
 	}
 }
 
-value_t *nilptr(value_t val)
+value_t *nilptr(value_t *val)
 {
-	if (!listp(val))
+	if (!val)
 		return NULL;
 
-	if (nilp(val))
+	if (!listp(*val))
 		return NULL;
+
+	if (nilp(*val))
+		return val;
 
 	value_t *p;
 
-	for (p = cdrref(val); !nilp(*p); p = cdrref(*p))
+	for (p = cdrref(*val); !nilp(*p); p = cdrref(*p))
 	{
 	}
 
@@ -748,7 +751,7 @@ value_t merge2(value_t front, value_t back)
 	if (listp(front) && !listp(back))
 		back = cons(back, nil);
 
-	*nilptr(front) = back;
+	*nilptr(&front) = back;
 
 	return front;
 }

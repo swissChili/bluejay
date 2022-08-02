@@ -1,8 +1,0 @@
-BUG: "random" segfault in lisp (gc) calls.
-
-Theory: the values we're walking on the stack are garbage, i.e. coming
-from C.
-
-Looks like the GCSegments code got lost, I need to readd that and it
-should fix this. `eval' in `compiler.dasc' is getting it's local
-variables inspected by _do_gc.
