@@ -51,15 +51,15 @@
            (lambda ,@(cdr func)))
          ,@body))
 
-(defun flet- (funcs body)
-  (if funcs
-      `(flet1 ,(car funcs)
-              ,(flet- (cdr funcs)
-                        body))
-      `(progn ,@body)))
-
 (defmacro flet (funcs & body)
-  (flet- funcs body))
+  (let1 (flet-
+         (lambda (funcs body)
+           (if funcs
+               `(flet1 ,(car funcs)
+                       ,(recurse (cdr funcs)
+                                 body))
+               `(progn ,@body))))
+        (funcall flet- funcs body)))
 
 (defmacro let (bindings & body)
   (flet ((let- (bindings body)

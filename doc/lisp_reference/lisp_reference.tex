@@ -22,10 +22,11 @@
 \date{Development Version: \today}
 
 \newcommand{\startexplanation}{$\triangleright$\hskip1.4ex}
-\newcommand{\definition}[2]{#1
-  \begin{quote}%
-    \startexplanation#2%
-  \end{quote}}
+\newenvironment{defin}[1]
+               {#1
+               \begin{quote}\startexplanation}
+               {\end{quote}}
+
 \newcommand{\plus}{\texttt{+}}
 \newcommand{\pluses}[1]{\plus{}#1\plus{}}
 \newcommand{\earmuff}{\texttt{*}}
@@ -82,346 +83,383 @@
 \section{Introduction}
 
 This document provides a brief reference to the Bluejay Lisp language
-and standard library. It documents every currently valid function,
-macro, reader macro, and special form supported by the compiler.
+and standard library. It documents every currently included function,
+macro, reader macro, and special form.
+
+\subsection{Running Bluejay Lisp}
+
+Assuming you have compiled Bluejay Lisp, you should have a
+\texttt{lisp} executable in your \texttt{src/lisp} directory. Invoking
+\texttt{lisp} without arguments will drop you into an interactive
+read-evaluate-print loop, or REPL.\@ Here you can type Lisp code one
+line at a time---the result will be immediately displayed. If you wish
+to run a specific Lisp file, you may pass its path as the first
+argument to \texttt{lisp}, e.g. \texttt{lisp hello-world.lisp}.
+
+Note that in order to load the standard library, the compiler must
+know where Bluejay Lisp libraries are stored. When loading a library,
+the compiler checks the \texttt{LISP\_LIBRARY\_PATH} environment
+variable. If it is blank, it assumes the library path is
+\texttt{/lib/lisp}. To use the standard library included with Bluejay,
+set the environment variable to the path of the included
+\texttt{lib/lisp} directory.
 
 \subsection{Typography}
 
 The following text styles and symbols are used within this document to
-indicate particular values or meanings:
+indicate particular types, values, or meanings:
 
 \begin{tabular}[t]{p{0.2\linewidth} p{0.64\linewidth}}
-  \func{cons} & A function ``cons.'' \\
-  \const{\plus{}foo\plus} & A constant ``\plus{}foo\plus.'' \\
-  \var{\earmuff{}bar\earmuff} & A global variable ``\earmuff{}bar\earmuff''. \\
-  \reader{baz} & A reader macro ``baz.'' \\
-  \mac{quux} & A macro ``quux.'' \\
-  \param{parameter} & A function argument ``parameter'' \\
-  \opt{var}{123} & An optional function argument ``var'' with the default value ``123.'' \\
-  \param{args}\more & ``args'' represents the rest of the items in the list. \\
-  \mut{\param{mut}} & A function argument ``mut'' that might be mutated. \\
-  \mighteval{\param{maybe}} & ``maybe'' may or may not be evaluated. \\
-  \ret{value} & Indicates that a form will evaluate to ``value''. \\
-  \type{integer} & The type ``integer''. \\
-  \optlist{\text{a}\\\text{b}} & One of ``a'' or ``b.''
+  \func{cons} & A function \param{cons}. \\
+  \const{\plus{}foo\plus} & A constant \param{\plus{}foo\plus}. \\
+  \var{\earmuff{}bar\earmuff} & A global variable \param{\earmuff{}bar\earmuff}. \\
+  \reader{baz} & A reader macro \param{baz}. \\
+  \mac{quux} & A macro \param{quux}. \\
+  \param{parameter} & A function argument \param{parameter} \\
+  \opt{var}{123} & An optional function argument \param{var} with the default value \param{123}. \\
+  \param{args}\more & \param{args} represents the rest of the items in the list. \\
+  \mut{\param{mut}} & A function argument \param{mut} that might be mutated. \\
+  \mighteval{\param{maybe}} & \param{maybe} may or may not be evaluated. \\
+  \ret{value} & Indicates that a form will evaluate to \param{value}. \\
+  \type{integer} & The type \param{integer}. \\
+  \optlist{\text{a}\\\text{b}} & One of \param{a} or \param{b}.
 \end{tabular}
 
 \section{Primitives}
 
 \subsection{Type Predicates}
 
-\definition{
-  (\optlist{
-    \func{nilp} \text{ or } \func{not} \\
-    \func{closurep} \text{ or } \func{functionp} \\
-    \func{integerp} \\
-    \func{consp} \\
-    \func{symbolp}
-  } \param{value})\index{nilp}\index{not}
-}{
+\begin{defin}{
+    (\optlist{
+      \func{nilp} \text{ or } \func{not} \\
+      \func{closurep} \text{ or } \func{functionp} \\
+      \func{integerp} \\
+      \func{consp} \\
+      \func{symbolp}
+    } \param{value})\index{nilp}\index{not}
+  }
   \ret{\T} if \param{value} is of the specified type, \ret{\nil}
   otherwise.
-}
+\end{defin}
+
+\begin{defin}{(\func{listp} \param{value})}
+  \ret{\T} if \param{value} is a well-formed \type{cons} list,
+  i.e.\ if (\func{consp} \param{value}) and the (\func{cdr}
+  \param{value}) is a well-formed \type{cons} list or \nil.
+\end{defin}
 
 \subsection{Definitions and Variables}
 
-\definition{
-  (\mac{defun} \param{name} (\param{args}\more) \param{body}\more)\index{defun} \\
-  (\mac{defmacro} \param{name} (\param{args}\more) \param{body}\more)\index{defmacro}
-}{
+\begin{defin}{
+    (\mac{defun} \param{name} (\param{args}\more) \param{body}\more)\index{defun} \\
+    (\mac{defmacro} \param{name} (\param{args}\more) \param{body}\more)\index{defmacro}
+  }
   Define a function or macro respectively, taking \param{args}
   arguments and evaluating \param{body} in turn, finally evaluating to
   \ret{the final entry in \param{body}} or \ret{\nil} if \param{body}
   is empty.
-}
+\end{defin}
 
-\definition{
-  (\mac{let1} (\param{variable} \param{form}) \param{body}\more)\index{let1} \\
-  (\mac{let} ((\param{variable} \param{form})\more) \param{body}\more)\index{let}
-}{
+\begin{defin}{
+    (\mac{let1} (\param{variable} \param{form}) \param{body}\more)\index{let1} \\
+    (\mac{let} ((\param{variable} \param{form})\more) \param{body}\more)\index{let}
+  }
   First evaluate \param{form}, binding it to \param{variable}. Then
   evaluate \param{body}, finally evaluating to \ret{the final entry in
     \param{body}} or \ret{\nil} if \param{body} is
   empty. \param{variable} is no longer in scope after this form ends.
   \mac{let} is similar to \mac{let*} in other lisps, later variables
   can reference previous ones.
-}
+\end{defin}
 
-\definition{
-  (\mac{flet1} (\param{name} (\param{args}\more) \param{body}\more)) \\
-  (\mac{flet} ((\param{name} (\param{args}\more)\more) \param{body}\more))
-  \index{flet}\index{flet1}
-}{
+\begin{defin}{
+    (\mac{flet1} (\param{name} (\param{args}\more) \param{body}\more)) \\
+    (\mac{flet} ((\param{name} (\param{args}\more)\more) \param{body}\more))
+    \index{flet}\index{flet1}
+  }
   Like \mac{let} and \mac{let1} but creates a lambda. Unlike other
   lisps the defined function remains in the variable namespace as a
   \type{function-object}.
-}
+\end{defin}
 
-\definition{
-  \reader{\textquotesingle}\param{value} \\
-  (\mac{quote} \param{value})\index{quote}
-}{
-  \ret{Return \param{value}} as-is, without evaluating it.
-}
+\begin{defin}{
+    \reader{\textquotesingle}\param{value} \\ (\mac{quote}
+    \param{value})\index{quote} } \ret{Return \param{value}} as an
+  expression, without evaluating it.
+\end{defin}
 
-\definition{
-  \reader{\`}\param{value} \\
-  (\mac{backquote} \param{value})\index{backquote}\index{\`}
-}{
-  Return \ret{\param{value}} as-is, except for any \mac{unquote}
+\begin{defin}{
+    \reader{\`}\param{value} \\
+    (\mac{backquote} \param{value})\index{backquote}\index{\`}
+  }
+  Return \ret{\param{value}} unevaluated, except for any \mac{unquote}
   and \mac{unquote-splice} forms (and their reader-macro equivalents).
-}
+\end{defin}
 
-\definition{
-  \reader{,}\param{value} \\
-  (\mac{unquote} \param{value}) \\
-  \reader{,\texttt{@}}\param{value} \\
-  (\mac{unquote-splice} \param{value})
-  \index{unquote}\index{unquote-splice}
-  \index{,}\index{,@}
-}{
+\begin{defin}{
+    \reader{,}\param{value} \\
+    (\mac{unquote} \param{value}) \\
+    \reader{,\texttt{@}}\param{value} \\
+    (\mac{unquote-splice} \param{value})
+    \index{unquote}\index{unquote-splice}
+    \index{,}\index{,@}
+  }
   In the context of a \mac{backquote}, evaluate \param{value} instead of
   using it as-is. \mac{unquote-splice} and \reader{,\texttt{@}} take a
   list as their argument, and ``splice'' each element in to
   the \mac{backquote} list so that each element of that argument corresponds
   to an element of the \mac{backquote} list.
   The other two macros insert their argument as a single element in the list.
-}
+\end{defin}
 
 \subsection{Control Flow}
 
-\definition{
-  (\mac{if} \param{predicate} \param{then} \opt{otherwise}{nil})\index{if} \\
-  (\mac{when} \param{predicate} \param{then\more})\index{when} \\
-  (\mac{unless} \param{predicate} \param{otherwise\more})\index{unless}
-}{
+\begin{defin}{
+    (\mac{if} \param{predicate} \param{then} \opt{otherwise}{nil})\index{if} \\
+    (\mac{when} \param{predicate} \param{then\more})\index{when} \\
+    (\mac{unless} \param{predicate} \param{otherwise\more})\index{unless}
+  }
   First evaluate \param{predicate}. If it is \gls{truthy} evaluate and
   return \ret{\param{then}}, otherwise \ret{\param{otherwise}}. If
   either is not provided return \ret{\nil}.
-}
+\end{defin}
 
-\definition{
-  (\mac{progn} \opt{forms\more}{nil})\index{progn}
-}{
+\begin{defin}{
+    (\mac{progn} \opt{forms\more}{nil})\index{progn}
+  }
   Evaluate \param{forms} from first to last, finally returning
   \ret{the last form}.
-}
+\end{defin}
 
-\definition{
-  (\mac{and} \param{first} \param{\mighteval{rest}}\more)\index{and} \\
-  (\mac{or} \param{first} \param{\mighteval{rest}}\more)\index{or}
-}{
+\begin{defin}{
+    (\mac{and} \param{first} \param{\mighteval{rest}}\more)\index{and} \\
+    (\mac{or} \param{first} \param{\mighteval{rest}}\more)\index{or}
+  }
   Short circuiting $\land$ and $\lor$, respectively. Return the first
   value that is \nil{} or truthy, respectively, or the last value if
   all are truthy/\nil{}.
-}
+\end{defin}
 
 \section{Numbers}
 
 \subsection{Integers}
 
-\definition{
-  (\func{$+$} \param{a b})\index{+} \\
-  (\func{$-$} \param{a b})\index{-} \\
-  (\func{$*$} \param{a b})\index{*} \\
-  (\func{$/$} \param{a b})\index{/}
-}{
+\begin{defin}{
+    (\optlist{
+      \func{$+$} \\
+      \func{$-$} \\
+      \func{$*$} \\
+      \func{$/$}
+    } \param{a b})
+  }
   The \ret{sum, difference, product, or quotient} of \param{a} and
   \param{b} as an \type{integer}.
-}
+\end{defin}
 
-\definition{
-  (\func{=} \param{a b})
-}{
+\begin{defin}{
+    (\func{=} \param{a b})
+  }
   \ret{\T} if \param{a} and \param{b} hold the same \type{integer}
   value, \ret{\nil} otherwise.
-}
+\end{defin}
+
+\begin{defin}{(\optlist{\func{$<$} \\ \func{$>$}} \param{a} \param{b})}
+  \ret{\T} if \param{a} is less than or greater than \param{b},
+  respectively; \ret{\nil} otherwise.
+\end{defin}
 
 \section{Function Manipulation}
 
-\definition{
-  (\func{funcall} \param{args}\more)\index{funcall} \\
-  (\func{apply} \param{function} \param{args})\index{apply}
-}{
+\begin{defin}{
+    (\func{funcall} \param{args}\more)\index{funcall} \\
+    (\func{apply} \param{function} \param{args})\index{apply}
+  }
   Call the \type{closure} or \type{function-object} \param{function}
   with \param{args} and evaluate to \ret{its result}. An error occurs
   if \param{args} are not acceptable.
-}
+\end{defin}
 
-\definition{
-  (\func{recurse} \param{args}\more)\index{recurse}
-}{
-  In a lambda definition, call the current lambda with \param{args}.
-}
+\begin{defin}{
+    (\func{recurse} \param{args}\more)\index{recurse} } In a lambda
+  definition, call the current lambda with
+  \param{args}. \func{recurse} can also be used as an argument to
+  \func{function} and \reader{\#\textquotesingle} to refer to the
+  current lambda.
+\end{defin}
 
-\definition{
-  (\mac{function} \param{function-name})\index{function} \\
-  \reader{\#\textquotesingle}\param{function-name}\index{\#\textquotesingle}
-}{
+\begin{defin}{
+    (\mac{function} \param{function-name})\index{function} \\
+    \reader{\#\textquotesingle}\param{function-name}\index{\#\textquotesingle}
+  }
   Create a \ret{\type{function-object} from an existing function or
     macro}. \param{function} must be a symbol literal at compile time.
-}
+\end{defin}
 
-\definition{
-  (\func{lambda} (\param{args}\more) \param{body}\more)\index{lambda}
-}{
+\begin{defin}{
+    (\func{lambda} (\param{args}\more) \param{body}\more)\index{lambda}
+  }
   Create a \ret{lexically-scoped \type{\gls{closure}}} taking
   \param{args} and evaluating to \param{body}.
-}
+\end{defin}
 
-\definition{
-  (\func{eval} \param{form})\index{eval}
-}{
+\begin{defin}{
+    (\func{eval} \param{form})\index{eval}
+  }
   Evaluate and return \ret{\param{form}} in the current global
   environment. The evaluated form does not use \gls{lexical-scope}.
-}
+\end{defin}
 
 \section{Lists}
 
 \subsection{Creating Lists}
 
-\definition{
-  (\func{cons} \param{a} \param{b})\index{cons}
-}{
+\begin{defin}{
+    (\func{cons} \param{a} \param{b})\index{cons}
+  }
   Join \param{a} and \param{b} into a \ret{\type{cons} pair}.
-}
+\end{defin}
 
-\definition{
-  (\func{list} \param{values}\more)\index{list}
-}{
+\begin{defin}{
+    (\func{list} \param{values}\more)\index{list}
+  }
   Construct a \ret{\type{cons}-list of \param{values}}.
-}
+\end{defin}
+
+\begin{defin}{(\func{append} \param{first} \param{rest})}
+  If \param{first} is a list, return \ret{a list with all the elements
+    of \param{first} followed by the elements of
+    \param{rest}}. Otherwise, return \ret{(\func{cons} first rest)}.
+\end{defin}
 
 \subsection{Deconstructing Lists}
 
-\definition{
-  (\func{length} \param{list})\index{list}
-}{
+\begin{defin}{
+    (\func{length} \param{list})\index{list}
+  }
   Return the \ret{length of \param{list}} if it is a \type{cons}-list,
   \nil{} otherwise.
-}
+\end{defin}
 
-\definition{
-  (\func{car} \param{pair})\index{car} \\
-  (\func{cdr} \param{pair})\index{cdr}
-}{
+\begin{defin}{
+    (\func{car} \param{pair})\index{car} \\
+    (\func{cdr} \param{pair})\index{cdr}
+  }
   Return the \ret{first or second item} of \type{cons} \param{pair},
   respectively.
-}
+\end{defin}
 
-\definition{
-  (\optlist{
-    \func{caar}\\
-    \func{cadr}\\
-    \func{caddr}\\
-    \func{cadar}\\
-    \func{caddar}
-  } \param{val})
-}{
+\begin{defin}{
+    (\optlist{
+      \func{caar}\\
+      \func{cadr}\\
+      \func{caddr}\\
+      \func{cadar}\\
+      \func{caddar}
+    } \param{val})
+  }
   Behave like a combination of \func{car} and \func{cdr} would.
-}
+\end{defin}
 
-\definition{
-  (\func{elt} \param{list} \param{n})\index{elt}
-}{
+\begin{defin}{
+    (\func{elt} \param{list} \param{n})\index{elt}
+  }
   Return the \ret{\param{n}\super{th} element of \param{list}},
   starting from 0, or \ret{\nil} if \param{n} $ \ge $ (\func{length}
   \param{list}) or \param{list} is not a \type{cons}-list or \param{n}
   is not an \type{integer}.
-}
+\end{defin}
 
 \subsection{Operating on Lists}
 
-\definition{
-  (\func{mapcar} \param{fun} \param{list})\index{mapcar}
-}{
+\begin{defin}{
+    (\func{mapcar} \param{fun} \param{list})\index{mapcar}
+  }
   Apply \param{fun} to each element of \param{list}, returning a
   \ret{new \type{cons}-list} containing the results of the respective
   applications of \param{fun}.
-}
+\end{defin}
 
-\definition{
-  (\optlist{\func{remove-if}\\\func{remove-if-not}}
-  \param{predicate} \param{list})\index{remove-if}\index{remove-if-not}
-}{
+\begin{defin}{
+    (\optlist{\func{remove-if}\\\func{remove-if-not}}
+    \param{predicate} \param{list})\index{remove-if}\index{remove-if-not}
+  }
   Return a \ret{new \type{cons}-list} of all the items of \param{list}
   that either do not or do satisfy \param{predicate}, respectively.
-}
+\end{defin}
 
-\definition{
-  (\func{reduce} \param{fun} \param{list} \opt{initial-value}{\nil})
-}{
+\begin{defin}{
+    (\func{reduce} \param{fun} \param{list} \opt{initial-value}{\nil})
+  }
   Apply \param{fun} to two arguments at a time, starting with
   \param{initial-value} and (\func{car} \param{list}) and continuing
   with the result of the previous invocation and the successive
   element of \param{list}. Return \ret{the result of the final
     invocation}, or \ret{\param{initial-value}} if \param{list} is
   empty.
-}
+\end{defin}
 
 \section{Input \& Output}
 
-\definition{
-  (\func{print} \param{value})\index{print}
-}{
+\begin{defin}{
+    (\func{print} \param{value})\index{print}
+  }
   Print \param{value} to standard output. Return \ret{\nil}.
-}
+\end{defin}
 
-\definition{
-  (\func{read})\index{read}
-}{
+\begin{defin}{
+    (\func{read})\index{read}
+  }
   Read and return an \ret{S-expression} from standard input
-}
+\end{defin}
 
 \subsection{Loading Programs}
 
-\definition{
-  \const{\pluses{current-file}}\index{\pluses{current-file}}
-}{
-  The current file being compiled, or \nil{} if not compiling a file.
-}
+\begin{defin}{
+    \const{\pluses{current-file}}\index{\pluses{current-file}} }
+  \ret{A string} containing the path of the file currently being
+  compiled, or \ret{\nil{}} if not compiling a file (e.g.\ when
+  compiling a string).
+\end{defin}
 
-\definition{
-  (\func{load} \param{lisp-file})\index{load}
-}{
+\begin{defin}{
+    (\func{load} \param{lisp-file})\index{load}
+  }
   Load and evaluate \type{string} \param{lisp-file} as a local path
   relative to the current file, or the current working directory if
   not compiling a file. Return \ret{\nil}.
-}
+\end{defin}
 
 \section{Inspecting \& Modifying the Environment}
 
 \subsection{Managing Memory}
 
-\definition{
-  (\func{gc})\index{gc}
-}{
+\begin{defin}{
+    (\func{gc})\index{gc}
+  }
   Run the garbage collector.
-}
+\end{defin}
 
-\definition{
-  (\func{gc-stats})\index{gc-stats}
-}{
+\begin{defin}{
+    (\func{gc-stats})\index{gc-stats}
+  }
   Return some
   statistics about the garbage collector, in the form of a list:
   \ret{(\param{total-allocs} \param{gc-runs})}, where
   \param{total-allocs} is the current number of active allocations,
   and \param{gc-runs} is the total number of times the garbage
   collector has been run.
-}
+\end{defin}
 
 \subsection{Introspection}
 
-\definition{ \const{\pluses{current-env}} }{ An opaque object
-  representing the current environment.  }
+\begin{defin}{ \const{\pluses{current-env}} }
+  An opaque object representing the current environment.
+\end{defin}
 
-\definition{
-  (\func{env-functions} \param{current-env})
-}{
-  Returns a
-  list of symbols, each of which is the name of a function defined in
-  the environment specified by \param{current-env}.
-}
+\begin{defin}{ (\func{env-functions} \param{current-env}) }
+  Returns a list of symbols, each of which is the name of a function
+  defined in the environment specified by \param{current-env}.
+\end{defin}
 
 \printindex
 
