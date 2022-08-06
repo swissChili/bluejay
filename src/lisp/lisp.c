@@ -16,6 +16,14 @@ value_t t = 1 << 3;
 
 unsigned char max_pool = 0, current_pool = 0;
 
+int valint(value_t i)
+{
+	if (!integerp(i))
+		return 0;
+
+	return i >> 2;
+}
+
 value_t intval(int i)
 {
 	i <<= 2;
@@ -243,13 +251,26 @@ void printval_ol(value_t v)
 	}
 	else if (nilp(v))
 	{
-		printf("nil\n");
+		printf("nil");
 	}
 	else if (closurep(v))
 	{
 		struct closure *c = (void *)(v ^ CLOSURE_TAG);
 		printf("<closure %p (%d) %d>",
 		       c->function, c->args->num_required, c->num_captured);
+	}
+	else if (classp(v))
+	{
+		struct class *c = (void *)(v ^ CLASS_TAG);
+		printf("<class %s", (char *)(c->type ^ SYMBOL_TAG));
+
+		for (int i = 0; i < c->num_members; i++)
+		{
+			printf(" ");
+			printval_ol(c->members[i]);
+		}
+
+		printf(">");
 	}
 	else
 	{
@@ -479,6 +500,11 @@ bool stringp(value_t v)
 bool consp(value_t v)
 {
 	return (v & HEAP_MASK) == CONS_TAG;
+}
+
+bool classp(value_t v)
+{
+	return (v & HEAP_MASK) == CLASS_TAG;
 }
 
 bool heapp(value_t v)

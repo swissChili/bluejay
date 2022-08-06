@@ -95,6 +95,16 @@ void _mark(value_t value, unsigned int *marked)
 
 				break;
 			}
+			case CLASS_TAG: {
+				struct class_alloc *class = (void *)alloc;
+
+				for (int i = 0; i < class->class.num_members; i++)
+				{
+					_mark(class->class.members[i], marked);
+				}
+
+				break;
+			}
 			}
 		}
 	}

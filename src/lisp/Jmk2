@@ -40,6 +40,6 @@ rule valgrind [pwd]/lisp {
 }
 
 srcs main.c lisp.c compiler.c lib/std.c plat/linux.c istream.c gc.c \
-	call_list.s error.c
+	call_list.s error.c lib/classes.c
 
 type executable

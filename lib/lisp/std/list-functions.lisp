@@ -34,3 +34,16 @@ result so far will be `initial-value`, or `nil` by default."
 	  (reduce fun (cdr list)
 			  (funcall fun initial-value
 					   (car list)))))
+
+(defmacro dolist (bind & body)
+  "(dolist (var list) body ...)"
+  (let ((var (car bind))
+        (list (cadr bind))
+        (rest-sym (gensym)))
+    `(funcall
+      (lambda (,rest-sym)
+        (let ((,var (car ,rest-sym)))
+          (progn ,@body)
+          (if (cdr ,rest-sym)
+              (recurse (cdr ,rest-sym)))))
+      ,list)))

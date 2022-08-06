@@ -36,8 +36,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	
-
 	struct function *lisp_main_f = find_function(env, "main");
 
 	if (lisp_main_f)

@@ -545,7 +545,7 @@ value_t eval(struct environment *env, value_t form)
 	struct error err;
 
 	if (!IS_OKAY((err = compile_function(function, NS_ANONYMOUS, env, &local, NULL,
-										 &args, NULL, "/", &d))))
+										 &args, "", "/", &d))))
 	{
 		ereport(err);
 		return nil;

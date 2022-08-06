@@ -71,3 +71,4 @@
   (funcall let- bindings body))
 
 (load "list-functions.lisp")
+(load "oop.lisp")

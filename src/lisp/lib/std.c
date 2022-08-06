@@ -1,4 +1,5 @@
 #include "std.h"
+#include "classes.h"
 #include "../gc.h"
 #include "../compiler.h"
 #include "../plat/plat.h"
@@ -217,6 +218,64 @@ value_t l_list_functions(value_t env)
 	return list;
 }
 
+value_t l_string_to_symbol(value_t string)
+{
+	if (!stringp(string))
+		return nil;
+
+	return symval((char *)(string ^ STRING_TAG));
+}
+
+value_t l_symbol_to_string(value_t string)
+{
+	if (!symbolp(string))
+		return nil;
+
+	return strval((char *)(string ^ SYMBOL_TAG));
+}
+
+value_t l_string_length(value_t string)
+{
+	if (!stringp(string))
+		return intval(0);
+
+	return intval(strlen((char *)(string ^ STRING_TAG)));
+}
+
+value_t l_concat(value_t strings)
+{
+	struct alloc *string_alloc = malloc_aligned(sizeof(struct alloc));
+	int lengths = 0;
+
+	for (value_t str = strings; !nilp(str); str = cdr(str))
+	{
+		if (!stringp(car(str)))
+			continue;
+
+		int len = strlen((char *)(car(str) ^ STRING_TAG));
+		string_alloc = realloc_aligned(string_alloc,
+									   sizeof(struct alloc) + lengths + len);
+
+		memcpy((void *)string_alloc + sizeof(struct alloc) + lengths,
+			   (char *)(car(str) ^ STRING_TAG),
+			   len);
+
+		lengths += len;
+	}
+
+	add_this_alloc(string_alloc, STRING_TAG);
+
+	return (value_t)(string_alloc + 1) | STRING_TAG;
+}
+
+value_t l_gensym()
+{
+	static int symcnt = 0;
+	char buffer[32] = {0};
+	snprintf(buffer, 32, "-sym-%d", symcnt++);
+	return symval(buffer);
+}
+
 #define LISP_PREDICATE(name) value_t l_##name(value_t v) { return name(v) ? t : nil; }
 
 LISP_PREDICATE(listp)
@@ -224,6 +283,7 @@ LISP_PREDICATE(integerp)
 LISP_PREDICATE(symbolp)
 LISP_PREDICATE(closurep)
 LISP_PREDICATE(consp)
+LISP_PREDICATE(classp)
 
 #undef LISP_PREDICATE
 
@@ -259,8 +319,15 @@ struct error load_std(struct environment *env)
 	add_c_function(env, "elt", l_elt, 2);
 
 	add_c_function(env, "gc-stats", l_gc_stats, 0);
-
 	add_c_function(env, "env-functions", l_list_functions, 1);
+
+	add_c_varargs(env, "concat", l_concat, 0);
+	add_c_function(env, "string-length", l_string_length, 1);
+	add_c_function(env, "string->symbol", l_string_to_symbol, 1);
+	add_c_function(env, "symbol->string", l_symbol_to_string, 1);
+	add_c_function(env, "gensym", l_gensym, 0);
+
+	load_classes(env);
 
 	if (!load_library(env, "std"))
 	{

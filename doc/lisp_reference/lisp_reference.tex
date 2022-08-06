@@ -398,6 +398,42 @@ indicate particular types, values, or meanings:
   empty.
 \end{defin}
 
+\section{Strings \& Symbols}
+
+\begin{defin}{(\optlist{\func{string->symbol}\\\func{symbol->string}} \param{value})}%
+  \index{string->symbol}\index{symbol->string} Return a new
+  \ret{symbol} or \ret{string} representing \param{value},
+  respectively; or \ret{\nil} if \param{value} is not of the specified
+  type.
+\end{defin}
+
+\begin{defin}{(\func{concat} \param{strings} \more)}\index{concat}
+  Return \ret{a new string} containing the content of each of the
+  strings \param{strings} one after the other.
+\end{defin}
+
+\begin{defin}{(\func{gensym})}\index{gensym}
+  Return a \ret{new, unique symbol}. Useful in macros.
+\end{defin}
+
+\section{Object Oriented Programming}
+
+\begin{defin}{(\func{make-class} \param{type} \param{num-members})}\index{make-class}
+  Create a \ret{new class instance} of type \param{type} with slots
+  for \param{num-members} members. This is a low-level function that
+  should not be often used.
+\end{defin}
+
+\begin{defin}{(\func{class-member} \param{class} \param{index})}\index{class-member}
+  Get the \ret{member variable at index \param{index}} in the class
+  instance \param{class}, or \ret{\nil} if \param{index} out of range.
+\end{defin}
+
+\begin{defin}{(\func{set-class-member} \param{class} \param{index} \param{value})}\index{set-class-member}
+  Set the member variable at index \param{index} in the class instance
+  \param{class} to \param{value}.
+\end{defin}
+
 \section{Input \& Output}
 
 \begin{defin}{

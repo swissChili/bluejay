@@ -168,6 +168,7 @@ void pop_pool(unsigned char pool);
 void add_to_pool(value_t form);
 
 void del_alloc(struct alloc *alloc);
+void add_this_alloc(struct alloc *a, int tag);
 
 /**
  * @returns true if pool is still alive (in scope).
@@ -185,6 +186,8 @@ struct error readint(struct istream *is, value_t *val) WARN_UNUSED;
  * Read a quoted form, including `'` (quote) `\`` (backquote) and `,` (unquote)
  */
 struct error readquote(struct istream *is, value_t *val) WARN_UNUSED;
+
+int valint(value_t i);
 
 value_t intval(int i);
 value_t strval(char *str);
@@ -216,6 +219,7 @@ bool integerp(value_t v);
 bool symbolp(value_t v);
 bool stringp(value_t v);
 bool consp(value_t v);
+bool classp(value_t v);
 bool listp(value_t v);
 bool nilp(value_t v);
 bool heapp(value_t v);
