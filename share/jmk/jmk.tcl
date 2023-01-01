@@ -145,6 +145,8 @@ proc srcs {args} {
 		variable obj [regsub -- {(.+)\.\w+} $src {\1.o}]
 		set ::objs "$::objs $obj"
 
+		set relpath [exec sh -c "realpath --relative-to '$::jmk_makefile_dir' '$src'"]
+
 		if {[string match *.c $src]} {
 			variable cc $::cc
 			if {[string match *distcc* $cc]} {
@@ -157,9 +159,14 @@ proc srcs {args} {
 				rule $obj $src {}
 			}
 
-			log CC $src
+			log CC $relpath
 			cc "-c $::first_src -o $::target"
 			puts ""
+		} elseif {[string match *.s $src]} {
+			log ASM $relpath
+			rule $obj $src {
+				asm "$::asmflags $::first_src -o $::target"
+			}
 		}
 	}
 }
@@ -214,11 +221,6 @@ proc helpers {} {
 	# 	cc "-c $::first_src -o $::target"
 	# }
 
-	rule .s.o {} {
-		log ASM $::first_src
-		asm "$::asmflags $::first_src -o $::target"
-	}
-
 	rule clean {} {
 		shell "rm -f **/*.o **/*.a *.so $::jmk_target $::objs"
 
@@ -243,7 +245,7 @@ namespace eval preset {
 	}
 
 	proc warn {} {
-		cflags -Wall -Wno-unused-function -Wno-unused-variable -Wno-incompatible-pointer-types -Wno-sign-compare
+		cflags -Wall
 	}
 
 	proc 32 {} {

@@ -417,7 +417,7 @@ ssize_t ext2_read_inode(struct ext2_superblock *sb, struct ext2_inode *inode,
 	const uint block_size = ext2_block_size(sb);
 	char transfer[block_size];
 
-	uint fsize = MIN(inode->size, size);
+	uint fsize = MIN(inode->size, (uint)size);
 	uint i;
 
 	// Transfer full blocks straight to the output buffer
@@ -478,8 +478,8 @@ bool ext2_write_inode_block(struct ext2_superblock *sb, struct ext2_inode *dir,
 	return true;
 }
 
-static const uint ext2_bitmap_block(struct ext2_superblock *sb,
-									uint *bitmap_block, uint *index)
+static uint ext2_bitmap_block(struct ext2_superblock *sb,
+							  uint *bitmap_block, uint *index)
 {
 	const uint block_size = ext2_block_size(sb);
 
@@ -539,7 +539,7 @@ uint ext2_first_zero_bit(struct ext2_superblock *sb, uint bitmap_block,
 		ext2_read_block(sb, buffer, block);
 
 		// If this is the first block start at start_at, otherwise 0
-		for (int i = 0; i < block_size / 4; i++)
+		for (uint i = 0; i < block_size / 4; i++)
 		{
 			// The bitwise negative will be non-zero if there are zero bits in
 			// the original.
@@ -577,7 +577,7 @@ uint ext2_first_free_inode(struct ext2_superblock *sb)
 
 	kprintf(INFO "%d block groups\n", num_block_groups);
 
-	for (int bg_num = 0; bg_num < num_block_groups; bg_num++)
+	for (uint bg_num = 0; bg_num < num_block_groups; bg_num++)
 	{
 		struct ext2_block_group_descriptor bgd =
 			ext2_load_bgd(sb, 0);
@@ -607,7 +607,7 @@ uint ext2_first_free_block(struct ext2_superblock *sb)
 {
 	uint num_block_groups = ext2_num_block_groups(sb);
 
-	for (int bg_num = 0; bg_num < num_block_groups; bg_num++)
+	for (uint bg_num = 0; bg_num < num_block_groups; bg_num++)
 	{
 		struct ext2_block_group_descriptor bgd =
 			ext2_load_bgd(sb, 0);

@@ -4,7 +4,7 @@ init kernel kernel.elf
 
 presets freestanding debug warn
 
-cflags -I$root/include/kernel -I$root/include -I[pwd] -O0 -Wno-ignored-qualifiers -Wno-unused-params -Wno-sign-compare
+cflags -I$root/include/kernel -I$root/include -I[pwd] -O0 -Wno-ignored-qualifiers -Wno-unused-params
 
 # Sources are mostly platform dependent (for now ;D )
 enable_multiplat

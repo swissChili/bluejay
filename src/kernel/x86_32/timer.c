@@ -5,8 +5,6 @@
 #include "registers.h"
 #include "task.h"
 
-static ulong tick = 0;
-
 static void timer_cb(struct registers *regs)
 {
 	if (tasks_initialized)

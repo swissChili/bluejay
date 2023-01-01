@@ -75,7 +75,7 @@ int kmain(struct multiboot_info *mboot)
 
 #ifdef TEST_THREADS
 	kprintf(DEBUG "Spawning test thread\n");
-	spawn_thread(other_thread, NULL);
+	spawn_thread((task_function_t)other_thread, NULL);
 
 	greet();
 #endif

@@ -5,14 +5,14 @@
 // Synchronization primitives
 
 /// Spinlock
-typedef volatile int spinlock_t;
+typedef int spinlock_t;
 
 void sl_acquire(spinlock_t *sl);
 void sl_release(spinlock_t *sl);
 spinlock_t sl_new();
 
 /// Semaphore
-typedef volatile int semaphore_t;
+typedef int semaphore_t;
 
 void sm_wait(semaphore_t sm);
 void sm_signal(semaphore_t sm);

@@ -17,7 +17,6 @@
 /* frames bitset, 0 = free, 1 = used */
 static uint frames[NUM_FRAMES];
 
-static uint first_page_table[1024] __attribute__((aligned(4096)));
 uint kernel_page_directory[1024] __attribute__((aligned(4096)));
 
 
@@ -29,12 +28,6 @@ static void set_frame(size_t frame_addr)
 {
 	uint frame = frame_addr / 0x1000; // page aligned
 	frames[frame / BITS] |= 1 << (frame % BITS);
-}
-
-static bool test_frame(size_t frame_addr)
-{
-	uint frame = frame_addr / 0x1000; // page aligned
-	return frames[frame / BITS] & 1 << (frame % BITS);
 }
 
 static void clear_frame(size_t frame_addr)
@@ -90,7 +83,6 @@ void free_frame(uint page)
 void map_4mb(uint *dir, size_t virt_start, size_t phys_start, bool user,
 			 bool rw)
 {
-	uint page = virt_start / 0x1000;
 	uint table = virt_start >> 22;
 
 	for (uint i = 0; i < 1024 * 0x1000; i += 0x1000)
@@ -238,6 +230,7 @@ void init_paging()
 	load_page_directory(VIRT_TO_PHYS(kernel_page_directory));
 }
 
+#ifdef TEST_PAGING
 void test_paging()
 {
 	// a random page base address
@@ -252,3 +245,4 @@ void test_paging()
 		base[i] = i;
 	}
 }
+#endif

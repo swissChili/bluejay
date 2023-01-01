@@ -119,7 +119,7 @@ void pci_load()
 
 				// Do any drivers support this?
 
-				for (int i = 0; i < num_drivers; i++)
+				for (uint i = 0; i < num_drivers; i++)
 				{
 					if (drivers[i].supports(&dev))
 					{
@@ -136,9 +136,9 @@ void pci_load()
 void pci_print_drivers()
 {
 	kprintf(INFO "Enumerating PCI device drivers:\n");
-	for (int i = 0; i < num_drivers; i++)
+	for (uint i = 0; i < num_drivers; i++)
 	{
-		for (int j = 0; j < drivers[i].loaded; j++)
+		for (uint j = 0; j < drivers[i].loaded; j++)
 		{
 			struct pci_device_driver d = drivers[i];
 			kprintf(INFO "Driver: %s, vendor: %s\n", d.generic_name, d.dev.vendor->name);

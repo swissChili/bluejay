@@ -47,6 +47,7 @@ static void gdt_set_gate(uint i, uint base, uint limit, uchar access,
 	e->access = access;
 }
 
+/*
 static void init_tss(uint num, uint ss, uint esp)
 {
 	gdt_set_gate(num, (uint)&tss_entry, (uint)&tss_entry+1, 0xe9, 0x00);
@@ -60,6 +61,7 @@ static void init_tss(uint num, uint ss, uint esp)
 	// can switch to kernel mode using this tss
 	tss_entry.ss = tss_entry.ds = tss_entry.es = tss_entry.fs = tss_entry.gs = 0x13;
 }
+*/
 
 void init_gdt()
 {
