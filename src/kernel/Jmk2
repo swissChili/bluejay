@@ -16,3 +16,5 @@ rule scan_codes.c "gen_scan_codes.py scan_codes.tsv" {
 }
 
 type custom_link
+
+jmk_finalize

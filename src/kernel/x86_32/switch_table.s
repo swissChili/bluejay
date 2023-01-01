@@ -7,9 +7,8 @@ load_page_directory:
 	mov cr3, ecx
 	ret
 
-	[global enable_paging]
-enable_paging:
-	mov ecx, cr0
-	or eax, 0x80000000
-	mov cr0, ecx
+	[global invalidate_page]
+invalidate_page: 				; void (void *page)
+	mov eax, [esp + 4]
+	invlpg [eax]
 	ret

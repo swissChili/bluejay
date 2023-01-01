@@ -3,8 +3,6 @@
 #include "kint.h"
 #include "registers.h"
 
-#define INIT_TASKS_INTERRUPT 0x81
-
 extern bool tasks_initialized;
 
 /**

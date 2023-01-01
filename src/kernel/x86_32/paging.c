@@ -61,7 +61,7 @@ static uint first_free_frame()
 				/* found unused frame */
 				uint frame = i * BITS + j;
 				kprintf(DEBUG "first_free_frame returning %d\n", frame);
-//				kpanic("asdf");
+
 				return frame;
 			}
 		}
@@ -103,10 +103,12 @@ void map_4mb(uint *dir, size_t virt_start, size_t phys_start, bool user,
 
 uint *get_or_create_table(uint *dir, uint table, bool user, bool rw)
 {
-	// If used AND NOT 4mb page (see figure 4-4, page 115 of Intel
+	// If used AND NOT 4mb page (see figure 4-4, page 114 of Intel
 	// manual volume 3)
-	if (dir[table] & 1 && dir[table] ^ 1 << 7)
+	// bit 0 = used; bit 7 = 4MB?
+	if (dir[table] & 1 && dir[table] ^ (1 << 7))
 	{
+		// 12 LSBs are metadata
 		return (uint *)(size_t)PHYS_TO_VIRT((dir[table] & ~0xfff));
 	}
 
@@ -146,11 +148,13 @@ void unmap_page(uint *dir, void *virt)
 	table[page] = 0;
 }
 
+// TODO: This entire function seems wrong.
 void map_page_to(uint *dir, void *virt, void *frame_p, bool writable, bool user)
 {
 	uint page = ((size_t)virt / 0x1000) % 1024;
 	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
 
+	// TODO: is the xor here correct?
 	table[page] = (((uint)frame_p) ^ 0xfff) | 1 | writable << 1 | user << 2;
 }
 
@@ -164,12 +168,12 @@ void alloc_page(uint *dir, uint *virt)
 	// Page number % pages per table
 	uint page = ((size_t)virt / 0x1000) % 1024;
 	uint *table = get_or_create_table(dir, (size_t)virt >> 22, false, false);
-	kprintf(DEBUG "table = 0x%x (virt)\n", table);
-	kprintf(DEBUG "dir entry = 0x%x\n", dir[(size_t)virt >> 22]);
+	// kprintf(DEBUG "table = 0x%x (virt)\n", table);
+	// kprintf(DEBUG "dir entry = 0x%x\n", dir[(size_t)virt >> 22]);
 
 	alloc_frame(&table[page], false, false);
 
-	kprintf(DEBUG "alloc_page table[page] = %d (0x%x)\n", table[page], table[page]);
+	// kprintf(DEBUG "alloc_page table[page] = %d (0x%x)\n", table[page], table[page]);
 	return;
 }
 
@@ -231,13 +235,20 @@ void init_paging()
 	map_4mb(kernel_page_directory, (size_t)KERNEL_VIRTUAL_BASE, 0, false,
 			false);
 
-	load_page_directory((uint)kernel_page_directory - 0xC0000000);
-
-	add_interrupt_handler(14, page_fault);
+	load_page_directory(VIRT_TO_PHYS(kernel_page_directory));
 }
 
-void page_fault(struct registers *regs)
+void test_paging()
 {
-	kprintf(ERROR "Page fault! eip = %d\n", regs->eip);
-	kpanic("Page fault");
+	// a random page base address
+	uint *base = (uint *)0xFFFFFE000;
+
+	kprintf(INFO "Allocating page (expect frame 1024)\n");
+	alloc_page(kernel_page_directory, base);
+
+	kprintf(INFO "Writing 10 words to page\n");
+	for (int i = 0; i < 10; i++)
+	{
+		base[i] = i;
+	}
 }

@@ -72,7 +72,6 @@ void kassert_int(bool condition, const char *message, const char *file,
 {
 	if (!condition)
 	{
-		vga_set_color(LIGHT_RED, BLACK);
 		kprintf(ERROR "ASSERTION FAILED: %s:%d\n%s\n", file, line, message);
 
 		while (1)

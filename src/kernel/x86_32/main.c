@@ -66,9 +66,22 @@ int kmain(struct multiboot_info *mboot)
 	asm("sti");
 
 	init_tasks();
+	kprintf(OKAY "Tasks initialized\n");
 	init_sync();
 
+#ifdef TEST_PAGING
+	test_paging();
+#endif
+
+#ifdef TEST_THREADS
+	kprintf(DEBUG "Spawning test thread\n");
+	spawn_thread(other_thread, NULL);
+
+	greet();
+#endif
+
 	pci_init();
+	kprintf(OKAY "PCI initialized\n");
 
 	// Register PCI drivers
 	ide_register();
@@ -76,12 +89,6 @@ int kmain(struct multiboot_info *mboot)
 	pci_load();
 
 	kprintf(OKAY "Loaded PCI device drivers\n");
-
-#ifdef TEST_THREADS
-	spawn_thread(other_thread, NULL);
-
-	greet();
-#endif
 
 #ifdef TEST_PCI
 	pci_print_devices();

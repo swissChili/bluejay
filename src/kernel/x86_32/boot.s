@@ -13,7 +13,7 @@ KERNEL_VIRTUAL_BASE equ 0xC0000000
 	;; Index in page directory
 KERNEL_PAGE_NUMBER equ (KERNEL_VIRTUAL_BASE >> 22)
 
-STACK_SIZE equ 0x4000
+STACK_SIZE equ 0x1000
 
 
 
@@ -23,7 +23,8 @@ STACK_SIZE equ 0x4000
 page_directory:	
 	dd 0b010000011				; Identity map first 4 megs
 	times (KERNEL_PAGE_NUMBER - 1) dd 0
-	dd 0b010000011 				; Map kernel memory to zero page too 
+	dd 0b010000011 				; Map kernel memory (4 megs) to zero
+								; page too				
 	times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0
 
 gdt:

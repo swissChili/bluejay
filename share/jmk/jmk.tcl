@@ -13,7 +13,7 @@ variable cflags {}
 variable asmflags {}
 variable ldflags {}
 
-variable asm as
+variable asm nasm
 variable cc gcc
 variable ld ld
 
@@ -40,10 +40,6 @@ proc init {name {target {DEFAULT_TARGET}}} {
 
 	rule all $target {}
 
-	rule Makefile Jmk2 {
-		log JMK2 ""
-		shell "cd $::jmk_build_dir && $::jmk_build_cmd"
-	}
 }
 
 proc preset {p} {
@@ -265,10 +261,10 @@ proc jmk_source {path} {
 	variable dir [pwd]
 
 	if {![file exists $path]} {
-		jmk_error "jmk_source: $dir/$path doesn't exist"
+		jmk_error "jmk_source: $path doesn't exist"
 	}
 
-	lappend ::jmk_sourced "$dir/$path"
+	lappend ::jmk_sourced "$path"
 
 	cd [file dirname $path]
 	uplevel 1 source [file tail $path]
@@ -276,5 +272,8 @@ proc jmk_source {path} {
 }
 
 proc jmk_finalize {} {
-	puts "Jmk2: $::jmk_sourced"
+	rule Makefile "Jmk2 $::jmk_sourced" {
+		log JMK2 ""
+		shell "cd $::jmk_build_dir && $::jmk_build_cmd"
+	}
 }

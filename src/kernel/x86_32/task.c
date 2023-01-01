@@ -5,27 +5,13 @@
 #include "paging.h"
 #include "pic.h"
 
-struct process processes[1024] = {0};
-struct ll_task_i *first_task = NULL, *last_task = NULL, *current_task = NULL;
+static struct process processes[1024] = {0};
+static struct ll_task_i *first_task = NULL, *last_task = NULL, *current_task = NULL;
 static uint next_task_id = 0;
 
 bool tasks_initialized = false;
 
-void _init_tasks(struct registers *regs);
-
 void init_tasks()
-{
-	add_interrupt_handler(INIT_TASKS_INTERRUPT, _sys_init_tasks_h);
-
-	asm("int $0x81");
-}
-
-void _sys_init_tasks_h(struct registers *regs)
-{
-	_init_tasks(regs);
-}
-
-void _init_tasks(struct registers *regs)
 {
 	processes[0] = (struct process){
 		.exists = true,
@@ -49,9 +35,12 @@ void _init_tasks(struct registers *regs)
 	first_task->next = NULL;
 	first_task->prev = NULL;
 	memset(&first_task->task, 0, sizeof(struct task));
+	// state will be filled in upon task switch.  TODO: task switch
+	// before spawning thread (or fill in CS, etc manually) to avoid
+	// #GP on task switch. New threads based on parent task
 	first_task->task = (struct task){
 		.proc = &processes[0],
-		.state = *regs,
+		.state = { 0 },
 		.id = next_task_id++,
 		.waiting = false,
 	};
@@ -89,17 +78,18 @@ void spawn_thread(void (*function)(void *), void *data)
 
 	// Virtual location of new stack, with space reserved for argument
 	// and return address to kill_this_thread().
-	uint new_stack_base_v = proc->last_stack_pos;
+	uint *new_stack_base_v = (uint *)proc->last_stack_pos;
 	proc->last_stack_pos -= 0x1000;
 
 	// Alloc a new page in the current process mapping to the new stack
 	alloc_page(dir_v, (void *)proc->last_stack_pos);
 
-	kprintf(INFO "new_stack_base_v = %p\n", new_stack_base_v);
-	new_stack_base_v -= sizeof(uint);
-	*((uint *)new_stack_base_v) = (size_t)data;
-	new_stack_base_v -= sizeof(uint);
-	*((uint *)new_stack_base_v) = (size_t)&kill_this_thread;
+	kprintf(INFO "new_stack_base_v = %p, last_stack_pos = %p\n",
+			new_stack_base_v, proc->last_stack_pos);
+
+	// Write data argument and return pointer to new threads stack
+	new_stack_base_v[-1] = (size_t)data;
+	new_stack_base_v[-2] = (size_t)&kill_this_thread;
 
 	kprintf(DEBUG "Set stack\n");
 
@@ -113,7 +103,7 @@ void spawn_thread(void (*function)(void *), void *data)
 	// Namely a new TID
 	task->id = next_task_id++;
 	// And stack, frame, and instruction pointers
-	task->state.ebp = task->state.esp = new_stack_base_v;
+	task->state.ebp = task->state.esp = (uint)(new_stack_base_v - 2);
 	task->state.eip = (uint)function;
 	task->waiting = false;
 
@@ -162,6 +152,8 @@ void kill_this_thread()
 	asm("sti");
 }
 
+extern uint _get_cr3();
+
 extern void _switch_to_task(uint page_directory, struct registers ctx);
 #if 0
 {
@@ -174,6 +166,8 @@ extern void _switch_to_task(uint page_directory, struct registers ctx);
 
 void switch_to_task(struct task *task)
 {
+	kprintf(DEBUG "switch_to_task cr3=0x%x\n", task->proc->page_directory_p);
+
 	_switch_to_task(task->proc->page_directory_p, task->state);
 	__builtin_unreachable();
 }
@@ -183,7 +177,9 @@ void _do_switch_task(struct registers regs)
 	// Resetting eflags in _switch_to_task iret will switch this back
 	asm("cli");
 
-	kprintf(DEBUG "switching tasks\n");
+	kprintf(DEBUG "switching tasks, alleged cr3=0x%x, real cr3=0x%x\n",
+			current_task->task.proc->page_directory_p,
+			_get_cr3());
 
 	// save context for this task
 	current_task->task.state = regs;

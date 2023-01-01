@@ -9,3 +9,8 @@ _switch_to_task:				; (uint page_directory, struct
 	popad						; Then the rest of the registers
 	add esp, 8					; Then IRQ # and error #
 	iret						; And finally the saved state
+
+	[global _get_cr3]
+_get_cr3:
+	mov eax, cr3
+	ret

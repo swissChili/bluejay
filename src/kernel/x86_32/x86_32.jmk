@@ -1,8 +1,10 @@
 # -*- tcl -*-
 
+cflags -DTEST_THREADS
 ldflags -T[pwd]/link.ld -melf_i386
 asmflags -felf -Fdwarf
-set qemuflags "-drive file=hd0_ext2.img,format=raw"
+set qemuflags ""
+# "-drive file=hd0_ext2.img,format=raw"
 
 depends sys $root/src/libsys libsys.a
 depends initrd $root/boot/initrd initrd.img
@@ -45,15 +47,15 @@ objs [lib ext2] \
 	[lib sys]
 
 rule debug-wait kernel.elf {
-	shell "qemu-system-i386 -s -S $::qemuflags -kernel kernel.efl"
+	shell "qemu-system-i386 -s -S $::qemuflags -kernel kernel.elf"
 }
 rule debug kernel.elf {
-	shell "qemu-system-i386 -s -S $::qemuflags -kernel kernel.efl"
+	shell "qemu-system-i386 -s -S $::qemuflags -kernel kernel.elf &"
 	shell "echo run target remote localhost:1234 to connect to qemu"
 	shell "gdb $::first_src"
 	shell "pkill qemu-system-i386"
 }
 
-rule qemu "kernel.elf hd0_$::options(FS).img" {
+rule qemu "kernel.elf" {
 	shell "qemu-system-i386 $::qemuflags -d cpu_reset -monitor stdio -kernel kernel.elf -no-reboot"
 }

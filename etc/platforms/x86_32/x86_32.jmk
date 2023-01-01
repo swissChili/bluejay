@@ -1,4 +1,5 @@
 # -*- tcl -*-
 
 cflag -m32
+set ::asm nasm
 asmflag -felf32

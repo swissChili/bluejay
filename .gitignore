@@ -15,6 +15,7 @@ bin/*
 .gitignore
 .idea
 **/.#*
+**/*~
 src/kernel/dri/pci/vendors.c
 doc/_build
 !doc/Makefile
